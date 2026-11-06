@@ -20,7 +20,8 @@ const schema = z
     OTP_TTL_MINUTES: z.coerce.number().int().default(5),
     OTP_MAX_ATTEMPTS: z.coerce.number().int().default(5),
     OTP_RESEND_SECONDS: z.coerce.number().int().default(30),
-    EXPOSE_DEV_OTP: bool.default(true),
+    // Safe default: OTPs are never exposed unless explicitly enabled
+    EXPOSE_DEV_OTP: bool.default(false),
     BCRYPT_ROUNDS: z.coerce.number().int().min(4).max(15).default(12),
     CORS_ORIGINS: z.string().default('*'),
     UPLOAD_DIR: z.string().default('uploads'),
@@ -37,8 +38,28 @@ const schema = z
     SUPER_ADMIN_PASSWORD: z.string().default('ChangeMe@123'),
   })
   .superRefine((v, ctx) => {
-    if (v.NODE_ENV === 'production' && v.EXPOSE_DEV_OTP) {
-      ctx.addIssue({ code: 'custom', path: ['EXPOSE_DEV_OTP'], message: 'EXPOSE_DEV_OTP must be false in production' });
+    const addIssue = (path: string, message: string) =>
+      ctx.addIssue({ code: 'custom', path: [path], message });
+
+    if (v.NODE_ENV !== 'production') return;
+
+    if (v.EXPOSE_DEV_OTP) {
+      addIssue('EXPOSE_DEV_OTP', 'EXPOSE_DEV_OTP must be false in production');
+    }
+    if (v.PAYMENT_WEBHOOK_SECRET === 'dev-payment-secret') {
+      addIssue('PAYMENT_WEBHOOK_SECRET', 'PAYMENT_WEBHOOK_SECRET must be set in production');
+    }
+    if (v.SUPER_ADMIN_PASSWORD === 'ChangeMe@123') {
+      addIssue('SUPER_ADMIN_PASSWORD', 'SUPER_ADMIN_PASSWORD must be changed in production');
+    }
+    if (v.SUPER_ADMIN_EMAIL === 'superadmin@example.com') {
+      addIssue('SUPER_ADMIN_EMAIL', 'SUPER_ADMIN_EMAIL must be set in production');
+    }
+    if (v.CORS_ORIGINS === '*') {
+      addIssue('CORS_ORIGINS', 'CORS_ORIGINS must list allowed origins in production');
+    }
+    if (v.MONGODB_URI.includes('127.0.0.1') || v.MONGODB_URI.includes('localhost')) {
+      addIssue('MONGODB_URI', 'MONGODB_URI must not point to localhost in production');
     }
   });
 
