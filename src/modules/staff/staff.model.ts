@@ -2,6 +2,16 @@ import { Schema } from 'mongoose';
 import { AssetStatus, AttendanceStatus, ContractStatus, Priority, StaffType, TaskStatus, vals } from '../../common/constants/enums';
 import { defineModel, makeSchema, ref, refReq } from '../../common/models/makeSchema';
 
+// `type` field caveat — see payment.model.ts invoiceLineItemSchema.
+const documentRefSchema = new Schema(
+  {
+    type: { $type: String, required: true },
+    fileId: { $type: Schema.Types.ObjectId, ref: 'File', required: true },
+    verified: { $type: Boolean, default: false },
+  },
+  { typeKey: '$type', _id: false },
+);
+
 export const Staff = defineModel(
   'Staff',
   makeSchema(
@@ -14,7 +24,7 @@ export const Staff = defineModel(
       salaryMonthly: Number,
       joinedAt: Date,
       photoFileId: ref('File'),
-      documents: [{ type: { type: String, required: true }, fileId: refReq('File'), verified: { type: Boolean, default: false } }],
+      documents: { type: [documentRefSchema], default: [] },
       verified: { type: Boolean, default: false },
       status: { type: String, enum: ['ACTIVE', 'INACTIVE'], default: 'ACTIVE', index: true },
     },

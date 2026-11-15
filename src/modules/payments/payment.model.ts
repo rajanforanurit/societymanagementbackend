@@ -2,6 +2,19 @@ import { Schema } from 'mongoose';
 import { CalcMethod, ChargeType, ExpenseCategory, Frequency, InvoiceStatus, PaymentMethod, PaymentStatus, vals } from '../../common/constants/enums';
 import { defineModel, makeSchema, ref, refReq } from '../../common/models/makeSchema';
 
+// A path literally named `type` inside an inline object literal is parsed by
+// Mongoose as a schema-type declaration (silently casting lineItems to [String]).
+// Declare the subdocument with typeKey: '$type' so `type` stays a real field.
+const invoiceLineItemSchema = new Schema(
+  {
+    chargeId: { $type: Schema.Types.ObjectId, ref: 'Charge' },
+    title: { $type: String, required: true, trim: true },
+    type: { $type: String },
+    amount: { $type: Number, required: true, min: 0 },
+  },
+  { typeKey: '$type', _id: false },
+);
+
 export const Charge = defineModel(
   'Charge',
   makeSchema(
@@ -30,7 +43,7 @@ export const Invoice = defineModel(
       billedTo: ref('User'),
       period: String,
       title: { type: String, required: true },
-      lineItems: [{ chargeId: ref('Charge'), title: { type: String, required: true }, type: String, amount: { type: Number, required: true } }],
+      lineItems: { type: [invoiceLineItemSchema], default: [] },
       subtotal: { type: Number, required: true },
       penalty: { type: Number, default: 0 },
       adjustments: [{ label: String, amount: Number, by: ref('User'), at: { type: Date, default: Date.now } }],

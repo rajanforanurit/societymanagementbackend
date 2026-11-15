@@ -2,7 +2,8 @@ node_modules
 dist
 uploads/*
 !uploads/.gitkeep
-.env.local
 *.log
+# Environment files (real secrets) — never commit. The template is allowed.
 .env
-.env.example
+.env.*
+!.env.example

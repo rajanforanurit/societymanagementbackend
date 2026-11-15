@@ -1,6 +1,17 @@
 import { model } from 'mongoose';
+import { Schema } from 'mongoose';
 import { ResidentStatus, ResidentType, vals } from '../../common/constants/enums';
 import { defineModel, makeSchema, ref, refReq } from '../../common/models/makeSchema';
+
+// `type` field caveat — see payment.model.ts invoiceLineItemSchema.
+const verificationDocSchema = new Schema(
+  {
+    type: { $type: String, required: true },
+    fileId: { $type: Schema.Types.ObjectId, ref: 'File', required: true },
+    verified: { $type: Boolean, default: false },
+  },
+  { typeKey: '$type', _id: false },
+);
 
 export const Resident = defineModel(
   'Resident',
@@ -12,7 +23,7 @@ export const Resident = defineModel(
       status: { type: String, enum: vals(ResidentStatus), default: 'PENDING', index: true },
       isPrimary: { type: Boolean, default: false },
       relationToPrimary: String,
-      verificationDocs: [{ type: { type: String, required: true }, fileId: refReq('File'), verified: { type: Boolean, default: false } }],
+      verificationDocs: { type: [verificationDocSchema], default: [] },
       ownershipVerified: { type: Boolean, default: false },
       tenancy: { startDate: Date, endDate: Date, monthlyRent: Number, landlordName: String },
       moveInDate: Date,

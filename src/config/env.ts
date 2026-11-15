@@ -36,6 +36,23 @@ const schema = z
     SUPER_ADMIN_EMAIL: z.string().default('superadmin@example.com'),
     SUPER_ADMIN_MOBILE: z.string().default('+919999999999'),
     SUPER_ADMIN_PASSWORD: z.string().default('ChangeMe@123'),
+    // ---- Push notifications (optional; push is disabled when absent) ----
+    // Firebase Cloud Messaging — service account credentials.
+    // Either the three discrete values, or FCM_SERVICE_ACCOUNT_JSON with the
+    // whole downloaded JSON (it is parsed and overrides the discrete values).
+    FCM_PROJECT_ID: z.string().default(''),
+    FCM_CLIENT_EMAIL: z.string().default(''),
+    FCM_PRIVATE_KEY: z.string().default(''),
+    FCM_SERVICE_ACCOUNT_JSON: z.string().default(''),
+    // Apple Push Notification service — team key (.p8).
+    APNS_TEAM_ID: z.string().default(''),
+    APNS_KEY_ID: z.string().default(''),
+    APNS_PRIVATE_KEY: z.string().default(''),
+    APNS_BUNDLE_ID: z.string().default('com.habitoliving.habito'),
+    // Sandbox (development builds) vs production (App Store / TestFlight).
+    APNS_USE_SANDBOX: bool.default(true),
+    // Fail loudly if configured credentials are present but unusable.
+    PUSH_STRICT: bool.default(false),
   })
   .superRefine((v, ctx) => {
     const addIssue = (path: string, message: string) =>
@@ -68,6 +85,49 @@ if (!parsed.success) {
   process.stderr.write(`Invalid environment configuration:\n${JSON.stringify(parsed.error.issues, null, 2)}\n`);
   process.exit(1);
 }
+
+const fcmFromServiceAccount = (() => {
+  const raw = parsed.data.FCM_SERVICE_ACCOUNT_JSON;
+  if (!raw.trim()) return null;
+  try {
+    const json = JSON.parse(raw);
+    if (json.project_id && json.client_email && json.private_key) {
+      return {
+        projectId: String(json.project_id),
+        clientEmail: String(json.client_email),
+        privateKey: String(json.private_key),
+      };
+    }
+    return null;
+  } catch {
+    return null;
+  }
+})();
+
+const fcm = {
+  projectId: fcmFromServiceAccount?.projectId ?? parsed.data.FCM_PROJECT_ID,
+  clientEmail: fcmFromServiceAccount?.clientEmail ?? parsed.data.FCM_CLIENT_EMAIL,
+  privateKey: (fcmFromServiceAccount?.privateKey ?? parsed.data.FCM_PRIVATE_KEY).replace(/\\n/g, '\n'),
+};
+
+const apns = {
+  teamId: parsed.data.APNS_TEAM_ID,
+  keyId: parsed.data.APNS_KEY_ID,
+  privateKey: parsed.data.APNS_PRIVATE_KEY.replace(/\\n/g, '\n'),
+  bundleId: parsed.data.APNS_BUNDLE_ID,
+  useSandbox: parsed.data.APNS_USE_SANDBOX,
+};
+
+export const pushConfig = {
+  fcm,
+  apns,
+  fcmEnabled: Boolean(fcm.projectId && fcm.clientEmail && fcm.privateKey),
+  apnsEnabled: Boolean(apns.teamId && apns.keyId && apns.privateKey),
+  // iOS can go either through APNs directly (preferred when APNS_* is set) or
+  // through FCM (APNs key uploaded to Firebase). See docs/PUSH_NOTIFICATIONS.md.
+  iosVia: (apns.teamId && apns.keyId && apns.privateKey ? 'apns' : 'fcm') as 'apns' | 'fcm',
+  strict: parsed.data.PUSH_STRICT,
+};
 
 export const env = {
   ...parsed.data,

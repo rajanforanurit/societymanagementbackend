@@ -44377,6 +44377,304 @@ paths:
             type: string
             pattern: ^[a-f\d]{24}$
           example: 64f1c0a2b3c4d5e6f7a8b9c0
+  /api/v1/user/push-tokens:
+    post:
+      tags:
+        - Notifications
+      summary: Register or refresh a device push token
+      description: |-
+        Upserts by token: the same device re-registering updates lastSeenAt; a token that moved to a new account is re-pointed at the caller. Idempotent.
+
+        Required role: SOCIETY_ADMIN | GUARD | RESIDENT | SUPER_ADMIN.
+      operationId: post_api_v1_user_push_tokens
+      security:
+        - bearerAuth: []
+      x-required-role: &a94
+        - SOCIETY_ADMIN
+        - GUARD
+        - RESIDENT
+        - SUPER_ADMIN
+      x-required-permissions: []
+      responses:
+        "201":
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - success
+                  - data
+                properties:
+                  success:
+                    type: boolean
+                    const: true
+                  message:
+                    type: string
+                  data:
+                    type: object
+                    properties:
+                      registered:
+                        type: boolean
+                      purged:
+                        type: integer
+                        minimum: -9007199254740991
+                        maximum: 9007199254740991
+                      upserted:
+                        type: integer
+                        minimum: -9007199254740991
+                        maximum: 9007199254740991
+                    required:
+                      - registered
+                      - purged
+                    additionalProperties: false
+              example:
+                success: true
+                message: Success
+                data:
+                  registered: true
+                  purged: 1
+                  upserted: 1
+        "401":
+          description: Missing, invalid or expired access token
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "403":
+          description: Authenticated but not permitted (role, permission, feature flag or tenant)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "422":
+          description: Request validation failed
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "429":
+          description: Rate limit exceeded
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "500":
+          description: Unexpected server error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                token:
+                  type: string
+                  minLength: 16
+                  maxLength: 4096
+                platform:
+                  type: string
+                  enum:
+                    - ANDROID
+                    - IOS
+                deviceId:
+                  type: string
+                  maxLength: 128
+                deviceName:
+                  type: string
+                  maxLength: 128
+                appVersion:
+                  type: string
+                  maxLength: 32
+              required:
+                - token
+                - platform
+            example:
+              token: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+              platform: ANDROID
+              deviceId: string
+              deviceName: Sample name
+              appVersion: string
+  /api/v1/user/push-tokens/remove:
+    post:
+      tags:
+        - Notifications
+      summary: Remove a device push token
+      description: |-
+        Called on sign-out and when the user disables push in settings. Scoped to the caller: you can only remove your own tokens.
+
+        Required role: SOCIETY_ADMIN | GUARD | RESIDENT | SUPER_ADMIN.
+      operationId: post_api_v1_user_push_tokens_remove
+      security:
+        - bearerAuth: []
+      x-required-role: *a94
+      x-required-permissions: []
+      responses:
+        "200":
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - success
+                  - data
+                properties:
+                  success:
+                    type: boolean
+                    const: true
+                  message:
+                    type: string
+                  data:
+                    type: object
+                    properties:
+                      removed:
+                        type: boolean
+                    required:
+                      - removed
+                    additionalProperties: false
+              example:
+                success: true
+                message: Success
+                data:
+                  removed: true
+        "401":
+          description: Missing, invalid or expired access token
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "403":
+          description: Authenticated but not permitted (role, permission, feature flag or tenant)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "422":
+          description: Request validation failed
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "429":
+          description: Rate limit exceeded
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "500":
+          description: Unexpected server error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                token:
+                  type: string
+                  minLength: 16
+                  maxLength: 4096
+              required:
+                - token
+            example:
+              token: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+  /api/v1/user/push-tokens/health:
+    get:
+      tags:
+        - Notifications
+      summary: Push configuration health (no secrets)
+      description: |-
+        Reports which transports are configured. Intended for ops verification after deploy.
+
+        Required role: SOCIETY_ADMIN | GUARD | RESIDENT | SUPER_ADMIN.
+      operationId: get_api_v1_user_push_tokens_health
+      security:
+        - bearerAuth: []
+      x-required-role: *a94
+      x-required-permissions: []
+      responses:
+        "200":
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - success
+                  - data
+                properties:
+                  success:
+                    type: boolean
+                    const: true
+                  message:
+                    type: string
+                  data:
+                    type: object
+                    properties:
+                      fcmEnabled:
+                        type: boolean
+                      apnsEnabled:
+                        type: boolean
+                      iosVia:
+                        type: string
+                        enum:
+                          - apns
+                          - fcm
+                      strict:
+                        type: boolean
+                      fcmProjectId:
+                        type:
+                          - string
+                          - "null"
+                    required:
+                      - fcmEnabled
+                      - apnsEnabled
+                      - iosVia
+                      - strict
+                      - fcmProjectId
+                    additionalProperties: false
+              example:
+                success: true
+                message: Success
+                data:
+                  fcmEnabled: true
+                  apnsEnabled: true
+                  iosVia: apns
+                  strict: true
+                  fcmProjectId: string
+        "401":
+          description: Missing, invalid or expired access token
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "403":
+          description: Authenticated but not permitted (role, permission, feature flag or tenant)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "429":
+          description: Rate limit exceeded
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "500":
+          description: Unexpected server error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
   /api/v1/user/invoices:
     get:
       tags:
@@ -44386,7 +44684,7 @@ paths:
       operationId: get_api_v1_user_invoices
       security:
         - bearerAuth: []
-      x-required-role: &a94
+      x-required-role: &a95
         - RESIDENT
       x-required-permissions: []
       responses:
@@ -44693,7 +44991,7 @@ paths:
       operationId: get_api_v1_user_invoices_summary
       security:
         - bearerAuth: []
-      x-required-role: *a94
+      x-required-role: *a95
       x-required-permissions: []
       responses:
         "200":
@@ -44767,7 +45065,7 @@ paths:
       operationId: get_api_v1_user_invoices_id
       security:
         - bearerAuth: []
-      x-required-role: *a94
+      x-required-role: *a95
       x-required-permissions: []
       responses:
         "200":
@@ -44981,7 +45279,7 @@ paths:
       operationId: post_api_v1_user_invoices_id_pay
       security:
         - bearerAuth: []
-      x-required-role: *a94
+      x-required-role: *a95
       x-required-permissions: []
       responses:
         "201":
@@ -45204,7 +45502,7 @@ paths:
       operationId: post_api_v1_user_payments_id_verify
       security:
         - bearerAuth: []
-      x-required-role: *a94
+      x-required-role: *a95
       x-required-permissions: []
       responses:
         "200":
@@ -45404,7 +45702,7 @@ paths:
       operationId: get_api_v1_user_payments
       security:
         - bearerAuth: []
-      x-required-role: *a94
+      x-required-role: *a95
       x-required-permissions: []
       responses:
         "200":
@@ -45657,7 +45955,7 @@ paths:
       operationId: get_api_v1_user_payments_id_receipt
       security:
         - bearerAuth: []
-      x-required-role: *a94
+      x-required-role: *a95
       x-required-permissions: []
       responses:
         "200":
@@ -45967,9 +46265,9 @@ paths:
       operationId: get_api_v1_admin_finance_charges
       security:
         - bearerAuth: []
-      x-required-role: &a97
+      x-required-role: &a98
         - SOCIETY_ADMIN
-      x-required-permissions: &a101
+      x-required-permissions: &a102
         - finance:read
       responses:
         "200":
@@ -46047,13 +46345,13 @@ paths:
                               default: true
                               type: boolean
                             towerIds:
-                              default: &a95 []
+                              default: &a96 []
                               type: array
                               items:
                                 type: string
                                 pattern: ^[a-f\d]{24}$
                             flatIds:
-                              default: &a96 []
+                              default: &a97 []
                               type: array
                               items:
                                 type: string
@@ -46097,8 +46395,8 @@ paths:
                     frequency: ONE_TIME
                     applyTo:
                       all: true
-                      towerIds: *a95
-                      flatIds: *a96
+                      towerIds: *a96
+                      flatIds: *a97
                     isActive: true
                 meta:
                   page: 1
@@ -46225,8 +46523,8 @@ paths:
       operationId: post_api_v1_admin_finance_charges
       security:
         - bearerAuth: []
-      x-required-role: *a97
-      x-required-permissions: &a104
+      x-required-role: *a98
+      x-required-permissions: &a105
         - finance:manage
       responses:
         "201":
@@ -46302,13 +46600,13 @@ paths:
                             default: true
                             type: boolean
                           towerIds:
-                            default: &a98 []
+                            default: &a99 []
                             type: array
                             items:
                               type: string
                               pattern: ^[a-f\d]{24}$
                           flatIds:
-                            default: &a99 []
+                            default: &a100 []
                             type: array
                             items:
                               type: string
@@ -46350,8 +46648,8 @@ paths:
                   frequency: ONE_TIME
                   applyTo:
                     all: true
-                    towerIds: *a98
-                    flatIds: *a99
+                    towerIds: *a99
+                    flatIds: *a100
                   isActive: true
         "401":
           description: Missing, invalid or expired access token
@@ -46432,7 +46730,7 @@ paths:
                     - HALF_YEARLY
                     - YEARLY
                 applyTo:
-                  default: &a100
+                  default: &a101
                     all: true
                     towerIds: []
                     flatIds: []
@@ -46468,7 +46766,7 @@ paths:
               amount: 100
               calcMethod: FIXED
               frequency: ONE_TIME
-              applyTo: *a100
+              applyTo: *a101
               isActive: true
               description: string
   /api/v1/admin/finance/charges/{id}:
@@ -46480,8 +46778,8 @@ paths:
       operationId: get_api_v1_admin_finance_charges_id
       security:
         - bearerAuth: []
-      x-required-role: *a97
-      x-required-permissions: *a101
+      x-required-role: *a98
+      x-required-permissions: *a102
       responses:
         "200":
           description: Successful response
@@ -46556,13 +46854,13 @@ paths:
                             default: true
                             type: boolean
                           towerIds:
-                            default: &a102 []
+                            default: &a103 []
                             type: array
                             items:
                               type: string
                               pattern: ^[a-f\d]{24}$
                           flatIds:
-                            default: &a103 []
+                            default: &a104 []
                             type: array
                             items:
                               type: string
@@ -46604,8 +46902,8 @@ paths:
                   frequency: ONE_TIME
                   applyTo:
                     all: true
-                    towerIds: *a102
-                    flatIds: *a103
+                    towerIds: *a103
+                    flatIds: *a104
                   isActive: true
         "401":
           description: Missing, invalid or expired access token
@@ -46656,8 +46954,8 @@ paths:
       operationId: patch_api_v1_admin_finance_charges_id
       security:
         - bearerAuth: []
-      x-required-role: *a97
-      x-required-permissions: *a104
+      x-required-role: *a98
+      x-required-permissions: *a105
       responses:
         "200":
           description: Successful response
@@ -46732,13 +47030,13 @@ paths:
                             default: true
                             type: boolean
                           towerIds:
-                            default: &a105 []
+                            default: &a106 []
                             type: array
                             items:
                               type: string
                               pattern: ^[a-f\d]{24}$
                           flatIds:
-                            default: &a106 []
+                            default: &a107 []
                             type: array
                             items:
                               type: string
@@ -46780,8 +47078,8 @@ paths:
                   frequency: ONE_TIME
                   applyTo:
                     all: true
-                    towerIds: *a105
-                    flatIds: *a106
+                    towerIds: *a106
+                    flatIds: *a107
                   isActive: true
         "401":
           description: Missing, invalid or expired access token
@@ -46876,7 +47174,7 @@ paths:
                     - HALF_YEARLY
                     - YEARLY
                 applyTo:
-                  default: &a107
+                  default: &a108
                     all: true
                     towerIds: []
                     flatIds: []
@@ -46909,7 +47207,7 @@ paths:
               amount: 100
               calcMethod: FIXED
               frequency: ONE_TIME
-              applyTo: *a107
+              applyTo: *a108
               isActive: true
               description: string
     delete:
@@ -46923,8 +47221,8 @@ paths:
       operationId: delete_api_v1_admin_finance_charges_id
       security:
         - bearerAuth: []
-      x-required-role: *a97
-      x-required-permissions: *a104
+      x-required-role: *a98
+      x-required-permissions: *a105
       responses:
         "200":
           description: Successful response
@@ -47003,8 +47301,8 @@ paths:
       operationId: post_api_v1_admin_finance_invoices_generate
       security:
         - bearerAuth: []
-      x-required-role: *a97
-      x-required-permissions: *a104
+      x-required-role: *a98
+      x-required-permissions: *a105
       responses:
         "201":
           description: Successful response
@@ -47129,8 +47427,8 @@ paths:
       operationId: post_api_v1_admin_finance_invoices
       security:
         - bearerAuth: []
-      x-required-role: *a97
-      x-required-permissions: *a104
+      x-required-role: *a98
+      x-required-permissions: *a105
       responses:
         "201":
           description: Successful response
@@ -47397,8 +47695,8 @@ paths:
       operationId: get_api_v1_admin_finance_invoices
       security:
         - bearerAuth: []
-      x-required-role: *a97
-      x-required-permissions: *a101
+      x-required-role: *a98
+      x-required-permissions: *a102
       responses:
         "200":
           description: Successful response
@@ -47703,8 +48001,8 @@ paths:
       operationId: get_api_v1_admin_finance_invoices_id
       security:
         - bearerAuth: []
-      x-required-role: *a97
-      x-required-permissions: *a101
+      x-required-role: *a98
+      x-required-permissions: *a102
       responses:
         "200":
           description: Successful response
@@ -47914,8 +48212,8 @@ paths:
       operationId: post_api_v1_admin_finance_invoices_id_adjust
       security:
         - bearerAuth: []
-      x-required-role: *a97
-      x-required-permissions: *a104
+      x-required-role: *a98
+      x-required-permissions: *a105
       responses:
         "200":
           description: Successful response
@@ -48164,8 +48462,8 @@ paths:
       operationId: post_api_v1_admin_finance_invoices_id_cancel
       security:
         - bearerAuth: []
-      x-required-role: *a97
-      x-required-permissions: *a104
+      x-required-role: *a98
+      x-required-permissions: *a105
       responses:
         "200":
           description: Successful response
@@ -48405,8 +48703,8 @@ paths:
       operationId: post_api_v1_admin_finance_penalties_apply
       security:
         - bearerAuth: []
-      x-required-role: *a97
-      x-required-permissions: *a104
+      x-required-role: *a98
+      x-required-permissions: *a105
       responses:
         "200":
           description: Successful response
@@ -48477,8 +48775,8 @@ paths:
       operationId: post_api_v1_admin_finance_payments_offline
       security:
         - bearerAuth: []
-      x-required-role: *a97
-      x-required-permissions: *a104
+      x-required-role: *a98
+      x-required-permissions: *a105
       responses:
         "201":
           description: Successful response
@@ -48685,8 +48983,8 @@ paths:
       operationId: get_api_v1_admin_finance_payments
       security:
         - bearerAuth: []
-      x-required-role: *a97
-      x-required-permissions: *a101
+      x-required-role: *a98
+      x-required-permissions: *a102
       responses:
         "200":
           description: Successful response
@@ -48938,7 +49236,7 @@ paths:
       operationId: get_api_v1_admin_finance_reports_summary
       security:
         - bearerAuth: []
-      x-required-role: *a97
+      x-required-role: *a98
       x-required-permissions:
         - report:read
       responses:
@@ -49082,8 +49380,8 @@ paths:
       operationId: get_api_v1_admin_finance_expenses
       security:
         - bearerAuth: []
-      x-required-role: *a97
-      x-required-permissions: *a101
+      x-required-role: *a98
+      x-required-permissions: *a102
       responses:
         "200":
           description: Successful response
@@ -49315,8 +49613,8 @@ paths:
       operationId: post_api_v1_admin_finance_expenses
       security:
         - bearerAuth: []
-      x-required-role: *a97
-      x-required-permissions: &a108
+      x-required-role: *a98
+      x-required-permissions: &a109
         - expense:manage
       responses:
         "201":
@@ -49528,8 +49826,8 @@ paths:
       operationId: get_api_v1_admin_finance_expenses_id
       security:
         - bearerAuth: []
-      x-required-role: *a97
-      x-required-permissions: *a101
+      x-required-role: *a98
+      x-required-permissions: *a102
       responses:
         "200":
           description: Successful response
@@ -49672,8 +49970,8 @@ paths:
       operationId: patch_api_v1_admin_finance_expenses_id
       security:
         - bearerAuth: []
-      x-required-role: *a97
-      x-required-permissions: *a108
+      x-required-role: *a98
+      x-required-permissions: *a109
       responses:
         "200":
           description: Successful response
@@ -49895,8 +50193,8 @@ paths:
       operationId: delete_api_v1_admin_finance_expenses_id
       security:
         - bearerAuth: []
-      x-required-role: *a97
-      x-required-permissions: *a108
+      x-required-role: *a98
+      x-required-permissions: *a109
       responses:
         "200":
           description: Successful response
@@ -49975,7 +50273,7 @@ paths:
       operationId: post_api_v1_user_property_listings
       security:
         - bearerAuth: []
-      x-required-role: &a112
+      x-required-role: &a113
         - RESIDENT
       x-required-permissions: []
       responses:
@@ -50201,14 +50499,14 @@ paths:
                   minLength: 10
                   maxLength: 5000
                 images:
-                  default: &a109 []
+                  default: &a110 []
                   maxItems: 10
                   type: array
                   items:
                     type: string
                     pattern: ^[a-f\d]{24}$
                 tags:
-                  default: &a110 []
+                  default: &a111 []
                   maxItems: 10
                   type: array
                   items:
@@ -50266,7 +50564,7 @@ paths:
                   type: string
                   maxLength: 200
                 amenities:
-                  default: &a111 []
+                  default: &a112 []
                   maxItems: 30
                   type: array
                   items:
@@ -50284,8 +50582,8 @@ paths:
               flatId: 64f1c0a2b3c4d5e6f7a8b9c0
               title: string
               description: stringxxxx
-              images: *a109
-              tags: *a110
+              images: *a110
+              tags: *a111
               propertyType: FOR_SALE
               price: 100
               deposit: 100
@@ -50297,7 +50595,7 @@ paths:
               floorNumber: 1
               availableFrom: 2026-11-02
               preferredTenants: string
-              amenities: *a111
+              amenities: *a112
               parkingIncluded: false
     get:
       tags:
@@ -50310,7 +50608,7 @@ paths:
       operationId: get_api_v1_user_property_listings
       security:
         - bearerAuth: []
-      x-required-role: *a112
+      x-required-role: *a113
       x-required-permissions: []
       responses:
         "200":
@@ -50637,7 +50935,7 @@ paths:
       operationId: get_api_v1_user_property_listings_mine
       security:
         - bearerAuth: []
-      x-required-role: *a112
+      x-required-role: *a113
       x-required-permissions: []
       responses:
         "200":
@@ -50936,7 +51234,7 @@ paths:
       operationId: get_api_v1_user_property_listings_favourites
       security:
         - bearerAuth: []
-      x-required-role: *a112
+      x-required-role: *a113
       x-required-permissions: []
       responses:
         "200":
@@ -51235,7 +51533,7 @@ paths:
       operationId: get_api_v1_user_property_listings_id
       security:
         - bearerAuth: []
-      x-required-role: *a112
+      x-required-role: *a113
       x-required-permissions: []
       responses:
         "200":
@@ -51457,7 +51755,7 @@ paths:
       operationId: patch_api_v1_user_property_listings_id
       security:
         - bearerAuth: []
-      x-required-role: *a112
+      x-required-role: *a113
       x-required-permissions: []
       responses:
         "200":
@@ -51702,14 +52000,14 @@ paths:
                   minLength: 10
                   maxLength: 5000
                 images:
-                  default: &a113 []
+                  default: &a114 []
                   maxItems: 10
                   type: array
                   items:
                     type: string
                     pattern: ^[a-f\d]{24}$
                 tags:
-                  default: &a114 []
+                  default: &a115 []
                   maxItems: 10
                   type: array
                   items:
@@ -51767,7 +52065,7 @@ paths:
                   type: string
                   maxLength: 200
                 amenities:
-                  default: &a115 []
+                  default: &a116 []
                   maxItems: 30
                   type: array
                   items:
@@ -51780,8 +52078,8 @@ paths:
               flatId: 64f1c0a2b3c4d5e6f7a8b9c0
               title: string
               description: stringxxxx
-              images: *a113
-              tags: *a114
+              images: *a114
+              tags: *a115
               propertyType: FOR_SALE
               price: 100
               deposit: 100
@@ -51793,7 +52091,7 @@ paths:
               floorNumber: 1
               availableFrom: 2026-11-02
               preferredTenants: string
-              amenities: *a115
+              amenities: *a116
               parkingIncluded: false
     delete:
       tags:
@@ -51803,7 +52101,7 @@ paths:
       operationId: delete_api_v1_user_property_listings_id
       security:
         - bearerAuth: []
-      x-required-role: *a112
+      x-required-role: *a113
       x-required-permissions: []
       responses:
         "200":
@@ -51883,7 +52181,7 @@ paths:
       operationId: post_api_v1_user_property_listings_id_submit
       security:
         - bearerAuth: []
-      x-required-role: *a112
+      x-required-role: *a113
       x-required-permissions: []
       responses:
         "200":
@@ -52112,7 +52410,7 @@ paths:
       operationId: post_api_v1_user_property_listings_id_withdraw
       security:
         - bearerAuth: []
-      x-required-role: *a112
+      x-required-role: *a113
       x-required-permissions: []
       responses:
         "200":
@@ -52341,7 +52639,7 @@ paths:
       operationId: post_api_v1_user_property_listings_id_close
       security:
         - bearerAuth: []
-      x-required-role: *a112
+      x-required-role: *a113
       x-required-permissions: []
       responses:
         "200":
@@ -52570,7 +52868,7 @@ paths:
       operationId: put_api_v1_user_property_listings_id_favourite
       security:
         - bearerAuth: []
-      x-required-role: *a112
+      x-required-role: *a113
       x-required-permissions: []
       responses:
         "200":
@@ -52640,7 +52938,7 @@ paths:
       operationId: delete_api_v1_user_property_listings_id_favourite
       security:
         - bearerAuth: []
-      x-required-role: *a112
+      x-required-role: *a113
       x-required-permissions: []
       responses:
         "200":
@@ -52714,7 +53012,7 @@ paths:
       operationId: post_api_v1_user_property_listings_id_report
       security:
         - bearerAuth: []
-      x-required-role: *a112
+      x-required-role: *a113
       x-required-permissions: []
       responses:
         "201":
@@ -52819,7 +53117,7 @@ paths:
       operationId: post_api_v1_user_property_listings_id_inquiries
       security:
         - bearerAuth: []
-      x-required-role: *a112
+      x-required-role: *a113
       x-required-permissions: []
       responses:
         "201":
@@ -52981,7 +53279,7 @@ paths:
       operationId: get_api_v1_user_property_inquiries_received
       security:
         - bearerAuth: []
-      x-required-role: *a112
+      x-required-role: *a113
       x-required-permissions: []
       responses:
         "200":
@@ -53185,7 +53483,7 @@ paths:
       operationId: patch_api_v1_user_property_inquiries_id
       security:
         - bearerAuth: []
-      x-required-role: *a112
+      x-required-role: *a113
       x-required-permissions: []
       responses:
         "200":
@@ -53346,9 +53644,9 @@ paths:
       operationId: get_api_v1_admin_property_listings
       security:
         - bearerAuth: []
-      x-required-role: &a116
+      x-required-role: &a117
         - SOCIETY_ADMIN
-      x-required-permissions: &a117
+      x-required-permissions: &a118
         - listing:manage
       responses:
         "200":
@@ -53692,8 +53990,8 @@ paths:
       operationId: get_api_v1_admin_property_listings_reports
       security:
         - bearerAuth: []
-      x-required-role: *a116
-      x-required-permissions: *a117
+      x-required-role: *a117
+      x-required-permissions: *a118
       responses:
         "200":
           description: Successful response
@@ -53894,8 +54192,8 @@ paths:
       operationId: get_api_v1_admin_property_listings_id
       security:
         - bearerAuth: []
-      x-required-role: *a116
-      x-required-permissions: *a117
+      x-required-role: *a117
+      x-required-permissions: *a118
       responses:
         "200":
           description: Successful response
@@ -54116,8 +54414,8 @@ paths:
       operationId: patch_api_v1_admin_property_listings_id
       security:
         - bearerAuth: []
-      x-required-role: *a116
-      x-required-permissions: *a117
+      x-required-role: *a117
+      x-required-permissions: *a118
       responses:
         "200":
           description: Successful response
@@ -54390,8 +54688,8 @@ paths:
       operationId: delete_api_v1_admin_property_listings_id
       security:
         - bearerAuth: []
-      x-required-role: *a116
-      x-required-permissions: *a117
+      x-required-role: *a117
+      x-required-permissions: *a118
       responses:
         "200":
           description: Successful response
@@ -54461,7 +54759,7 @@ paths:
       operationId: get_api_v1_admin_reports_overview
       security:
         - bearerAuth: []
-      x-required-role: &a118
+      x-required-role: &a119
         - SOCIETY_ADMIN
       x-required-permissions:
         - report:read
@@ -54555,7 +54853,7 @@ paths:
       operationId: get_api_v1_admin_reports_visitors
       security:
         - bearerAuth: []
-      x-required-role: *a118
+      x-required-role: *a119
       x-required-permissions:
         - report:read
       responses:
@@ -54671,7 +54969,7 @@ paths:
       operationId: get_api_v1_admin_residents
       security:
         - bearerAuth: []
-      x-required-role: &a119
+      x-required-role: &a120
         - SOCIETY_ADMIN
       x-required-permissions:
         - resident:read
@@ -54981,7 +55279,7 @@ paths:
       operationId: get_api_v1_admin_residents_id
       security:
         - bearerAuth: []
-      x-required-role: *a119
+      x-required-role: *a120
       x-required-permissions:
         - resident:read
       responses:
@@ -55193,7 +55491,7 @@ paths:
       operationId: patch_api_v1_admin_residents_id
       security:
         - bearerAuth: []
-      x-required-role: *a119
+      x-required-role: *a120
       x-required-permissions:
         - resident:manage
       responses:
@@ -55461,7 +55759,7 @@ paths:
       operationId: post_api_v1_admin_residents_id_approve
       security:
         - bearerAuth: []
-      x-required-role: *a119
+      x-required-role: *a120
       x-required-permissions:
         - resident:approve
       responses:
@@ -55680,7 +55978,7 @@ paths:
       operationId: post_api_v1_admin_residents_id_reject
       security:
         - bearerAuth: []
-      x-required-role: *a119
+      x-required-role: *a120
       x-required-permissions:
         - resident:approve
       responses:
@@ -55920,7 +56218,7 @@ paths:
       operationId: post_api_v1_admin_residents_id_activate
       security:
         - bearerAuth: []
-      x-required-role: *a119
+      x-required-role: *a120
       x-required-permissions:
         - resident:manage
       responses:
@@ -56139,7 +56437,7 @@ paths:
       operationId: post_api_v1_admin_residents_id_deactivate
       security:
         - bearerAuth: []
-      x-required-role: *a119
+      x-required-role: *a120
       x-required-permissions:
         - resident:manage
       responses:
@@ -56358,7 +56656,7 @@ paths:
       operationId: post_api_v1_admin_residents_id_verification
       security:
         - bearerAuth: []
-      x-required-role: *a119
+      x-required-role: *a120
       x-required-permissions:
         - resident:approve
       responses:
@@ -56841,7 +57139,7 @@ paths:
       operationId: get_api_v1_user_profile
       security:
         - bearerAuth: []
-      x-required-role: &a120
+      x-required-role: &a121
         - RESIDENT
       x-required-permissions: []
       responses:
@@ -56936,7 +57234,7 @@ paths:
       operationId: patch_api_v1_user_profile
       security:
         - bearerAuth: []
-      x-required-role: *a120
+      x-required-role: *a121
       x-required-permissions: []
       responses:
         "200":
@@ -57066,7 +57364,7 @@ paths:
       operationId: put_api_v1_user_notification_preferences
       security:
         - bearerAuth: []
-      x-required-role: *a120
+      x-required-role: *a121
       x-required-permissions: []
       responses:
         "200":
@@ -57211,7 +57509,7 @@ paths:
       operationId: post_api_v1_user_society_requests
       security:
         - bearerAuth: []
-      x-required-role: *a120
+      x-required-role: *a121
       x-required-permissions: []
       responses:
         "201":
@@ -57442,7 +57740,7 @@ paths:
                   type: string
                   maxLength: 50
                 documents:
-                  default: &a121 []
+                  default: &a122 []
                   maxItems: 10
                   type: array
                   items:
@@ -57486,7 +57784,7 @@ paths:
               flatId: 64f1c0a2b3c4d5e6f7a8b9c0
               residentType: OWNER
               relationToPrimary: string
-              documents: *a121
+              documents: *a122
               tenancy:
                 startDate: 2026-11-02
                 endDate: 2026-11-02
@@ -57500,7 +57798,7 @@ paths:
       operationId: get_api_v1_user_society_requests
       security:
         - bearerAuth: []
-      x-required-role: *a120
+      x-required-role: *a121
       x-required-permissions: []
       responses:
         "200":
@@ -57700,7 +57998,7 @@ paths:
       operationId: post_api_v1_user_society_requests_id_documents
       security:
         - bearerAuth: []
-      x-required-role: *a120
+      x-required-role: *a121
       x-required-permissions: []
       responses:
         "200":
@@ -57938,7 +58236,7 @@ paths:
       operationId: delete_api_v1_user_society_requests_id
       security:
         - bearerAuth: []
-      x-required-role: *a120
+      x-required-role: *a121
       x-required-permissions: []
       responses:
         "200":
@@ -58012,7 +58310,7 @@ paths:
       operationId: get_api_v1_user_family
       security:
         - bearerAuth: []
-      x-required-role: &a122
+      x-required-role: &a123
         - RESIDENT
       x-required-permissions: []
       responses:
@@ -58216,7 +58514,7 @@ paths:
       operationId: post_api_v1_user_family
       security:
         - bearerAuth: []
-      x-required-role: *a122
+      x-required-role: *a123
       x-required-permissions: []
       responses:
         "201":
@@ -58395,7 +58693,7 @@ paths:
       operationId: get_api_v1_user_family_id
       security:
         - bearerAuth: []
-      x-required-role: *a122
+      x-required-role: *a123
       x-required-permissions: []
       responses:
         "200":
@@ -58535,7 +58833,7 @@ paths:
       operationId: patch_api_v1_user_family_id
       security:
         - bearerAuth: []
-      x-required-role: *a122
+      x-required-role: *a123
       x-required-permissions: []
       responses:
         "200":
@@ -58726,7 +59024,7 @@ paths:
       operationId: delete_api_v1_user_family_id
       security:
         - bearerAuth: []
-      x-required-role: *a122
+      x-required-role: *a123
       x-required-permissions: []
       responses:
         "200":
@@ -58803,7 +59101,7 @@ paths:
       operationId: post_api_v1_user_move_requests
       security:
         - bearerAuth: []
-      x-required-role: &a123
+      x-required-role: &a124
         - RESIDENT
       x-required-permissions: []
       responses:
@@ -58980,7 +59278,7 @@ paths:
       operationId: get_api_v1_user_move_requests
       security:
         - bearerAuth: []
-      x-required-role: *a123
+      x-required-role: *a124
       x-required-permissions: []
       responses:
         "200":
@@ -59216,7 +59514,7 @@ paths:
       operationId: get_api_v1_user_move_requests_id
       security:
         - bearerAuth: []
-      x-required-role: *a123
+      x-required-role: *a124
       x-required-permissions: []
       responses:
         "200":
@@ -59367,7 +59665,7 @@ paths:
       operationId: post_api_v1_user_move_requests_id_withdraw
       security:
         - bearerAuth: []
-      x-required-role: *a123
+      x-required-role: *a124
       x-required-permissions: []
       responses:
         "200":
@@ -59524,7 +59822,7 @@ paths:
       operationId: get_api_v1_admin_permissions
       security:
         - bearerAuth: []
-      x-required-role: &a124
+      x-required-role: &a125
         - SOCIETY_ADMIN
       x-required-permissions:
         - role:manage
@@ -59603,8 +59901,8 @@ paths:
       operationId: get_api_v1_admin_roles
       security:
         - bearerAuth: []
-      x-required-role: *a124
-      x-required-permissions: &a125
+      x-required-role: *a125
+      x-required-permissions: &a126
         - role:manage
       responses:
         "200":
@@ -59797,8 +60095,8 @@ paths:
       operationId: post_api_v1_admin_roles
       security:
         - bearerAuth: []
-      x-required-role: *a124
-      x-required-permissions: &a126
+      x-required-role: *a125
+      x-required-permissions: &a127
         - role:manage
       responses:
         "201":
@@ -59990,8 +60288,8 @@ paths:
       operationId: get_api_v1_admin_roles_id
       security:
         - bearerAuth: []
-      x-required-role: *a124
-      x-required-permissions: *a125
+      x-required-role: *a125
+      x-required-permissions: *a126
       responses:
         "200":
           description: Successful response
@@ -60118,8 +60416,8 @@ paths:
       operationId: patch_api_v1_admin_roles_id
       security:
         - bearerAuth: []
-      x-required-role: *a124
-      x-required-permissions: *a126
+      x-required-role: *a125
+      x-required-permissions: *a127
       responses:
         "200":
           description: Successful response
@@ -60322,8 +60620,8 @@ paths:
       operationId: delete_api_v1_admin_roles_id
       security:
         - bearerAuth: []
-      x-required-role: *a124
-      x-required-permissions: *a126
+      x-required-role: *a125
+      x-required-permissions: *a127
       responses:
         "200":
           description: Successful response
@@ -60402,7 +60700,7 @@ paths:
       operationId: get_api_v1_super_admin_role_templates
       security:
         - bearerAuth: []
-      x-required-role: &a127
+      x-required-role: &a128
         - SUPER_ADMIN
       x-required-permissions: []
       responses:
@@ -60503,7 +60801,7 @@ paths:
       operationId: post_api_v1_super_admin_role_templates
       security:
         - bearerAuth: []
-      x-required-role: *a127
+      x-required-role: *a128
       x-required-permissions: []
       responses:
         "200":
@@ -60680,7 +60978,7 @@ paths:
       operationId: patch_api_v1_super_admin_role_templates_id
       security:
         - bearerAuth: []
-      x-required-role: *a127
+      x-required-role: *a128
       x-required-permissions: []
       responses:
         "200":
@@ -60866,7 +61164,7 @@ paths:
       operationId: delete_api_v1_super_admin_role_templates_id
       security:
         - bearerAuth: []
-      x-required-role: *a127
+      x-required-role: *a128
       x-required-permissions: []
       responses:
         "200":
@@ -60940,7 +61238,7 @@ paths:
       operationId: get_api_v1_super_admin_societies
       security:
         - bearerAuth: []
-      x-required-role: &a128
+      x-required-role: &a129
         - SUPER_ADMIN
       x-required-permissions: []
       responses:
@@ -61254,7 +61552,7 @@ paths:
       operationId: post_api_v1_super_admin_societies
       security:
         - bearerAuth: []
-      x-required-role: *a128
+      x-required-role: *a129
       x-required-permissions: []
       responses:
         "201":
@@ -61614,7 +61912,7 @@ paths:
       operationId: get_api_v1_super_admin_societies_id
       security:
         - bearerAuth: []
-      x-required-role: *a128
+      x-required-role: *a129
       x-required-permissions: []
       responses:
         "200":
@@ -61835,7 +62133,7 @@ paths:
       operationId: patch_api_v1_super_admin_societies_id
       security:
         - bearerAuth: []
-      x-required-role: *a128
+      x-required-role: *a129
       x-required-permissions: []
       responses:
         "200":
@@ -62161,7 +62459,7 @@ paths:
       operationId: delete_api_v1_super_admin_societies_id
       security:
         - bearerAuth: []
-      x-required-role: *a128
+      x-required-role: *a129
       x-required-permissions: []
       responses:
         "200":
@@ -62232,7 +62530,7 @@ paths:
       operationId: post_api_v1_super_admin_societies_id_activate
       security:
         - bearerAuth: []
-      x-required-role: *a128
+      x-required-role: *a129
       x-required-permissions: []
       responses:
         "200":
@@ -62481,7 +62779,7 @@ paths:
       operationId: post_api_v1_super_admin_societies_id_deactivate
       security:
         - bearerAuth: []
-      x-required-role: *a128
+      x-required-role: *a129
       x-required-permissions: []
       responses:
         "200":
@@ -62727,7 +63025,7 @@ paths:
       operationId: put_api_v1_super_admin_societies_id_features
       security:
         - bearerAuth: []
-      x-required-role: *a128
+      x-required-role: *a129
       x-required-permissions: []
       responses:
         "200":
@@ -63017,7 +63315,7 @@ paths:
       operationId: put_api_v1_super_admin_societies_id_plan
       security:
         - bearerAuth: []
-      x-required-role: *a128
+      x-required-role: *a129
       x-required-permissions: []
       responses:
         "200":
@@ -63271,7 +63569,7 @@ paths:
       operationId: post_api_v1_super_admin_societies_id_impersonate
       security:
         - bearerAuth: []
-      x-required-role: *a128
+      x-required-role: *a129
       x-required-permissions: []
       responses:
         "201":
@@ -63803,7 +64101,7 @@ paths:
       operationId: get_api_v1_admin_society
       security:
         - bearerAuth: []
-      x-required-role: &a129
+      x-required-role: &a130
         - SOCIETY_ADMIN
       x-required-permissions:
         - society:read
@@ -64015,7 +64313,7 @@ paths:
       operationId: patch_api_v1_admin_society
       security:
         - bearerAuth: []
-      x-required-role: *a129
+      x-required-role: *a130
       x-required-permissions:
         - society:update
       responses:
@@ -64581,7 +64879,7 @@ paths:
       operationId: post_api_v1_admin_flats_bulk
       security:
         - bearerAuth: []
-      x-required-role: *a129
+      x-required-role: *a130
       x-required-permissions:
         - structure:manage
       responses:
@@ -64703,8 +65001,8 @@ paths:
       operationId: get_api_v1_admin_blocks
       security:
         - bearerAuth: []
-      x-required-role: *a129
-      x-required-permissions: &a130
+      x-required-role: *a130
+      x-required-permissions: &a131
         - society:read
       responses:
         "200":
@@ -64877,8 +65175,8 @@ paths:
       operationId: post_api_v1_admin_blocks
       security:
         - bearerAuth: []
-      x-required-role: *a129
-      x-required-permissions: &a131
+      x-required-role: *a130
+      x-required-permissions: &a132
         - structure:manage
       responses:
         "201":
@@ -65016,8 +65314,8 @@ paths:
       operationId: get_api_v1_admin_blocks_id
       security:
         - bearerAuth: []
-      x-required-role: *a129
-      x-required-permissions: *a130
+      x-required-role: *a130
+      x-required-permissions: *a131
       responses:
         "200":
           description: Successful response
@@ -65133,8 +65431,8 @@ paths:
       operationId: patch_api_v1_admin_blocks_id
       security:
         - bearerAuth: []
-      x-required-role: *a129
-      x-required-permissions: *a131
+      x-required-role: *a130
+      x-required-permissions: *a132
       responses:
         "200":
           description: Successful response
@@ -65285,8 +65583,8 @@ paths:
       operationId: delete_api_v1_admin_blocks_id
       security:
         - bearerAuth: []
-      x-required-role: *a129
-      x-required-permissions: *a131
+      x-required-role: *a130
+      x-required-permissions: *a132
       responses:
         "200":
           description: Successful response
@@ -65365,8 +65663,8 @@ paths:
       operationId: get_api_v1_admin_towers
       security:
         - bearerAuth: []
-      x-required-role: *a129
-      x-required-permissions: &a132
+      x-required-role: *a130
+      x-required-permissions: &a133
         - society:read
       responses:
         "200":
@@ -65554,8 +65852,8 @@ paths:
       operationId: post_api_v1_admin_towers
       security:
         - bearerAuth: []
-      x-required-role: *a129
-      x-required-permissions: &a133
+      x-required-role: *a130
+      x-required-permissions: &a134
         - structure:manage
       responses:
         "201":
@@ -65709,8 +66007,8 @@ paths:
       operationId: get_api_v1_admin_towers_id
       security:
         - bearerAuth: []
-      x-required-role: *a129
-      x-required-permissions: *a132
+      x-required-role: *a130
+      x-required-permissions: *a133
       responses:
         "200":
           description: Successful response
@@ -65834,8 +66132,8 @@ paths:
       operationId: patch_api_v1_admin_towers_id
       security:
         - bearerAuth: []
-      x-required-role: *a129
-      x-required-permissions: *a133
+      x-required-role: *a130
+      x-required-permissions: *a134
       responses:
         "200":
           description: Successful response
@@ -66002,8 +66300,8 @@ paths:
       operationId: delete_api_v1_admin_towers_id
       security:
         - bearerAuth: []
-      x-required-role: *a129
-      x-required-permissions: *a133
+      x-required-role: *a130
+      x-required-permissions: *a134
       responses:
         "200":
           description: Successful response
@@ -66082,8 +66380,8 @@ paths:
       operationId: get_api_v1_admin_floors
       security:
         - bearerAuth: []
-      x-required-role: *a129
-      x-required-permissions: &a134
+      x-required-role: *a130
+      x-required-permissions: &a135
         - society:read
       responses:
         "200":
@@ -66264,8 +66562,8 @@ paths:
       operationId: post_api_v1_admin_floors
       security:
         - bearerAuth: []
-      x-required-role: *a129
-      x-required-permissions: &a135
+      x-required-role: *a130
+      x-required-permissions: &a136
         - structure:manage
       responses:
         "201":
@@ -66403,8 +66701,8 @@ paths:
       operationId: get_api_v1_admin_floors_id
       security:
         - bearerAuth: []
-      x-required-role: *a129
-      x-required-permissions: *a134
+      x-required-role: *a130
+      x-required-permissions: *a135
       responses:
         "200":
           description: Successful response
@@ -66521,8 +66819,8 @@ paths:
       operationId: patch_api_v1_admin_floors_id
       security:
         - bearerAuth: []
-      x-required-role: *a129
-      x-required-permissions: *a135
+      x-required-role: *a130
+      x-required-permissions: *a136
       responses:
         "200":
           description: Successful response
@@ -66672,8 +66970,8 @@ paths:
       operationId: delete_api_v1_admin_floors_id
       security:
         - bearerAuth: []
-      x-required-role: *a129
-      x-required-permissions: *a135
+      x-required-role: *a130
+      x-required-permissions: *a136
       responses:
         "200":
           description: Successful response
@@ -66752,8 +67050,8 @@ paths:
       operationId: get_api_v1_admin_flats
       security:
         - bearerAuth: []
-      x-required-role: *a129
-      x-required-permissions: &a136
+      x-required-role: *a130
+      x-required-permissions: &a137
         - society:read
       responses:
         "200":
@@ -66984,8 +67282,8 @@ paths:
       operationId: post_api_v1_admin_flats
       security:
         - bearerAuth: []
-      x-required-role: *a129
-      x-required-permissions: &a137
+      x-required-role: *a130
+      x-required-permissions: &a138
         - structure:manage
       responses:
         "201":
@@ -67183,8 +67481,8 @@ paths:
       operationId: get_api_v1_admin_flats_id
       security:
         - bearerAuth: []
-      x-required-role: *a129
-      x-required-permissions: *a136
+      x-required-role: *a130
+      x-required-permissions: *a137
       responses:
         "200":
           description: Successful response
@@ -67326,8 +67624,8 @@ paths:
       operationId: patch_api_v1_admin_flats_id
       security:
         - bearerAuth: []
-      x-required-role: *a129
-      x-required-permissions: *a137
+      x-required-role: *a130
+      x-required-permissions: *a138
       responses:
         "200":
           description: Successful response
@@ -67537,8 +67835,8 @@ paths:
       operationId: delete_api_v1_admin_flats_id
       security:
         - bearerAuth: []
-      x-required-role: *a129
-      x-required-permissions: *a137
+      x-required-role: *a130
+      x-required-permissions: *a138
       responses:
         "200":
           description: Successful response
@@ -67617,8 +67915,8 @@ paths:
       operationId: get_api_v1_admin_gates
       security:
         - bearerAuth: []
-      x-required-role: *a129
-      x-required-permissions: &a138
+      x-required-role: *a130
+      x-required-permissions: &a139
         - society:read
       responses:
         "200":
@@ -67801,8 +68099,8 @@ paths:
       operationId: post_api_v1_admin_gates
       security:
         - bearerAuth: []
-      x-required-role: *a129
-      x-required-permissions: &a139
+      x-required-role: *a130
+      x-required-permissions: &a140
         - structure:manage
       responses:
         "201":
@@ -67967,8 +68265,8 @@ paths:
       operationId: get_api_v1_admin_gates_id
       security:
         - bearerAuth: []
-      x-required-role: *a129
-      x-required-permissions: *a138
+      x-required-role: *a130
+      x-required-permissions: *a139
       responses:
         "200":
           description: Successful response
@@ -68094,8 +68392,8 @@ paths:
       operationId: patch_api_v1_admin_gates_id
       security:
         - bearerAuth: []
-      x-required-role: *a129
-      x-required-permissions: *a139
+      x-required-role: *a130
+      x-required-permissions: *a140
       responses:
         "200":
           description: Successful response
@@ -68273,8 +68571,8 @@ paths:
       operationId: delete_api_v1_admin_gates_id
       security:
         - bearerAuth: []
-      x-required-role: *a129
-      x-required-permissions: *a139
+      x-required-role: *a130
+      x-required-permissions: *a140
       responses:
         "200":
           description: Successful response
@@ -68353,9 +68651,9 @@ paths:
       operationId: get_api_v1_admin_staff
       security:
         - bearerAuth: []
-      x-required-role: &a140
+      x-required-role: &a141
         - SOCIETY_ADMIN
-      x-required-permissions: &a142
+      x-required-permissions: &a143
         - staff:manage
       responses:
         "200":
@@ -68613,8 +68911,8 @@ paths:
       operationId: post_api_v1_admin_staff
       security:
         - bearerAuth: []
-      x-required-role: *a140
-      x-required-permissions: &a143
+      x-required-role: *a141
+      x-required-permissions: &a144
         - staff:manage
       responses:
         "201":
@@ -68806,7 +69104,7 @@ paths:
                   type: string
                   pattern: ^[a-f\d]{24}$
                 documents:
-                  default: &a141 []
+                  default: &a142 []
                   maxItems: 10
                   type: array
                   items:
@@ -68844,7 +69142,7 @@ paths:
               salaryMonthly: 100
               joinedAt: 2026-11-02
               photoFileId: 64f1c0a2b3c4d5e6f7a8b9c0
-              documents: *a141
+              documents: *a142
               status: ACTIVE
   /api/v1/admin/staff/{id}:
     get:
@@ -68855,8 +69153,8 @@ paths:
       operationId: get_api_v1_admin_staff_id
       security:
         - bearerAuth: []
-      x-required-role: *a140
-      x-required-permissions: *a142
+      x-required-role: *a141
+      x-required-permissions: *a143
       responses:
         "200":
           description: Successful response
@@ -69018,8 +69316,8 @@ paths:
       operationId: patch_api_v1_admin_staff_id
       security:
         - bearerAuth: []
-      x-required-role: *a140
-      x-required-permissions: *a143
+      x-required-role: *a141
+      x-required-permissions: *a144
       responses:
         "200":
           description: Successful response
@@ -69224,7 +69522,7 @@ paths:
                   type: string
                   pattern: ^[a-f\d]{24}$
                 documents:
-                  default: &a144 []
+                  default: &a145 []
                   maxItems: 10
                   type: array
                   items:
@@ -69258,7 +69556,7 @@ paths:
               salaryMonthly: 100
               joinedAt: 2026-11-02
               photoFileId: 64f1c0a2b3c4d5e6f7a8b9c0
-              documents: *a144
+              documents: *a145
               status: ACTIVE
     delete:
       tags:
@@ -69271,8 +69569,8 @@ paths:
       operationId: delete_api_v1_admin_staff_id
       security:
         - bearerAuth: []
-      x-required-role: *a140
-      x-required-permissions: *a143
+      x-required-role: *a141
+      x-required-permissions: *a144
       responses:
         "200":
           description: Successful response
@@ -69348,8 +69646,8 @@ paths:
       operationId: post_api_v1_admin_staff_id_verify_documents
       security:
         - bearerAuth: []
-      x-required-role: *a140
-      x-required-permissions: &a145
+      x-required-role: *a141
+      x-required-permissions: &a146
         - staff:manage
       responses:
         "200":
@@ -69535,8 +69833,8 @@ paths:
       operationId: put_api_v1_admin_staff_id_attendance
       security:
         - bearerAuth: []
-      x-required-role: *a140
-      x-required-permissions: *a145
+      x-required-role: *a141
+      x-required-permissions: *a146
       responses:
         "200":
           description: Successful response
@@ -69713,8 +70011,8 @@ paths:
       operationId: get_api_v1_admin_staff_id_attendance
       security:
         - bearerAuth: []
-      x-required-role: *a140
-      x-required-permissions: *a145
+      x-required-role: *a141
+      x-required-permissions: *a146
       responses:
         "200":
           description: Successful response
@@ -69897,8 +70195,8 @@ paths:
       operationId: get_api_v1_admin_staff_id_performance
       security:
         - bearerAuth: []
-      x-required-role: *a140
-      x-required-permissions: *a145
+      x-required-role: *a141
+      x-required-permissions: *a146
       responses:
         "200":
           description: Successful response
@@ -70080,8 +70378,8 @@ paths:
       operationId: get_api_v1_admin_vendors
       security:
         - bearerAuth: []
-      x-required-role: *a140
-      x-required-permissions: &a146
+      x-required-role: *a141
+      x-required-permissions: &a147
         - vendor:manage
       responses:
         "200":
@@ -70347,8 +70645,8 @@ paths:
       operationId: post_api_v1_admin_vendors
       security:
         - bearerAuth: []
-      x-required-role: *a140
-      x-required-permissions: &a147
+      x-required-role: *a141
+      x-required-permissions: &a148
         - vendor:manage
       responses:
         "201":
@@ -70580,8 +70878,8 @@ paths:
       operationId: get_api_v1_admin_vendors_id
       security:
         - bearerAuth: []
-      x-required-role: *a140
-      x-required-permissions: *a146
+      x-required-role: *a141
+      x-required-permissions: *a147
       responses:
         "200":
           description: Successful response
@@ -70765,8 +71063,8 @@ paths:
       operationId: patch_api_v1_admin_vendors_id
       security:
         - bearerAuth: []
-      x-required-role: *a140
-      x-required-permissions: *a147
+      x-required-role: *a141
+      x-required-permissions: *a148
       responses:
         "200":
           description: Successful response
@@ -71009,8 +71307,8 @@ paths:
       operationId: delete_api_v1_admin_vendors_id
       security:
         - bearerAuth: []
-      x-required-role: *a140
-      x-required-permissions: *a147
+      x-required-role: *a141
+      x-required-permissions: *a148
       responses:
         "200":
           description: Successful response
@@ -71086,7 +71384,7 @@ paths:
       operationId: post_api_v1_admin_vendors_id_contracts
       security:
         - bearerAuth: []
-      x-required-role: *a140
+      x-required-role: *a141
       x-required-permissions:
         - vendor:manage
       responses:
@@ -71320,7 +71618,7 @@ paths:
       operationId: delete_api_v1_admin_vendors_id_contracts_contractId
       security:
         - bearerAuth: []
-      x-required-role: *a140
+      x-required-role: *a141
       x-required-permissions:
         - vendor:manage
       responses:
@@ -71514,8 +71812,8 @@ paths:
       operationId: get_api_v1_admin_tasks
       security:
         - bearerAuth: []
-      x-required-role: *a140
-      x-required-permissions: &a148
+      x-required-role: *a141
+      x-required-permissions: &a149
         - task:manage
       responses:
         "200":
@@ -71760,8 +72058,8 @@ paths:
       operationId: post_api_v1_admin_tasks
       security:
         - bearerAuth: []
-      x-required-role: *a140
-      x-required-permissions: &a149
+      x-required-role: *a141
+      x-required-permissions: &a150
         - task:manage
       responses:
         "201":
@@ -71957,8 +72255,8 @@ paths:
       operationId: get_api_v1_admin_tasks_id
       security:
         - bearerAuth: []
-      x-required-role: *a140
-      x-required-permissions: *a148
+      x-required-role: *a141
+      x-required-permissions: *a149
       responses:
         "200":
           description: Successful response
@@ -72107,8 +72405,8 @@ paths:
       operationId: patch_api_v1_admin_tasks_id
       security:
         - bearerAuth: []
-      x-required-role: *a140
-      x-required-permissions: *a149
+      x-required-role: *a141
+      x-required-permissions: *a150
       responses:
         "200":
           description: Successful response
@@ -72323,8 +72621,8 @@ paths:
       operationId: delete_api_v1_admin_tasks_id
       security:
         - bearerAuth: []
-      x-required-role: *a140
-      x-required-permissions: *a149
+      x-required-role: *a141
+      x-required-permissions: *a150
       responses:
         "200":
           description: Successful response
@@ -72403,8 +72701,8 @@ paths:
       operationId: get_api_v1_admin_assets
       security:
         - bearerAuth: []
-      x-required-role: *a140
-      x-required-permissions: &a150
+      x-required-role: *a141
+      x-required-permissions: &a151
         - asset:manage
       responses:
         "200":
@@ -72637,8 +72935,8 @@ paths:
       operationId: post_api_v1_admin_assets
       security:
         - bearerAuth: []
-      x-required-role: *a140
-      x-required-permissions: &a151
+      x-required-role: *a141
+      x-required-permissions: &a152
         - asset:manage
       responses:
         "201":
@@ -72863,8 +73161,8 @@ paths:
       operationId: get_api_v1_admin_assets_id
       security:
         - bearerAuth: []
-      x-required-role: *a140
-      x-required-permissions: *a150
+      x-required-role: *a141
+      x-required-permissions: *a151
       responses:
         "200":
           description: Successful response
@@ -73013,8 +73311,8 @@ paths:
       operationId: patch_api_v1_admin_assets_id
       security:
         - bearerAuth: []
-      x-required-role: *a140
-      x-required-permissions: *a151
+      x-required-role: *a141
+      x-required-permissions: *a152
       responses:
         "200":
           description: Successful response
@@ -73252,8 +73550,8 @@ paths:
       operationId: delete_api_v1_admin_assets_id
       security:
         - bearerAuth: []
-      x-required-role: *a140
-      x-required-permissions: *a151
+      x-required-role: *a141
+      x-required-permissions: *a152
       responses:
         "200":
           description: Successful response
@@ -73329,7 +73627,7 @@ paths:
       operationId: get_api_v1_admin_inventory_low_stock
       security:
         - bearerAuth: []
-      x-required-role: *a140
+      x-required-role: *a141
       x-required-permissions:
         - asset:manage
       responses:
@@ -73416,7 +73714,7 @@ paths:
       operationId: get_api_v1_super_admin_dashboard
       security:
         - bearerAuth: []
-      x-required-role: &a152
+      x-required-role: &a153
         - SUPER_ADMIN
       x-required-permissions: []
       responses:
@@ -73588,7 +73886,7 @@ paths:
       operationId: get_api_v1_super_admin_monitoring_health
       security:
         - bearerAuth: []
-      x-required-role: *a152
+      x-required-role: *a153
       x-required-permissions: []
       responses:
         "200":
@@ -73710,7 +74008,7 @@ paths:
       operationId: get_api_v1_super_admin_monitoring_errors
       security:
         - bearerAuth: []
-      x-required-role: *a152
+      x-required-role: *a153
       x-required-permissions: []
       responses:
         "200":
@@ -73911,7 +74209,7 @@ paths:
       operationId: get_api_v1_super_admin_monitoring_feature_usage
       security:
         - bearerAuth: []
-      x-required-role: *a152
+      x-required-role: *a153
       x-required-permissions: []
       responses:
         "200":
@@ -74012,7 +74310,7 @@ paths:
       operationId: get_api_v1_super_admin_monitoring_impersonations
       security:
         - bearerAuth: []
-      x-required-role: *a152
+      x-required-role: *a153
       x-required-permissions: []
       responses:
         "200":
@@ -74209,7 +74507,7 @@ paths:
       operationId: get_api_v1_super_admin_security_login_history
       security:
         - bearerAuth: []
-      x-required-role: *a152
+      x-required-role: *a153
       x-required-permissions: []
       responses:
         "200":
@@ -74410,7 +74708,7 @@ paths:
       operationId: get_api_v1_super_admin_security_suspicious_activity
       security:
         - bearerAuth: []
-      x-required-role: *a152
+      x-required-role: *a153
       x-required-permissions: []
       responses:
         "200":
@@ -74495,7 +74793,7 @@ paths:
       operationId: get_api_v1_super_admin_security_users
       security:
         - bearerAuth: []
-      x-required-role: *a152
+      x-required-role: *a153
       x-required-permissions: []
       responses:
         "200":
@@ -74667,7 +74965,7 @@ paths:
       operationId: post_api_v1_super_admin_security_users_id_block
       security:
         - bearerAuth: []
-      x-required-role: *a152
+      x-required-role: *a153
       x-required-permissions: []
       responses:
         "200":
@@ -74783,7 +75081,7 @@ paths:
       operationId: post_api_v1_super_admin_security_users_id_unblock
       security:
         - bearerAuth: []
-      x-required-role: *a152
+      x-required-role: *a153
       x-required-permissions: []
       responses:
         "200":
@@ -74881,7 +75179,7 @@ paths:
       operationId: get_api_v1_super_admin_organizations
       security:
         - bearerAuth: []
-      x-required-role: *a152
+      x-required-role: *a153
       x-required-permissions: []
       responses:
         "200":
@@ -75056,7 +75354,7 @@ paths:
       operationId: post_api_v1_super_admin_organizations
       security:
         - bearerAuth: []
-      x-required-role: *a152
+      x-required-role: *a153
       x-required-permissions: []
       responses:
         "201":
@@ -75198,7 +75496,7 @@ paths:
       operationId: get_api_v1_super_admin_organizations_id
       security:
         - bearerAuth: []
-      x-required-role: *a152
+      x-required-role: *a153
       x-required-permissions: []
       responses:
         "200":
@@ -75308,7 +75606,7 @@ paths:
       operationId: patch_api_v1_super_admin_organizations_id
       security:
         - bearerAuth: []
-      x-required-role: *a152
+      x-required-role: *a153
       x-required-permissions: []
       responses:
         "200":
@@ -75464,7 +75762,7 @@ paths:
       operationId: delete_api_v1_super_admin_organizations_id
       security:
         - bearerAuth: []
-      x-required-role: *a152
+      x-required-role: *a153
       x-required-permissions: []
       responses:
         "200":
@@ -75544,7 +75842,7 @@ paths:
       operationId: get_api_v1_super_admin_plans
       security:
         - bearerAuth: []
-      x-required-role: *a152
+      x-required-role: *a153
       x-required-permissions: []
       responses:
         "200":
@@ -75741,7 +76039,7 @@ paths:
       operationId: post_api_v1_super_admin_plans
       security:
         - bearerAuth: []
-      x-required-role: *a152
+      x-required-role: *a153
       x-required-permissions: []
       responses:
         "201":
@@ -75886,7 +76184,7 @@ paths:
                     - QUARTERLY
                     - YEARLY
                 features:
-                  default: &a153
+                  default: &a154
                     marketplace: true
                     property: true
                     visitors: true
@@ -75954,7 +76252,7 @@ paths:
                       default: true
                       type: boolean
                 limits:
-                  default: &a154 {}
+                  default: &a155 {}
                   type: object
                   properties:
                     maxFlats:
@@ -75980,8 +76278,8 @@ paths:
               code: string
               price: 0
               billingCycle: MONTHLY
-              features: *a153
-              limits: *a154
+              features: *a154
+              limits: *a155
               isActive: true
   /api/v1/super-admin/plans/{id}:
     get:
@@ -75992,7 +76290,7 @@ paths:
       operationId: get_api_v1_super_admin_plans_id
       security:
         - bearerAuth: []
-      x-required-role: *a152
+      x-required-role: *a153
       x-required-permissions: []
       responses:
         "200":
@@ -76124,7 +76422,7 @@ paths:
       operationId: patch_api_v1_super_admin_plans_id
       security:
         - bearerAuth: []
-      x-required-role: *a152
+      x-required-role: *a153
       x-required-permissions: []
       responses:
         "200":
@@ -76283,7 +76581,7 @@ paths:
                     - QUARTERLY
                     - YEARLY
                 features:
-                  default: &a155
+                  default: &a156
                     marketplace: true
                     property: true
                     visitors: true
@@ -76351,7 +76649,7 @@ paths:
                       default: true
                       type: boolean
                 limits:
-                  default: &a156 {}
+                  default: &a157 {}
                   type: object
                   properties:
                     maxFlats:
@@ -76374,8 +76672,8 @@ paths:
               code: string
               price: 0
               billingCycle: MONTHLY
-              features: *a155
-              limits: *a156
+              features: *a156
+              limits: *a157
               isActive: true
     delete:
       tags:
@@ -76388,7 +76686,7 @@ paths:
       operationId: delete_api_v1_super_admin_plans_id
       security:
         - bearerAuth: []
-      x-required-role: *a152
+      x-required-role: *a153
       x-required-permissions: []
       responses:
         "200":
@@ -76468,7 +76766,7 @@ paths:
       operationId: get_api_v1_super_admin_announcements
       security:
         - bearerAuth: []
-      x-required-role: *a152
+      x-required-role: *a153
       x-required-permissions: []
       responses:
         "200":
@@ -76684,7 +76982,7 @@ paths:
       operationId: post_api_v1_super_admin_announcements
       security:
         - bearerAuth: []
-      x-required-role: *a152
+      x-required-role: *a153
       x-required-permissions: []
       responses:
         "201":
@@ -76842,7 +77140,7 @@ paths:
                     - RESIDENTS
                     - GUARDS
                 societyIds:
-                  default: &a157 []
+                  default: &a158 []
                   maxItems: 500
                   type: array
                   items:
@@ -76867,7 +77165,7 @@ paths:
               body: string
               severity: INFO
               audience: ALL
-              societyIds: *a157
+              societyIds: *a158
               startsAt: 2026-11-02T10:30:00.000Z
               endsAt: 2026-11-02T10:30:00.000Z
               isActive: true
@@ -76880,7 +77178,7 @@ paths:
       operationId: get_api_v1_super_admin_announcements_id
       security:
         - bearerAuth: []
-      x-required-role: *a152
+      x-required-role: *a153
       x-required-permissions: []
       responses:
         "200":
@@ -77020,7 +77318,7 @@ paths:
       operationId: patch_api_v1_super_admin_announcements_id
       security:
         - bearerAuth: []
-      x-required-role: *a152
+      x-required-role: *a153
       x-required-permissions: []
       responses:
         "200":
@@ -77192,7 +77490,7 @@ paths:
                     - RESIDENTS
                     - GUARDS
                 societyIds:
-                  default: &a158 []
+                  default: &a159 []
                   maxItems: 500
                   type: array
                   items:
@@ -77214,7 +77512,7 @@ paths:
               body: string
               severity: INFO
               audience: ALL
-              societyIds: *a158
+              societyIds: *a159
               startsAt: 2026-11-02T10:30:00.000Z
               endsAt: 2026-11-02T10:30:00.000Z
               isActive: true
@@ -77229,7 +77527,7 @@ paths:
       operationId: delete_api_v1_super_admin_announcements_id
       security:
         - bearerAuth: []
-      x-required-role: *a152
+      x-required-role: *a153
       x-required-permissions: []
       responses:
         "200":
@@ -77309,7 +77607,7 @@ paths:
       operationId: get_api_v1_super_admin_notification_templates
       security:
         - bearerAuth: []
-      x-required-role: *a152
+      x-required-role: *a153
       x-required-permissions: []
       responses:
         "200":
@@ -77502,7 +77800,7 @@ paths:
       operationId: post_api_v1_super_admin_notification_templates
       security:
         - bearerAuth: []
-      x-required-role: *a152
+      x-required-role: *a153
       x-required-permissions: []
       responses:
         "201":
@@ -77659,7 +77957,7 @@ paths:
       operationId: get_api_v1_super_admin_notification_templates_id
       security:
         - bearerAuth: []
-      x-required-role: *a152
+      x-required-role: *a153
       x-required-permissions: []
       responses:
         "200":
@@ -77776,7 +78074,7 @@ paths:
       operationId: patch_api_v1_super_admin_notification_templates_id
       security:
         - bearerAuth: []
-      x-required-role: *a152
+      x-required-role: *a153
       x-required-permissions: []
       responses:
         "200":
@@ -77945,7 +78243,7 @@ paths:
       operationId: delete_api_v1_super_admin_notification_templates_id
       security:
         - bearerAuth: []
-      x-required-role: *a152
+      x-required-role: *a153
       x-required-permissions: []
       responses:
         "200":
@@ -78022,7 +78320,7 @@ paths:
       operationId: get_api_v1_super_admin_configs
       security:
         - bearerAuth: []
-      x-required-role: *a152
+      x-required-role: *a153
       x-required-permissions: []
       responses:
         "200":
@@ -78117,7 +78415,7 @@ paths:
       operationId: put_api_v1_super_admin_configs_key
       security:
         - bearerAuth: []
-      x-required-role: *a152
+      x-required-role: *a153
       x-required-permissions: []
       responses:
         "200":
@@ -78240,7 +78538,7 @@ paths:
       operationId: get_api_v1_super_admin_support_tickets
       security:
         - bearerAuth: []
-      x-required-role: *a152
+      x-required-role: *a153
       x-required-permissions: []
       responses:
         "200":
@@ -78512,7 +78810,7 @@ paths:
       operationId: post_api_v1_super_admin_support_tickets
       security:
         - bearerAuth: []
-      x-required-role: *a152
+      x-required-role: *a153
       x-required-permissions: []
       responses:
         "201":
@@ -78701,7 +78999,7 @@ paths:
                     - HIGH
                     - CRITICAL
                 attachments:
-                  default: &a159 []
+                  default: &a160 []
                   maxItems: 5
                   type: array
                   items:
@@ -78718,7 +79016,7 @@ paths:
               description: stringxxxx
               category: BUG
               priority: LOW
-              attachments: *a159
+              attachments: *a160
               societyId: 64f1c0a2b3c4d5e6f7a8b9c0
   /api/v1/super-admin/support-tickets/{id}:
     get:
@@ -78729,7 +79027,7 @@ paths:
       operationId: get_api_v1_super_admin_support_tickets_id
       security:
         - bearerAuth: []
-      x-required-role: *a152
+      x-required-role: *a153
       x-required-permissions: []
       responses:
         "200":
@@ -78900,7 +79198,7 @@ paths:
       operationId: patch_api_v1_super_admin_support_tickets_id
       security:
         - bearerAuth: []
-      x-required-role: *a152
+      x-required-role: *a153
       x-required-permissions: []
       responses:
         "200":
@@ -79106,7 +79404,7 @@ paths:
       operationId: post_api_v1_super_admin_support_tickets_id_comments
       security:
         - bearerAuth: []
-      x-required-role: *a152
+      x-required-role: *a153
       x-required-permissions: []
       responses:
         "201":
@@ -79299,7 +79597,7 @@ paths:
       operationId: post_api_v1_admin_support_tickets
       security:
         - bearerAuth: []
-      x-required-role: &a161
+      x-required-role: &a162
         - SOCIETY_ADMIN
       x-required-permissions:
         - support:manage
@@ -79490,7 +79788,7 @@ paths:
                     - HIGH
                     - CRITICAL
                 attachments:
-                  default: &a160 []
+                  default: &a161 []
                   maxItems: 5
                   type: array
                   items:
@@ -79504,7 +79802,7 @@ paths:
               description: stringxxxx
               category: BUG
               priority: LOW
-              attachments: *a160
+              attachments: *a161
     get:
       tags:
         - Society Admin - Support
@@ -79513,7 +79811,7 @@ paths:
       operationId: get_api_v1_admin_support_tickets
       security:
         - bearerAuth: []
-      x-required-role: *a161
+      x-required-role: *a162
       x-required-permissions:
         - support:manage
       responses:
@@ -79787,7 +80085,7 @@ paths:
       operationId: get_api_v1_admin_support_tickets_id
       security:
         - bearerAuth: []
-      x-required-role: *a161
+      x-required-role: *a162
       x-required-permissions:
         - support:manage
       responses:
@@ -79960,7 +80258,7 @@ paths:
       operationId: post_api_v1_admin_support_tickets_id_comments
       security:
         - bearerAuth: []
-      x-required-role: *a161
+      x-required-role: *a162
       x-required-permissions:
         - support:manage
       responses:
@@ -80286,7 +80584,7 @@ paths:
       operationId: get_api_v1_user_vehicles
       security:
         - bearerAuth: []
-      x-required-role: &a162
+      x-required-role: &a163
         - RESIDENT
       x-required-permissions: []
       responses:
@@ -80512,7 +80810,7 @@ paths:
       operationId: post_api_v1_user_vehicles
       security:
         - bearerAuth: []
-      x-required-role: *a162
+      x-required-role: *a163
       x-required-permissions: []
       responses:
         "201":
@@ -80703,7 +81001,7 @@ paths:
       operationId: get_api_v1_user_vehicles_id
       security:
         - bearerAuth: []
-      x-required-role: *a162
+      x-required-role: *a163
       x-required-permissions: []
       responses:
         "200":
@@ -80853,7 +81151,7 @@ paths:
       operationId: patch_api_v1_user_vehicles_id
       security:
         - bearerAuth: []
-      x-required-role: *a162
+      x-required-role: *a163
       x-required-permissions: []
       responses:
         "200":
@@ -81053,7 +81351,7 @@ paths:
       operationId: delete_api_v1_user_vehicles_id
       security:
         - bearerAuth: []
-      x-required-role: *a162
+      x-required-role: *a163
       x-required-permissions: []
       responses:
         "200":
@@ -81130,7 +81428,7 @@ paths:
       operationId: post_api_v1_user_parking_requests
       security:
         - bearerAuth: []
-      x-required-role: *a162
+      x-required-role: *a163
       x-required-permissions: []
       responses:
         "201":
@@ -81293,7 +81591,7 @@ paths:
       operationId: get_api_v1_user_parking_requests
       security:
         - bearerAuth: []
-      x-required-role: *a162
+      x-required-role: *a163
       x-required-permissions: []
       responses:
         "200":
@@ -81502,7 +81800,7 @@ paths:
       operationId: post_api_v1_user_parking_requests_id_cancel
       security:
         - bearerAuth: []
-      x-required-role: *a162
+      x-required-role: *a163
       x-required-permissions: []
       responses:
         "200":
@@ -81641,7 +81939,7 @@ paths:
       operationId: get_api_v1_user_parking_slots
       security:
         - bearerAuth: []
-      x-required-role: *a162
+      x-required-role: *a163
       x-required-permissions: []
       responses:
         "200":
@@ -81858,7 +82156,7 @@ paths:
       operationId: get_api_v1_admin_vehicles
       security:
         - bearerAuth: []
-      x-required-role: &a163
+      x-required-role: &a164
         - SOCIETY_ADMIN
       x-required-permissions:
         - vehicle:manage
@@ -82089,8 +82387,8 @@ paths:
       operationId: get_api_v1_admin_parking_slots
       security:
         - bearerAuth: []
-      x-required-role: *a163
-      x-required-permissions: &a164
+      x-required-role: *a164
+      x-required-permissions: &a165
         - parking:manage
       responses:
         "200":
@@ -82306,8 +82604,8 @@ paths:
       operationId: post_api_v1_admin_parking_slots
       security:
         - bearerAuth: []
-      x-required-role: *a163
-      x-required-permissions: &a165
+      x-required-role: *a164
+      x-required-permissions: &a166
         - parking:manage
       responses:
         "201":
@@ -82471,8 +82769,8 @@ paths:
       operationId: get_api_v1_admin_parking_slots_id
       security:
         - bearerAuth: []
-      x-required-role: *a163
-      x-required-permissions: *a164
+      x-required-role: *a164
+      x-required-permissions: *a165
       responses:
         "200":
           description: Successful response
@@ -82604,8 +82902,8 @@ paths:
       operationId: patch_api_v1_admin_parking_slots_id
       security:
         - bearerAuth: []
-      x-required-role: *a163
-      x-required-permissions: *a165
+      x-required-role: *a164
+      x-required-permissions: *a166
       responses:
         "200":
           description: Successful response
@@ -82782,8 +83080,8 @@ paths:
       operationId: delete_api_v1_admin_parking_slots_id
       security:
         - bearerAuth: []
-      x-required-role: *a163
-      x-required-permissions: *a165
+      x-required-role: *a164
+      x-required-permissions: *a166
       responses:
         "200":
           description: Successful response
@@ -82859,7 +83157,7 @@ paths:
       operationId: post_api_v1_admin_parking_slots_id_allocate
       security:
         - bearerAuth: []
-      x-required-role: *a163
+      x-required-role: *a164
       x-required-permissions:
         - parking:manage
       responses:
@@ -83021,7 +83319,7 @@ paths:
       operationId: post_api_v1_admin_parking_slots_id_release
       security:
         - bearerAuth: []
-      x-required-role: *a163
+      x-required-role: *a164
       x-required-permissions:
         - parking:manage
       responses:
@@ -83159,7 +83457,7 @@ paths:
       operationId: get_api_v1_admin_parking_requests
       security:
         - bearerAuth: []
-      x-required-role: *a163
+      x-required-role: *a164
       x-required-permissions:
         - parking:manage
       responses:
@@ -83369,7 +83667,7 @@ paths:
       operationId: post_api_v1_admin_parking_requests_id_decide
       security:
         - bearerAuth: []
-      x-required-role: *a163
+      x-required-role: *a164
       x-required-permissions:
         - parking:manage
       responses:
@@ -83554,7 +83852,7 @@ paths:
       operationId: post_api_v1_user_visitors_invitations
       security:
         - bearerAuth: []
-      x-required-role: &a166
+      x-required-role: &a167
         - RESIDENT
       x-required-permissions: []
       responses:
@@ -83824,7 +84122,7 @@ paths:
       operationId: get_api_v1_user_visitors_invitations
       security:
         - bearerAuth: []
-      x-required-role: *a166
+      x-required-role: *a167
       x-required-permissions: []
       responses:
         "200":
@@ -84087,7 +84385,7 @@ paths:
       operationId: delete_api_v1_user_visitors_invitations_id
       security:
         - bearerAuth: []
-      x-required-role: *a166
+      x-required-role: *a167
       x-required-permissions: []
       responses:
         "200":
@@ -84273,7 +84571,7 @@ paths:
       operationId: get_api_v1_user_visitors
       security:
         - bearerAuth: []
-      x-required-role: *a166
+      x-required-role: *a167
       x-required-permissions: []
       responses:
         "200":
@@ -84573,7 +84871,7 @@ paths:
       operationId: get_api_v1_user_visitors_pending
       security:
         - bearerAuth: []
-      x-required-role: *a166
+      x-required-role: *a167
       x-required-permissions: []
       responses:
         "200":
@@ -84827,7 +85125,7 @@ paths:
       operationId: post_api_v1_user_visitors_id_respond
       security:
         - bearerAuth: []
-      x-required-role: *a166
+      x-required-role: *a167
       x-required-permissions: []
       responses:
         "200":
@@ -85055,7 +85353,7 @@ paths:
       operationId: get_api_v1_user_deliveries
       security:
         - bearerAuth: []
-      x-required-role: *a166
+      x-required-role: *a167
       x-required-permissions: []
       responses:
         "200":
@@ -85325,7 +85623,7 @@ paths:
       operationId: post_api_v1_user_deliveries_id_respond
       security:
         - bearerAuth: []
-      x-required-role: *a166
+      x-required-role: *a167
       x-required-permissions: []
       responses:
         "200":
@@ -85535,7 +85833,7 @@ paths:
       operationId: put_api_v1_user_deliveries_preferences
       security:
         - bearerAuth: []
-      x-required-role: *a166
+      x-required-role: *a167
       x-required-permissions: []
       responses:
         "200":
@@ -85632,7 +85930,7 @@ paths:
       operationId: get_api_v1_admin_visitors
       security:
         - bearerAuth: []
-      x-required-role: &a167
+      x-required-role: &a168
         - SOCIETY_ADMIN
       x-required-permissions:
         - visitor:read
@@ -85934,7 +86232,7 @@ paths:
       operationId: get_api_v1_admin_visitors_active
       security:
         - bearerAuth: []
-      x-required-role: *a167
+      x-required-role: *a168
       x-required-permissions:
         - visitor:read
       responses:
@@ -86186,7 +86484,7 @@ paths:
       operationId: get_api_v1_admin_visitors_emergency_entries
       security:
         - bearerAuth: []
-      x-required-role: *a167
+      x-required-role: *a168
       x-required-permissions:
         - visitor:read
       responses:
@@ -86438,7 +86736,7 @@ paths:
       operationId: get_api_v1_admin_visitors_passes
       security:
         - bearerAuth: []
-      x-required-role: *a167
+      x-required-role: *a168
       x-required-permissions:
         - visitor:read
       responses:
@@ -86695,7 +86993,7 @@ paths:
       operationId: get_api_v1_admin_deliveries
       security:
         - bearerAuth: []
-      x-required-role: *a167
+      x-required-role: *a168
       x-required-permissions:
         - visitor:read
       responses:
@@ -86966,7 +87264,7 @@ paths:
       operationId: get_api_v1_admin_flats_id_visitor_summary
       security:
         - bearerAuth: []
-      x-required-role: *a167
+      x-required-role: *a168
       x-required-permissions:
         - visitor:read
       responses:

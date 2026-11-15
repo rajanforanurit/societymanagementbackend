@@ -15,6 +15,7 @@ import { guardMgmtRouter } from './modules/guard/guard.mgmt.routes';
 import { guardRouter } from './modules/guard/guard.routes';
 import { marketplaceAdminRouter, marketplaceResidentRouter } from './modules/marketplace/marketplace.routes';
 import { notificationRouter } from './modules/notifications/notification.routes';
+import { pushTokenRouter } from './modules/notifications/push-token.routes';
 import { financeAdminRouter, paymentResidentRouter, paymentWebhookRouter } from './modules/payments/payment.routes';
 import { propertyAdminRouter, propertyResidentRouter } from './modules/property/property.routes';
 import { reportRouter } from './modules/reports/report.routes';
@@ -30,6 +31,7 @@ export const allRouters: ModuleRouter[] = [
   authRouter,
   societyPublicRouter,
   notificationRouter,
+  pushTokenRouter,
   announcementReadRouter,
   filesRouter,
   paymentWebhookRouter,

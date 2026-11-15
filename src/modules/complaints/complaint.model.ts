@@ -16,7 +16,16 @@ export const Complaint = defineModel(
       priority: { type: String, enum: vals(Priority), default: 'MEDIUM', index: true },
       status: { type: String, enum: vals(ComplaintStatus), default: 'OPEN', index: true },
       attachments: [ref('File')],
-      assignee: { type: { type: String, enum: vals(AssigneeType) }, refId: { type: Schema.Types.ObjectId }, name: String },
+      assignee: {
+        type: new Schema(
+          {
+            type: { $type: String, enum: vals(AssigneeType) },
+            refId: { $type: Schema.Types.ObjectId },
+            name: { $type: String },
+          },
+          { typeKey: '$type', _id: false },
+        ),
+      },
       assignedAt: Date,
       slaHours: Number,
       dueAt: { type: Date, index: true },

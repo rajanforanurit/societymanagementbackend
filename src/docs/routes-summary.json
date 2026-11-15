@@ -1,0 +1,697 @@
+{
+  "title": "Society Management Platform API",
+  "version": "1.0.0",
+  "generatedFrom": "src/docs/openapi.yaml",
+  "totalRoutes": 455,
+  "sections": {
+    "Approvals": {
+      "description": "Reusable approval workflow: DRAFT → SUBMITTED → UNDER_REVIEW → APPROVED/REJECTED → PUBLISHED → EXPIRED/REMOVED. Used by marketplace listings, property listings, community posts and move-in/out requests.",
+      "count": 9,
+      "routes": [
+        "GET /api/v1/admin/approvals - List approval requests (moderation queue)",
+        "GET /api/v1/admin/approvals/{id} - Get approval request with full history",
+        "POST /api/v1/admin/approvals/{id}/start-review - Move to UNDER_REVIEW",
+        "POST /api/v1/admin/approvals/{id}/approve - Approve (auto-publishes when the society setting is on)",
+        "POST /api/v1/admin/approvals/{id}/reject - Reject with a reason",
+        "POST /api/v1/admin/approvals/{id}/request-changes - Request modifications from the submitter",
+        "POST /api/v1/admin/approvals/{id}/suspend - Suspend a published item (hidden from residents)",
+        "POST /api/v1/admin/approvals/{id}/restore - Restore a suspended item to PUBLISHED",
+        "POST /api/v1/admin/approvals/{id}/remove - Remove an item permanently from circulation"
+      ]
+    },
+    "Authentication": {
+      "description": "Registration, OTP, login, token refresh and session management",
+      "count": 13,
+      "routes": [
+        "POST /api/v1/auth/otp/request [public] - Request an OTP",
+        "POST /api/v1/auth/register [public] - Register a resident account",
+        "POST /api/v1/auth/login [public] - Login with mobile/email and password",
+        "POST /api/v1/auth/login/otp [public] - Login with mobile OTP",
+        "POST /api/v1/auth/refresh [public] - Rotate refresh token",
+        "POST /api/v1/auth/logout - Logout current session or all devices",
+        "POST /api/v1/auth/switch-society - Switch active society",
+        "POST /api/v1/auth/password/forgot [public] - Request a password-reset OTP",
+        "POST /api/v1/auth/password/reset [public] - Reset password with OTP",
+        "POST /api/v1/auth/password/change - Change password",
+        "GET /api/v1/auth/me - Current account, memberships and effective permissions",
+        "GET /api/v1/auth/societies/search [public] - Search active societies to join",
+        "POST /api/v1/auth/societies/register [public] - Submit a society registration request"
+      ]
+    },
+    "Files": {
+      "description": "Validated, tenant-scoped file storage (local disk)",
+      "count": 2,
+      "routes": [
+        "POST /api/v1/files - Upload a file (multipart/form-data, field \"file\")",
+        "GET /api/v1/files/{id} - Download a file"
+      ]
+    },
+    "Guard": {
+      "description": "Simplified security interface. Guards only see minimal data (flat label, visitor details) for their own society and gate; residents' personal and financial data is never exposed.",
+      "count": 32,
+      "routes": [
+        "GET /api/v1/guard/dashboard - Guard dashboard",
+        "GET /api/v1/guard/gate - My assigned gate",
+        "GET /api/v1/guard/flats/lookup - Find a destination flat (label only)",
+        "GET /api/v1/guard/visitors - Search visitor records",
+        "POST /api/v1/guard/visitors - Register a walk-in visitor and request resident approval",
+        "GET /api/v1/guard/visitors/pending - Visitors pending approval",
+        "GET /api/v1/guard/visitors/active - Visitors currently inside",
+        "GET /api/v1/guard/visitors/expected - Expected (pre-approved) visitors",
+        "POST /api/v1/guard/visitors/verify - Verify a visitor pass by OTP code or scanned QR token",
+        "POST /api/v1/guard/visitors/emergency-entry - Record an emergency entry (ambulance, fire, police)",
+        "POST /api/v1/guard/visitors/{id}/request-approval - Re-contact the resident for approval",
+        "POST /api/v1/guard/visitors/{id}/entry - Record visitor entry",
+        "POST /api/v1/guard/visitors/{id}/exit - Record visitor exit",
+        "POST /api/v1/guard/visitors/{id}/deny - Reject unauthorized entry",
+        "GET /api/v1/guard/deliveries - Delivery log",
+        "POST /api/v1/guard/deliveries - Register delivery personnel and notify the resident",
+        "POST /api/v1/guard/deliveries/{id}/request-approval - Re-contact the resident for delivery approval",
+        "POST /api/v1/guard/deliveries/{id}/entry - Record delivery entry",
+        "POST /api/v1/guard/deliveries/{id}/exit - Record delivery exit",
+        "POST /api/v1/guard/deliveries/{id}/leave-at-gate - Accept parcel at the gate (Leave-at-Gate) and generate a collection OTP",
+        "POST /api/v1/guard/deliveries/{id}/handover - Hand over a parcel after verifying the resident's OTP",
+        "POST /api/v1/guard/domestic-help/lookup - Verify a domestic worker by entry code",
+        "POST /api/v1/guard/domestic-help/check-in - Check in a domestic worker and notify assigned flats",
+        "POST /api/v1/guard/domestic-help/check-out - Check out a domestic worker",
+        "GET /api/v1/guard/domestic-help/expected - Verified domestic workers for today's roster",
+        "POST /api/v1/guard/domestic-help/unauthorized-report - Report an unauthorized domestic-help visit",
+        "GET /api/v1/guard/alerts - Active emergency and panic alerts",
+        "POST /api/v1/guard/alerts - Trigger an emergency alert",
+        "PATCH /api/v1/guard/alerts/{id} - Acknowledge or resolve an alert",
+        "POST /api/v1/guard/incidents - Report a suspicious activity or security incident",
+        "POST /api/v1/guard/lost-found - Report a lost or found item",
+        "GET /api/v1/guard/emergency-contacts - Society emergency contacts and instructions"
+      ]
+    },
+    "Notifications": {
+      "description": "In-app notification inbox. Real-time delivery uses Socket.IO (connect with auth.token = access token): events notification:new, visitor:arrived, visitor:decision, delivery:arrived, delivery:decision, emergency:alert, chat:message, approval:updated, complaint:updated, payment:success.",
+      "count": 8,
+      "routes": [
+        "GET /api/v1/notifications - My notifications",
+        "GET /api/v1/notifications/unread-count - Unread notification count",
+        "POST /api/v1/notifications/read-all - Mark all as read",
+        "POST /api/v1/notifications/{id}/read - Mark one notification as read",
+        "POST /api/v1/user/push-tokens - Register or refresh a device push token",
+        "POST /api/v1/user/push-tokens/remove - Remove a device push token",
+        "GET /api/v1/user/push-tokens/health - Push configuration health (no secrets)",
+        "GET /api/v1/announcements - Active platform announcements for my role"
+      ]
+    },
+    "Resident - Amenities": {
+      "description": "Browse amenities, check slot availability, book, pay and cancel",
+      "count": 5,
+      "routes": [
+        "GET /api/v1/user/amenities - Available amenities",
+        "GET /api/v1/user/amenities/bookings - My booking history",
+        "POST /api/v1/user/amenities/bookings/{id}/cancel - Cancel a booking",
+        "GET /api/v1/user/amenities/{id}/slots - Slot availability for a date",
+        "POST /api/v1/user/amenities/{id}/bookings - Book a slot"
+      ]
+    },
+    "Resident - Community": {
+      "description": "Announcements, posts, polls, elections, in-app chat and the resident directory",
+      "count": 22,
+      "routes": [
+        "GET /api/v1/user/chat/conversations - My conversations",
+        "POST /api/v1/user/chat/conversations - Start (or reopen) a conversation with a neighbour",
+        "GET /api/v1/user/chat/conversations/{id}/messages - Messages in a conversation",
+        "POST /api/v1/user/chat/conversations/{id}/messages - Send a message",
+        "POST /api/v1/user/chat/conversations/{id}/read - Mark conversation as read",
+        "GET /api/v1/user/notices - Society announcements, circulars and events for my flats",
+        "GET /api/v1/user/notices/{id} - Get notice",
+        "GET /api/v1/user/directory - Resident directory (name and flat only)",
+        "GET /api/v1/user/community/posts - Community feed (approved posts only)",
+        "POST /api/v1/user/community/posts - Create a community post draft",
+        "GET /api/v1/user/community/posts/mine - My posts in every status",
+        "PATCH /api/v1/user/community/posts/{id} - Edit my draft post",
+        "POST /api/v1/user/community/posts/{id}/submit - Submit post for approval",
+        "POST /api/v1/user/community/posts/{id}/withdraw - Withdraw post to draft",
+        "GET /api/v1/user/community/posts/{id}/comments - Comments on a post",
+        "POST /api/v1/user/community/posts/{id}/comments - Comment on a post",
+        "PUT /api/v1/user/community/posts/{id}/like - Like a post",
+        "DELETE /api/v1/user/community/posts/{id}/like - Remove like",
+        "GET /api/v1/user/polls - Polls, surveys and elections open to me",
+        "GET /api/v1/user/polls/{id} - Get poll",
+        "POST /api/v1/user/polls/{id}/vote - Vote in a poll, survey or election",
+        "GET /api/v1/user/polls/{id}/results - Results (when the poll is closed or showResults is enabled)"
+      ]
+    },
+    "Resident - Documents": {
+      "description": "Society documents, flat documents and personal records",
+      "count": 5,
+      "routes": [
+        "GET /api/v1/user/documents - List documents",
+        "POST /api/v1/user/documents - Create document",
+        "GET /api/v1/user/documents/{id} - Get document by id",
+        "PATCH /api/v1/user/documents/{id} - Update document",
+        "DELETE /api/v1/user/documents/{id} - Delete document"
+      ]
+    },
+    "Resident - Domestic Help & Services": {
+      "description": "Register and manage domestic help, attendance, payments, and find verified local service providers",
+      "count": 13,
+      "routes": [
+        "GET /api/v1/user/domestic-help - My domestic help",
+        "POST /api/v1/user/domestic-help - Register a domestic worker",
+        "GET /api/v1/user/domestic-help/directory - Search verified maids, drivers, cooks and cleaners",
+        "POST /api/v1/user/domestic-help/{id}/hire - Add a verified helper to my flat",
+        "POST /api/v1/user/domestic-help/{id}/release - Remove a helper from my flat",
+        "GET /api/v1/user/domestic-help/{id}/attendance - Attendance history (gate entries and my flat marks)",
+        "PUT /api/v1/user/domestic-help/{id}/attendance - Mark daily attendance for my flat",
+        "GET /api/v1/user/domestic-help/{id}/payments - Payment and advance history",
+        "POST /api/v1/user/domestic-help/{id}/payments - Record a salary, advance or bonus payment",
+        "POST /api/v1/user/domestic-help/{id}/reviews - Rate a domestic helper",
+        "GET /api/v1/user/service-providers - Find electricians, plumbers, carpenters and other professionals",
+        "GET /api/v1/user/service-providers/{id}/reviews - Reviews for a service provider",
+        "POST /api/v1/user/service-providers/{id}/reviews - Rate and review a service provider"
+      ]
+    },
+    "Resident - Emergency & Safety": {
+      "description": "Panic button, emergency contacts, incident reporting and lost & found",
+      "count": 13,
+      "routes": [
+        "POST /api/v1/user/emergency/panic - Trigger the emergency panic button",
+        "GET /api/v1/user/emergency/alerts - My emergency alerts",
+        "GET /api/v1/user/emergency/incidents - My reported incidents",
+        "POST /api/v1/user/emergency/incidents - Report a security incident",
+        "GET /api/v1/user/emergency/contacts - Society emergency numbers",
+        "GET /api/v1/user/emergency/lost-found - Browse lost & found",
+        "POST /api/v1/user/emergency/lost-found - Report a lost or found item",
+        "PATCH /api/v1/user/emergency/lost-found/{id} - Mark my lost & found report claimed or closed",
+        "GET /api/v1/user/emergency/personal-contacts - List personal emergency contacts",
+        "POST /api/v1/user/emergency/personal-contacts - Create personal emergency contact",
+        "GET /api/v1/user/emergency/personal-contacts/{id} - Get personal emergency contact by id",
+        "PATCH /api/v1/user/emergency/personal-contacts/{id} - Update personal emergency contact",
+        "DELETE /api/v1/user/emergency/personal-contacts/{id} - Delete personal emergency contact"
+      ]
+    },
+    "Resident - Helpdesk": {
+      "description": "Raise and track complaints, chat with assigned staff, reopen and rate service quality",
+      "count": 6,
+      "routes": [
+        "GET /api/v1/user/complaints - My complaints",
+        "POST /api/v1/user/complaints - Raise a complaint",
+        "GET /api/v1/user/complaints/{id} - Complaint status, history and public comments",
+        "POST /api/v1/user/complaints/{id}/comments - Communicate with the assigned staff",
+        "POST /api/v1/user/complaints/{id}/reopen - Reopen a resolved complaint (within 7 days)",
+        "POST /api/v1/user/complaints/{id}/rate - Rate service quality"
+      ]
+    },
+    "Resident - Marketplace": {
+      "description": "Buy & sell products, second-hand goods, local businesses and community announcements. Listings must be approved by an admin before other residents can see them.",
+      "count": 14,
+      "routes": [
+        "GET /api/v1/user/marketplace/listings - Browse approved listings",
+        "POST /api/v1/user/marketplace/listings - Create listing draft",
+        "GET /api/v1/user/marketplace/listings/mine - My listings in every status",
+        "GET /api/v1/user/marketplace/listings/favourites - My saved listings",
+        "GET /api/v1/user/marketplace/listings/{id} - Get listing",
+        "PATCH /api/v1/user/marketplace/listings/{id} - Update my listing (draft / changes requested / rejected only)",
+        "DELETE /api/v1/user/marketplace/listings/{id} - Delete my listing",
+        "POST /api/v1/user/marketplace/listings/{id}/submit - Submit for admin approval",
+        "POST /api/v1/user/marketplace/listings/{id}/withdraw - Withdraw back to DRAFT (to edit a submitted or published listing)",
+        "POST /api/v1/user/marketplace/listings/{id}/mark-sold - Mark item as sold",
+        "PUT /api/v1/user/marketplace/listings/{id}/favourite - Save to favourites",
+        "DELETE /api/v1/user/marketplace/listings/{id}/favourite - Remove from favourites",
+        "POST /api/v1/user/marketplace/listings/{id}/report - Report an inappropriate listing",
+        "GET /api/v1/user/marketplace/categories - Active listing categories"
+      ]
+    },
+    "Resident - Payments & Billing": {
+      "description": "Maintenance dues, utility bills, online payment through a gateway abstraction, invoices, receipts and transaction history",
+      "count": 8,
+      "routes": [
+        "GET /api/v1/user/invoices - My invoices (maintenance, utilities, penalties, amenity charges)",
+        "GET /api/v1/user/invoices/summary - Outstanding and overdue amounts",
+        "GET /api/v1/user/invoices/{id} - Invoice detail (download-ready)",
+        "POST /api/v1/user/invoices/{id}/pay - Start a payment for an invoice",
+        "POST /api/v1/user/payments/{id}/verify - Verify the gateway callback and settle the payment",
+        "GET /api/v1/user/payments - Transaction history",
+        "GET /api/v1/user/payments/{id}/receipt - Payment receipt",
+        "POST /api/v1/payments/webhook [public] - Payment gateway webhook"
+      ]
+    },
+    "Resident - Profile & Membership": {
+      "description": "Profile, notification preferences, society membership requests, family and move requests",
+      "count": 16,
+      "routes": [
+        "GET /api/v1/user/profile - Get my profile",
+        "PATCH /api/v1/user/profile - Update my profile",
+        "PUT /api/v1/user/notification-preferences - Manage notification preferences",
+        "GET /api/v1/user/society-requests - View my membership requests and approval status",
+        "POST /api/v1/user/society-requests - Request society membership for a flat",
+        "POST /api/v1/user/society-requests/{id}/documents - Attach a verification document to a pending request",
+        "DELETE /api/v1/user/society-requests/{id} - Cancel a pending request",
+        "GET /api/v1/user/family - List family members",
+        "POST /api/v1/user/family - Create family member",
+        "GET /api/v1/user/family/{id} - Get family member by id",
+        "PATCH /api/v1/user/family/{id} - Update family member",
+        "DELETE /api/v1/user/family/{id} - Delete family member",
+        "GET /api/v1/user/move-requests - List my move requests",
+        "POST /api/v1/user/move-requests - Submit move-in / move-out request (enters approval workflow)",
+        "GET /api/v1/user/move-requests/{id} - Get my move request",
+        "POST /api/v1/user/move-requests/{id}/withdraw - Withdraw a move request"
+      ]
+    },
+    "Resident - Property": {
+      "description": "List and search properties for sale, rent, paying-guest/shared accommodation, commercial and vacant spaces",
+      "count": 16,
+      "routes": [
+        "GET /api/v1/user/property/listings - Browse approved propertys",
+        "POST /api/v1/user/property/listings - Create property draft",
+        "GET /api/v1/user/property/listings/mine - My propertys in every status",
+        "GET /api/v1/user/property/listings/favourites - My saved propertys",
+        "GET /api/v1/user/property/listings/{id} - Get property",
+        "PATCH /api/v1/user/property/listings/{id} - Update my property (draft / changes requested / rejected only)",
+        "DELETE /api/v1/user/property/listings/{id} - Delete my property",
+        "POST /api/v1/user/property/listings/{id}/submit - Submit for admin approval",
+        "POST /api/v1/user/property/listings/{id}/withdraw - Withdraw back to DRAFT (to edit a submitted or published listing)",
+        "POST /api/v1/user/property/listings/{id}/close - Mark property as sold / rented / closed",
+        "PUT /api/v1/user/property/listings/{id}/favourite - Save to favourites",
+        "DELETE /api/v1/user/property/listings/{id}/favourite - Remove from favourites",
+        "POST /api/v1/user/property/listings/{id}/report - Report an inappropriate listing",
+        "POST /api/v1/user/property/listings/{id}/inquiries - Express interest in a property",
+        "GET /api/v1/user/property/inquiries/received - Interested buyers or tenants for my properties",
+        "PATCH /api/v1/user/property/inquiries/{id} - Update inquiry status"
+      ]
+    },
+    "Resident - Vehicles & Parking": {
+      "description": "Register vehicles, request parking and view parking details",
+      "count": 9,
+      "routes": [
+        "GET /api/v1/user/vehicles - List vehicles",
+        "POST /api/v1/user/vehicles - Create vehicle",
+        "GET /api/v1/user/vehicles/{id} - Get vehicle by id",
+        "PATCH /api/v1/user/vehicles/{id} - Update vehicle",
+        "DELETE /api/v1/user/vehicles/{id} - Delete vehicle",
+        "GET /api/v1/user/parking/requests - My parking requests",
+        "POST /api/v1/user/parking/requests - Request a parking allocation",
+        "POST /api/v1/user/parking/requests/{id}/cancel - Cancel a pending parking request",
+        "GET /api/v1/user/parking/slots - Parking slots allocated to my flats"
+      ]
+    },
+    "Resident - Visitors": {
+      "description": "Pre-approve guests, share QR/OTP passes, approve entries and deliveries, leave-at-gate",
+      "count": 9,
+      "routes": [
+        "GET /api/v1/user/visitors/invitations - List my invitations",
+        "POST /api/v1/user/visitors/invitations - Pre-approve a guest and generate a pass",
+        "DELETE /api/v1/user/visitors/invitations/{id} - Cancel an invitation",
+        "GET /api/v1/user/visitors - Visitor history for my flats",
+        "GET /api/v1/user/visitors/pending - Visitors awaiting my approval",
+        "POST /api/v1/user/visitors/{id}/respond - Approve or reject a visitor at the gate",
+        "GET /api/v1/user/deliveries - Delivery history for my flats",
+        "POST /api/v1/user/deliveries/{id}/respond - Approve, reject or choose leave-at-gate for a delivery",
+        "PUT /api/v1/user/deliveries/preferences - Set standing delivery preferences (leave-at-gate / auto-approve)"
+      ]
+    },
+    "Society Admin - Administrators": {
+      "description": "Manage administrators of the current society and their sub-roles",
+      "count": 7,
+      "routes": [
+        "GET /api/v1/admin/admins - List administrators",
+        "POST /api/v1/admin/admins - Create administrator",
+        "GET /api/v1/admin/admins/{id} - Get administrator",
+        "PATCH /api/v1/admin/admins/{id} - Update role, designation or status",
+        "DELETE /api/v1/admin/admins/{id} - Remove administrator",
+        "PUT /api/v1/admin/admins/{id}/permissions - Assign or revoke individual permissions",
+        "POST /api/v1/admin/admins/{id}/reset-access - Reset access (temporary password, revoke sessions)"
+      ]
+    },
+    "Society Admin - Amenities": {
+      "description": "Amenity setup, slots, pricing, booking limits, blocked slots, cancellation policy and booking approvals",
+      "count": 11,
+      "routes": [
+        "GET /api/v1/admin/amenities/bookings - Booking history across amenities",
+        "POST /api/v1/admin/amenities/bookings/{id}/approve - Approve a pending booking",
+        "POST /api/v1/admin/amenities/bookings/{id}/reject - Reject a pending booking",
+        "POST /api/v1/admin/amenities/bookings/{id}/cancel - Cancel a booking on behalf of the resident (full refund)",
+        "GET /api/v1/admin/amenities - List amenities",
+        "POST /api/v1/admin/amenities - Create amenity",
+        "GET /api/v1/admin/amenities/{id} - Get amenity by id",
+        "PATCH /api/v1/admin/amenities/{id} - Update amenity",
+        "DELETE /api/v1/admin/amenities/{id} - Delete amenity",
+        "POST /api/v1/admin/amenities/{id}/blocked-slots - Block a date or time range",
+        "DELETE /api/v1/admin/amenities/{id}/blocked-slots - Unblock a date or slot"
+      ]
+    },
+    "Society Admin - Communication": {
+      "description": "Notice board, emergency announcements, polls, surveys, elections and community post moderation",
+      "count": 16,
+      "routes": [
+        "GET /api/v1/admin/notices - List notices",
+        "POST /api/v1/admin/notices - Create notice",
+        "GET /api/v1/admin/notices/{id} - Get notice by id",
+        "PATCH /api/v1/admin/notices/{id} - Update notice",
+        "DELETE /api/v1/admin/notices/{id} - Delete notice",
+        "POST /api/v1/admin/notices/{id}/publish - Publish a notice and push-notify the targeted residents",
+        "POST /api/v1/admin/notices/{id}/archive - Archive a notice",
+        "GET /api/v1/admin/polls - List polls",
+        "POST /api/v1/admin/polls - Create poll",
+        "GET /api/v1/admin/polls/{id} - Get poll by id",
+        "PATCH /api/v1/admin/polls/{id} - Update poll",
+        "DELETE /api/v1/admin/polls/{id} - Delete poll",
+        "POST /api/v1/admin/polls/{id}/activate - Open a poll, survey or election for voting",
+        "POST /api/v1/admin/polls/{id}/close - Close voting",
+        "GET /api/v1/admin/polls/{id}/results - Aggregated poll / election results",
+        "GET /api/v1/admin/community-posts - Community posts in every status (moderation view)"
+      ]
+    },
+    "Society Admin - Documents": {
+      "description": "Society document repository (bylaws, minutes, policies, flat documents)",
+      "count": 5,
+      "routes": [
+        "GET /api/v1/admin/documents - List documents",
+        "POST /api/v1/admin/documents - Create document",
+        "GET /api/v1/admin/documents/{id} - Get document by id",
+        "PATCH /api/v1/admin/documents/{id} - Update document",
+        "DELETE /api/v1/admin/documents/{id} - Delete document"
+      ]
+    },
+    "Society Admin - Finance": {
+      "description": "Recurring charges, maintenance billing, payments, penalties, expenses and financial reports",
+      "count": 20,
+      "routes": [
+        "GET /api/v1/admin/finance/charges - List charges",
+        "POST /api/v1/admin/finance/charges - Create charge",
+        "GET /api/v1/admin/finance/charges/{id} - Get charge by id",
+        "PATCH /api/v1/admin/finance/charges/{id} - Update charge",
+        "DELETE /api/v1/admin/finance/charges/{id} - Delete charge",
+        "POST /api/v1/admin/finance/invoices/generate - Generate maintenance bills for a period",
+        "GET /api/v1/admin/finance/invoices - List invoices and outstanding dues",
+        "POST /api/v1/admin/finance/invoices - Create an ad-hoc invoice (electricity, water, parking, etc.)",
+        "GET /api/v1/admin/finance/invoices/{id} - Get invoice",
+        "POST /api/v1/admin/finance/invoices/{id}/adjust - Add a waiver or adjustment (positive or negative)",
+        "POST /api/v1/admin/finance/invoices/{id}/cancel - Cancel an unpaid invoice",
+        "POST /api/v1/admin/finance/penalties/apply - Mark overdue invoices and apply late-payment penalties",
+        "POST /api/v1/admin/finance/payments/offline - Record a cash, cheque or bank-transfer payment",
+        "GET /api/v1/admin/finance/payments - Payment records",
+        "GET /api/v1/admin/finance/reports/summary - Financial report: collections, expenses, outstanding, monthly trend",
+        "GET /api/v1/admin/finance/expenses - List expenses",
+        "POST /api/v1/admin/finance/expenses - Create expense",
+        "GET /api/v1/admin/finance/expenses/{id} - Get expense by id",
+        "PATCH /api/v1/admin/finance/expenses/{id} - Update expense",
+        "DELETE /api/v1/admin/finance/expenses/{id} - Delete expense"
+      ]
+    },
+    "Society Admin - Helpdesk": {
+      "description": "Complaint triage, assignment to staff/vendors, SLAs, escalation, internal notes and reports",
+      "count": 8,
+      "routes": [
+        "GET /api/v1/admin/complaints - List all complaints",
+        "GET /api/v1/admin/complaints/reports/summary - Complaint report: status/category breakdown, overdue count, resolution time, satisfaction",
+        "GET /api/v1/admin/complaints/{id} - Complaint with internal notes and full history",
+        "PATCH /api/v1/admin/complaints/{id} - Update status, priority or SLA",
+        "POST /api/v1/admin/complaints/{id}/assign - Assign to staff, vendor or admin and optionally set a deadline",
+        "POST /api/v1/admin/complaints/{id}/escalate - Escalate an unresolved complaint",
+        "POST /api/v1/admin/complaints/{id}/comments - Add a public reply or internal note",
+        "GET /api/v1/admin/complaints/{id}/assignments - Assignment history"
+      ]
+    },
+    "Society Admin - Marketplace": {
+      "description": "Moderate resident listings, manage categories and expiry. Approval decisions go through the reusable /approvals workflow.",
+      "count": 15,
+      "routes": [
+        "GET /api/v1/admin/marketplace/listings - List all listings (any status)",
+        "GET /api/v1/admin/marketplace/listings/reports - Reports filed against listings",
+        "GET /api/v1/admin/marketplace/listings/{id} - Get listing with moderation fields",
+        "PATCH /api/v1/admin/marketplace/listings/{id} - Edit inappropriate content",
+        "DELETE /api/v1/admin/marketplace/listings/{id} - Remove listing from circulation",
+        "GET /api/v1/admin/marketplace/categories - List categories",
+        "POST /api/v1/admin/marketplace/categories - Create category",
+        "GET /api/v1/admin/marketplace/categories/{id} - Get category by id",
+        "PATCH /api/v1/admin/marketplace/categories/{id} - Update category",
+        "DELETE /api/v1/admin/marketplace/categories/{id} - Delete category",
+        "GET /api/v1/admin/property/listings - List all propertys (any status)",
+        "GET /api/v1/admin/property/listings/reports - Reports filed against propertys",
+        "GET /api/v1/admin/property/listings/{id} - Get property with moderation fields",
+        "PATCH /api/v1/admin/property/listings/{id} - Edit inappropriate content",
+        "DELETE /api/v1/admin/property/listings/{id} - Remove listing from circulation"
+      ]
+    },
+    "Society Admin - Reports & Audit": {
+      "description": "Society reports and the audit trail of actions in this society",
+      "count": 3,
+      "routes": [
+        "GET /api/v1/admin/audit-logs - Audit trail for my society",
+        "GET /api/v1/admin/reports/overview - Society overview analytics",
+        "GET /api/v1/admin/reports/visitors - Visitor analytics: per-day volume, type split, deliveries"
+      ]
+    },
+    "Society Admin - Residents": {
+      "description": "Approve registrations, verify ownership/tenancy, assign flats and manage resident access",
+      "count": 9,
+      "routes": [
+        "GET /api/v1/admin/residents - List residents",
+        "GET /api/v1/admin/residents/{id} - Get resident",
+        "PATCH /api/v1/admin/residents/{id} - Assign flat, type and resident-level permissions",
+        "POST /api/v1/admin/residents/{id}/approve - Approve resident registration",
+        "POST /api/v1/admin/residents/{id}/reject - Reject resident registration",
+        "POST /api/v1/admin/residents/{id}/activate - Re-activate resident",
+        "POST /api/v1/admin/residents/{id}/deactivate - Deactivate resident account in this society",
+        "POST /api/v1/admin/residents/{id}/verification - Record ownership / tenancy verification",
+        "GET /api/v1/admin/move-requests - List move-in / move-out requests"
+      ]
+    },
+    "Society Admin - Roles & Permissions": {
+      "description": "Configurable administrative sub-roles (Community Admin, Society Manager, Security Admin, Helpdesk, Accountant, Facility, Maintenance, Custom)",
+      "count": 6,
+      "routes": [
+        "GET /api/v1/admin/permissions - Permission catalog",
+        "GET /api/v1/admin/roles - List roles",
+        "POST /api/v1/admin/roles - Create role",
+        "GET /api/v1/admin/roles/{id} - Get role by id",
+        "PATCH /api/v1/admin/roles/{id} - Update role",
+        "DELETE /api/v1/admin/roles/{id} - Delete role"
+      ]
+    },
+    "Society Admin - Security & Visitors": {
+      "description": "Visitor logs, deliveries, overstay alerts, temporary passes and visitor policy",
+      "count": 15,
+      "routes": [
+        "GET /api/v1/admin/security/alerts - Review security and emergency alerts",
+        "PATCH /api/v1/admin/security/alerts/{id} - Acknowledge or resolve an alert",
+        "GET /api/v1/admin/security/incidents - Security incidents",
+        "PATCH /api/v1/admin/security/incidents/{id} - Update incident status",
+        "GET /api/v1/admin/security/contacts - List emergency contacts",
+        "POST /api/v1/admin/security/contacts - Create emergency contact",
+        "GET /api/v1/admin/security/contacts/{id} - Get emergency contact by id",
+        "PATCH /api/v1/admin/security/contacts/{id} - Update emergency contact",
+        "DELETE /api/v1/admin/security/contacts/{id} - Delete emergency contact",
+        "GET /api/v1/admin/visitors - Visitor entry and exit records",
+        "GET /api/v1/admin/visitors/active - Visitors currently inside",
+        "GET /api/v1/admin/visitors/emergency-entries - Emergency entry records",
+        "GET /api/v1/admin/visitors/passes - Temporary access passes (invitations)",
+        "GET /api/v1/admin/deliveries - Delivery personnel and parcel records",
+        "GET /api/v1/admin/flats/{id}/visitor-summary - Visitor counts for a flat"
+      ]
+    },
+    "Society Admin - Security Staff": {
+      "description": "Register and manage security guards and their gate assignments",
+      "count": 5,
+      "routes": [
+        "GET /api/v1/admin/guards - List guards",
+        "POST /api/v1/admin/guards - Register a guard and assign a gate",
+        "GET /api/v1/admin/guards/{id} - Get guard",
+        "PATCH /api/v1/admin/guards/{id} - Update guard assignment or status",
+        "DELETE /api/v1/admin/guards/{id} - Remove guard and revoke sessions"
+      ]
+    },
+    "Society Admin - Society Setup": {
+      "description": "Society profile, rules, visitor policy, towers, blocks, floors, flats and gates",
+      "count": 28,
+      "routes": [
+        "GET /api/v1/admin/society - Get my society configuration",
+        "PATCH /api/v1/admin/society - Update society details, rules, hours, holidays, policies and module toggles",
+        "POST /api/v1/admin/flats/bulk - Bulk-generate flats for a tower",
+        "GET /api/v1/admin/blocks - List blocks",
+        "POST /api/v1/admin/blocks - Create block",
+        "GET /api/v1/admin/blocks/{id} - Get block by id",
+        "PATCH /api/v1/admin/blocks/{id} - Update block",
+        "DELETE /api/v1/admin/blocks/{id} - Delete block",
+        "GET /api/v1/admin/towers - List towers",
+        "POST /api/v1/admin/towers - Create tower",
+        "GET /api/v1/admin/towers/{id} - Get tower by id",
+        "PATCH /api/v1/admin/towers/{id} - Update tower",
+        "DELETE /api/v1/admin/towers/{id} - Delete tower",
+        "GET /api/v1/admin/floors - List floors",
+        "POST /api/v1/admin/floors - Create floor",
+        "GET /api/v1/admin/floors/{id} - Get floor by id",
+        "PATCH /api/v1/admin/floors/{id} - Update floor",
+        "DELETE /api/v1/admin/floors/{id} - Delete floor",
+        "GET /api/v1/admin/flats - List flats",
+        "POST /api/v1/admin/flats - Create flat",
+        "GET /api/v1/admin/flats/{id} - Get flat by id",
+        "PATCH /api/v1/admin/flats/{id} - Update flat",
+        "DELETE /api/v1/admin/flats/{id} - Delete flat",
+        "GET /api/v1/admin/gates - List gates",
+        "POST /api/v1/admin/gates - Create gate",
+        "GET /api/v1/admin/gates/{id} - Get gate by id",
+        "PATCH /api/v1/admin/gates/{id} - Update gate",
+        "DELETE /api/v1/admin/gates/{id} - Delete gate"
+      ]
+    },
+    "Society Admin - Staff & Vendors": {
+      "description": "Domestic help verification, staff, vendors, service providers, attendance and contracts",
+      "count": 34,
+      "routes": [
+        "GET /api/v1/admin/domestic-help - List all domestic help in the society",
+        "POST /api/v1/admin/domestic-help/{id}/review - Verify, reject or suspend a domestic worker",
+        "GET /api/v1/admin/service-providers - List service providers",
+        "POST /api/v1/admin/service-providers - Create service provider",
+        "GET /api/v1/admin/service-providers/{id} - Get service provider by id",
+        "PATCH /api/v1/admin/service-providers/{id} - Update service provider",
+        "DELETE /api/v1/admin/service-providers/{id} - Delete service provider",
+        "GET /api/v1/admin/staff - List staff",
+        "POST /api/v1/admin/staff - Create staff member",
+        "GET /api/v1/admin/staff/{id} - Get staff member by id",
+        "PATCH /api/v1/admin/staff/{id} - Update staff member",
+        "DELETE /api/v1/admin/staff/{id} - Delete staff member",
+        "POST /api/v1/admin/staff/{id}/verify-documents - Verify staff documents",
+        "GET /api/v1/admin/staff/{id}/attendance - Staff attendance history",
+        "PUT /api/v1/admin/staff/{id}/attendance - Record staff attendance for a date",
+        "GET /api/v1/admin/staff/{id}/performance - Staff performance: attendance, tasks and complaint resolution",
+        "GET /api/v1/admin/vendors - List vendors",
+        "POST /api/v1/admin/vendors - Create vendor",
+        "GET /api/v1/admin/vendors/{id} - Get vendor by id",
+        "PATCH /api/v1/admin/vendors/{id} - Update vendor",
+        "DELETE /api/v1/admin/vendors/{id} - Delete vendor",
+        "POST /api/v1/admin/vendors/{id}/contracts - Add a vendor contract",
+        "DELETE /api/v1/admin/vendors/{id}/contracts/{contractId} - Remove a vendor contract",
+        "GET /api/v1/admin/tasks - List tasks",
+        "POST /api/v1/admin/tasks - Create task",
+        "GET /api/v1/admin/tasks/{id} - Get task by id",
+        "PATCH /api/v1/admin/tasks/{id} - Update task",
+        "DELETE /api/v1/admin/tasks/{id} - Delete task",
+        "GET /api/v1/admin/assets - List assets",
+        "POST /api/v1/admin/assets - Create asset",
+        "GET /api/v1/admin/assets/{id} - Get asset by id",
+        "PATCH /api/v1/admin/assets/{id} - Update asset",
+        "DELETE /api/v1/admin/assets/{id} - Delete asset",
+        "GET /api/v1/admin/inventory/low-stock - Inventory items at or below their minimum quantity"
+      ]
+    },
+    "Society Admin - Support": {
+      "description": "Raise and follow support tickets with the platform team",
+      "count": 4,
+      "routes": [
+        "GET /api/v1/admin/support-tickets - My society's tickets",
+        "POST /api/v1/admin/support-tickets - Raise a support ticket",
+        "GET /api/v1/admin/support-tickets/{id} - Get ticket",
+        "POST /api/v1/admin/support-tickets/{id}/comments - Comment on a ticket"
+      ]
+    },
+    "Society Admin - Vehicles & Parking": {
+      "description": "Vehicle registry, parking slots, allocations and requests",
+      "count": 10,
+      "routes": [
+        "GET /api/v1/admin/vehicles - All registered vehicles",
+        "GET /api/v1/admin/parking/slots - List parking slots",
+        "POST /api/v1/admin/parking/slots - Create parking slot",
+        "GET /api/v1/admin/parking/slots/{id} - Get parking slot by id",
+        "PATCH /api/v1/admin/parking/slots/{id} - Update parking slot",
+        "DELETE /api/v1/admin/parking/slots/{id} - Delete parking slot",
+        "POST /api/v1/admin/parking/slots/{id}/allocate - Allocate a slot to a flat/vehicle",
+        "POST /api/v1/admin/parking/slots/{id}/release - Release an allocated slot",
+        "GET /api/v1/admin/parking/requests - Parking allocation requests",
+        "POST /api/v1/admin/parking/requests/{id}/decide - Approve (with a slot) or reject a request"
+      ]
+    },
+    "Super Admin - Administrators": {
+      "description": "Platform-wide administrator management, permission assignment and activity monitoring",
+      "count": 6,
+      "routes": [
+        "GET /api/v1/super-admin/admins - List administrators across societies",
+        "POST /api/v1/super-admin/admins - Create an administrator for a society",
+        "PATCH /api/v1/super-admin/admins/{id} - Update administrator role, designation or status",
+        "PUT /api/v1/super-admin/admins/{id}/permissions - Assign or revoke permissions",
+        "POST /api/v1/super-admin/admins/{id}/reset-access - Reset administrator access",
+        "GET /api/v1/super-admin/admins/{id}/activity - Administrator activity and approval history from the audit log"
+      ]
+    },
+    "Super Admin - Dashboard & Monitoring": {
+      "description": "Platform dashboard, health, error and feature-usage monitoring",
+      "count": 5,
+      "routes": [
+        "GET /api/v1/super-admin/dashboard - Platform dashboard",
+        "GET /api/v1/super-admin/monitoring/health - Backend service health",
+        "GET /api/v1/super-admin/monitoring/errors - API errors and failed requests",
+        "GET /api/v1/super-admin/monitoring/feature-usage - Feature usage by module (mutating actions)",
+        "GET /api/v1/super-admin/monitoring/impersonations - Impersonation sessions (who accessed which society, when and why)"
+      ]
+    },
+    "Super Admin - Platform Management": {
+      "description": "Builders/organizations, subscription plans, announcements, configuration and notification templates",
+      "count": 22,
+      "routes": [
+        "GET /api/v1/super-admin/organizations - List organizations",
+        "POST /api/v1/super-admin/organizations - Create organization",
+        "GET /api/v1/super-admin/organizations/{id} - Get organization by id",
+        "PATCH /api/v1/super-admin/organizations/{id} - Update organization",
+        "DELETE /api/v1/super-admin/organizations/{id} - Delete organization",
+        "GET /api/v1/super-admin/plans - List subscription plans",
+        "POST /api/v1/super-admin/plans - Create subscription plan",
+        "GET /api/v1/super-admin/plans/{id} - Get subscription plan by id",
+        "PATCH /api/v1/super-admin/plans/{id} - Update subscription plan",
+        "DELETE /api/v1/super-admin/plans/{id} - Delete subscription plan",
+        "GET /api/v1/super-admin/announcements - List platform announcements",
+        "POST /api/v1/super-admin/announcements - Create platform announcement",
+        "GET /api/v1/super-admin/announcements/{id} - Get platform announcement by id",
+        "PATCH /api/v1/super-admin/announcements/{id} - Update platform announcement",
+        "DELETE /api/v1/super-admin/announcements/{id} - Delete platform announcement",
+        "GET /api/v1/super-admin/notification-templates - List notification templates",
+        "POST /api/v1/super-admin/notification-templates - Create notification template",
+        "GET /api/v1/super-admin/notification-templates/{id} - Get notification template by id",
+        "PATCH /api/v1/super-admin/notification-templates/{id} - Update notification template",
+        "DELETE /api/v1/super-admin/notification-templates/{id} - Delete notification template",
+        "GET /api/v1/super-admin/configs - Application configuration entries",
+        "PUT /api/v1/super-admin/configs/{key} - Create or update a configuration value"
+      ]
+    },
+    "Super Admin - Security": {
+      "description": "Global role templates, login history, suspicious activity, access restrictions and the audit trail",
+      "count": 10,
+      "routes": [
+        "GET /api/v1/super-admin/audit-logs - Platform-wide immutable audit trail",
+        "GET /api/v1/super-admin/role-templates - List global role templates",
+        "POST /api/v1/super-admin/role-templates - Create role template",
+        "PATCH /api/v1/super-admin/role-templates/{id} - Update role template",
+        "DELETE /api/v1/super-admin/role-templates/{id} - Delete role template",
+        "GET /api/v1/super-admin/security/login-history - Login history across the platform",
+        "GET /api/v1/super-admin/security/suspicious-activity - Suspicious activity (failed-login bursts, many accounts from one IP)",
+        "GET /api/v1/super-admin/security/users - Search platform users",
+        "POST /api/v1/super-admin/security/users/{id}/block - Block a user (access restriction)",
+        "POST /api/v1/super-admin/security/users/{id}/unblock - Restore a blocked user"
+      ]
+    },
+    "Super Admin - Societies": {
+      "description": "Platform-level society lifecycle, entitlements, subscription plans and audited impersonation",
+      "count": 11,
+      "routes": [
+        "GET /api/v1/super-admin/societies - List societies",
+        "POST /api/v1/super-admin/societies - Create society with its primary administrator",
+        "GET /api/v1/super-admin/societies/{id} - Get society details",
+        "PATCH /api/v1/super-admin/societies/{id} - Update society",
+        "DELETE /api/v1/super-admin/societies/{id} - Delete society (soft)",
+        "POST /api/v1/super-admin/societies/{id}/activate - Activate or approve a society",
+        "POST /api/v1/super-admin/societies/{id}/deactivate - Deactivate a society",
+        "PUT /api/v1/super-admin/societies/{id}/features - Set module entitlements",
+        "PUT /api/v1/super-admin/societies/{id}/plan - Assign subscription plan",
+        "POST /api/v1/super-admin/societies/{id}/impersonate - Start audited impersonation of a society admin dashboard",
+        "POST /api/v1/super-admin/impersonations/{id}/end - End an impersonation session"
+      ]
+    },
+    "Super Admin - Support": {
+      "description": "Support tickets raised by society admins or the platform team",
+      "count": 5,
+      "routes": [
+        "GET /api/v1/super-admin/support-tickets - List support tickets",
+        "POST /api/v1/super-admin/support-tickets - Create a ticket (optionally for a society)",
+        "GET /api/v1/super-admin/support-tickets/{id} - Get ticket",
+        "PATCH /api/v1/super-admin/support-tickets/{id} - Update status, priority or assignee",
+        "POST /api/v1/super-admin/support-tickets/{id}/comments - Comment on a ticket"
+      ]
+    }
+  }
+}

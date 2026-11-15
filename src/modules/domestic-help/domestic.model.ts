@@ -1,5 +1,16 @@
+import { Schema } from 'mongoose';
 import { AttendanceStatus, DomesticHelpStatus, DomesticHelpType, HelpPaymentType, ServiceCategory, vals } from '../../common/constants/enums';
 import { defineModel, makeSchema, ref, refReq } from '../../common/models/makeSchema';
+
+// `type` field caveat — see payment.model.ts invoiceLineItemSchema.
+const documentRefSchema = new Schema(
+  {
+    type: { $type: String },
+    fileId: { $type: Schema.Types.ObjectId, ref: 'File' },
+    verified: { $type: Boolean, default: false },
+  },
+  { typeKey: '$type', _id: false },
+);
 
 export const DomesticHelp = defineModel(
   'DomesticHelp',
@@ -65,7 +76,7 @@ export const ServiceProvider = defineModel(
       status: { type: String, enum: ['ACTIVE', 'INACTIVE'], default: 'ACTIVE' },
       ratingAvg: { type: Number, default: 0 },
       ratingCount: { type: Number, default: 0 },
-      documents: [{ type: { type: String }, fileId: ref('File'), verified: { type: Boolean, default: false } }],
+      documents: { type: [documentRefSchema], default: [] },
     },
     { indexes: [[{ societyId: 1, category: 1, status: 1 }]] },
   ),

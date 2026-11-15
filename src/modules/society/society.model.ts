@@ -1,4 +1,4 @@
-import { model } from 'mongoose';
+import { model, Schema } from 'mongoose';
 import {
   FEATURE_KEYS, FeeType, FlatStatus, Priority, Shift, SocietyStatus, SocietyType, TimeoutAction, VisitorType, Weekday, vals,
 } from '../../common/constants/enums';
@@ -44,7 +44,17 @@ export const Society = defineModel(
         finance: {
           dueDays: { type: Number, default: 10 },
           invoicePrefix: { type: String, default: 'INV' },
-          lateFee: { type: { type: String, enum: vals(FeeType), default: 'FIXED' }, value: { type: Number, default: 0 }, graceDays: { type: Number, default: 0 } },
+          lateFee: {
+            type: new Schema(
+              {
+                type: { $type: String, enum: vals(FeeType), default: 'FIXED' },
+                value: { $type: Number, default: 0 },
+                graceDays: { $type: Number, default: 0 },
+              },
+              { typeKey: '$type', _id: false },
+            ),
+            default: () => ({}),
+          },
         },
         listing: { expiryDays: { type: Number, default: 30 }, autoPublish: { type: Boolean, default: true }, reportSuspendThreshold: { type: Number, default: 3 } },
         complaint: {

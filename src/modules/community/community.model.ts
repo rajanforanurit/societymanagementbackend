@@ -2,6 +2,26 @@ import { Schema } from 'mongoose';
 import { ApprovalStatus, NoticeType, PollKind, PollStatus, PublishStatus, QuestionType, vals } from '../../common/constants/enums';
 import { defineModel, makeSchema, ref, refReq } from '../../common/models/makeSchema';
 
+// Same `type` field caveat as Invoice.lineItems — see payment.model.ts.
+const pollQuestionSchema = new Schema(
+  {
+    text: { $type: String, required: true },
+    type: { $type: String, enum: vals(QuestionType), default: 'SINGLE_CHOICE' },
+    required: { $type: Boolean, default: true },
+    options: [
+      new Schema(
+        {
+          label: { $type: String, required: true },
+          candidateUserId: { $type: Schema.Types.ObjectId, ref: 'User' },
+          manifesto: { $type: String },
+        },
+        { typeKey: '$type' },
+      ),
+    ],
+  },
+  { typeKey: '$type' },
+);
+
 const audience = { all: { type: Boolean, default: true }, towerIds: [ref('Tower')], flatIds: [ref('Flat')] };
 
 export const Notice = defineModel(
@@ -31,7 +51,7 @@ export const Poll = defineModel(
       kind: { type: String, enum: vals(PollKind), default: 'POLL' },
       title: { type: String, required: true },
       description: String,
-      questions: [{ text: { type: String, required: true }, type: { type: String, enum: vals(QuestionType), default: 'SINGLE_CHOICE' }, required: { type: Boolean, default: true }, options: [{ label: { type: String, required: true }, candidateUserId: ref('User'), manifesto: String }] }],
+      questions: { type: [pollQuestionSchema], default: [] },
       anonymous: { type: Boolean, default: true },
       onePerFlat: { type: Boolean, default: false },
       showResults: { type: Boolean, default: false },

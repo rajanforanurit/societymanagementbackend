@@ -6,6 +6,7 @@ import { User } from '../auth/auth.model';
 import { Resident } from '../resident/resident.model';
 import { adminUserIdsWith } from '../roles/roles.service';
 import { Notification } from './notification.model';
+import { sendPushToUsers } from './push.service';
 
 const PREF_KEY: Partial<Record<NotificationType, string>> = {
   VISITOR: 'visitor',
@@ -43,6 +44,12 @@ export async function notifyUsers(p: NotifyInput) {
       realtime.toUser(String(d.userId), 'notification:new', d.toJSON());
       if (p.event) realtime.toUser(String(d.userId), p.event, { title: p.title, body: p.body, ...p.data });
     });
+    // Fan out to registered devices. Fire-and-forget with logging — push must
+    // never fail the caller that created the notification.
+    const pushTargets = targets.map((u: any) => String(u._id));
+    sendPushToUsers(pushTargets, { title: p.title, body: p.body, data: { ...(p.data ?? {}), type: p.type } }).catch(
+      (err) => logger.warn('push_dispatch_failed', { error: err?.message ?? String(err) }),
+    );
     return docs;
   } catch (err) {
     logger.error('notify_failed', { error: (err as Error).message });
