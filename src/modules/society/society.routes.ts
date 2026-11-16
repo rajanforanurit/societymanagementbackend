@@ -1,11 +1,16 @@
+import { Request, Response } from 'express';
+import { z } from 'zod';
 import { UserType } from '../../common/constants/enums';
 import { Permission as P } from '../../common/constants/permissions';
 import { crudRoutes } from '../../common/openapi/crudRoutes';
 import { ModuleRouter } from '../../common/openapi/router';
+import { ok } from '../../common/responses/respond';
 import { idParam } from '../../common/validators/common';
+import { FlatStatus, vals } from '../../common/constants/enums';
 import { authLimiter } from '../../middleware/rateLimit.middleware';
 import * as c from './society.controller';
 import * as s from './society.schema';
+import { Flat } from './society.model';
 
 export const superSocietyRouter = new ModuleRouter('/api/v1/super-admin/societies', {
   tag: 'Super Admin - Societies',
@@ -30,6 +35,14 @@ impersonationRouter.add({ method: 'post', path: '/:id/end', summary: 'End an imp
 
 export const societyPublicRouter = new ModuleRouter('/api/v1/auth/societies', { tag: 'Authentication', roles: [UserType.RESIDENT] });
 societyPublicRouter.add({ method: 'post', path: '/register', public: true, limiter: authLimiter, summary: 'Submit a society registration request', description: 'Creates a PENDING society awaiting platform approval.', body: s.registerSocietyBody, response: s.societyItem, status: 201, errors: [409, 429], handler: c.superSocietyController.registerPublic });
+// Flats of an ACTIVE society, so a resident can pick the right unit when
+// applying. Any signed-in role may read this before joining (the membership
+// request needs a real flatId). The tenant middleware is bypassed via
+// skipTenantCheck: the societyId comes from the URL, not the auth context.
+societyPublicRouter.add({ method: 'get', path: '/:id/flats', summary: "List an active society's flats (for the join flow)", description: 'Returns the flats of an ACTIVE society so a resident can select their unit when applying. Any authenticated role can read this before joining.', params: idParam, response: z.array(s.flatItem), handler: async (req: Request, res: Response) => {
+  const flats = await Flat.find({ societyId: req.valid.params.id, isDeleted: { $ne: true } }, undefined, { skipTenantCheck: true } as any).select('label unitNumber floorNumber status').sort({ label: 1 }).limit(200);
+  ok(res, flats);
+} });
 
 export const adminStructureRouter = new ModuleRouter('/api/v1/admin', {
   tag: 'Society Admin - Society Setup',
