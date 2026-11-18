@@ -134,7 +134,7 @@ export const callService = {
     return call;
   },
 
-  async transition(c: { societyId: string; userId: string }, id: string, to: 'ACCEPTED' | 'REJECTED' | 'CANCELLED' | 'ENDED') {
+  async transition(c: { societyId: string; userId: string }, id: string, to: 'ACCEPTED' | 'REJECTED' | 'CANCELLED' | 'ENDED'): Promise<any> {
     const call = await callService.load(c, id);
     const isCaller = String(call.callerId) === c.userId;
     const from = call.status;
