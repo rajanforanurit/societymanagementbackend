@@ -8,6 +8,7 @@ export type UserType = (typeof UserType)[keyof typeof UserType];
 
 export const SocietyStatus = e('PENDING', 'ACTIVE', 'INACTIVE', 'SUSPENDED', 'REJECTED');
 export const SocietyType = e('APARTMENT', 'GATED_COMMUNITY', 'TOWNSHIP', 'VILLA_COMMUNITY', 'COMMERCIAL_COMPLEX');
+export const PropertyType = e('MULTIFAMILY', 'SINGLE_FAMILY');
 export const ProfileStatus = e('ACTIVE', 'INACTIVE', 'SUSPENDED');
 export const ResidentStatus = e('PENDING', 'APPROVED', 'REJECTED', 'INACTIVE', 'MOVED_OUT');
 export const ResidentType = e('OWNER', 'TENANT', 'FAMILY_MEMBER', 'AUTHORIZED_OCCUPANT');

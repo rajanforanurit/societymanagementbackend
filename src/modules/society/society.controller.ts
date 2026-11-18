@@ -14,6 +14,7 @@ export const superSocietyController = {
   approveRegistration: async (req: Request, res: Response) => ok(res, await svc.societyAdminService.approveRegistration(req.valid.params.id, req.valid.body, req.auth.userId), 'Society verified and administrator created'),
   rejectRegistration: async (req: Request, res: Response) => ok(res, await svc.societyAdminService.rejectRegistration(req.valid.params.id, req.valid.body.reason, req.auth.userId), 'Registration rejected'),
   propertyInfo: async (req: Request, res: Response) => ok(res, await svc.societyAdminService.setPropertyInfo(req.valid.params.id, req.valid.body, req.auth.userId), 'Property details saved'),
+  administration: async (req: Request, res: Response) => ok(res, await svc.societyAdminService.administration(req.valid.params.id)),
   remove: async (req: Request, res: Response) => {
     await svc.societyAdminService.remove(req.valid.params.id, req.auth.userId);
     ok(res, null, 'Society deleted');

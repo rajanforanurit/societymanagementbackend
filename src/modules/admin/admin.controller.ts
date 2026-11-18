@@ -23,12 +23,21 @@ const assertRoleGrantable = async (req: Request, roleId?: string, extra?: string
 };
 
 const populateUser = { path: 'userId', select: 'name mobile email lastLoginAt' };
+const populateRole = { path: 'roleId', select: 'name key' };
+const populateSociety = { path: 'societyId', select: 'name code status' };
+// userId / roleId / societyId come back as populated objects; expose them as user / role / society
+// next to the plain ids so every client can show names without a second request.
 const shape = (p: any) => {
   const j = p.toJSON();
-  if (j.userId && typeof j.userId === 'object') {
-    j.user = j.userId;
-    j.userId = j.user.id;
-  }
+  const lift = (key: string, as: string) => {
+    if (j[key] && typeof j[key] === 'object') {
+      j[as] = j[key];
+      j[key] = j[as].id;
+    }
+  };
+  lift('userId', 'user');
+  lift('roleId', 'role');
+  lift('societyId', 'society');
   return j;
 };
 
@@ -36,7 +45,7 @@ const listFor = async (societyId: string | undefined, query: any) => {
   const filter: Record<string, unknown> = {};
   if (societyId) filter.societyId = societyId;
   ['status', 'roleId'].forEach((k) => query[k] && (filter[k] = query[k]));
-  const r = await paginate(AdminProfile, applyListFilters(filter, query), query, { populate: populateUser, skipTenant: !societyId });
+  const r = await paginate(AdminProfile, applyListFilters(filter, query), query, { populate: societyId ? [populateUser, populateRole] : [populateUser, populateRole, populateSociety], skipTenant: !societyId });
   return { ...r, items: r.items.map(shape) };
 };
 
@@ -53,13 +62,13 @@ const resetAccess = async (societyId: string | undefined, id: string, actor: Req
 const patch = async (societyId: string | undefined, id: string, body: any, actorId: string) => {
   const p = await AdminProfile.findOneAndUpdate({ _id: id, ...(societyId ? { societyId } : {}) }, { $set: { ...body, updatedBy: actorId } }, { new: true, runValidators: true, skipTenantCheck: !societyId });
   if (!p) throw ApiError.notFound('Administrator not found');
-  return p.populate(populateUser);
+  return p.populate([populateUser, populateRole]);
 };
 
 export const adminMgmtController = {
   list: async (req: Request, res: Response) => paged(res, await listFor(req.auth.societyId, req.valid.query)),
   get: async (req: Request, res: Response) => {
-    const p = await AdminProfile.findOne({ _id: req.valid.params.id, societyId: req.auth.societyId }).populate(populateUser);
+    const p = await AdminProfile.findOne({ _id: req.valid.params.id, societyId: req.auth.societyId }).populate([populateUser, populateRole]);
     if (!p) throw ApiError.notFound('Administrator not found');
     ok(res, shape(p));
   },
@@ -71,7 +80,7 @@ export const adminMgmtController = {
     await notifyUsers({ societyId, userIds: [newUserId], type: NotificationType.SYSTEM, title: `You are now an administrator of ${req.auth.societyName ?? 'your society'}`, body: 'Sign in with your mobile number and the temporary password you were given, then change it.', data: { route: 'society-setup', societyId }, event: 'admin:added' });
     const others = (await adminUserIdsWith(societyId)).filter((id) => id !== newUserId && id !== req.auth.userId);
     await notifyUsers({ societyId, userIds: others, type: NotificationType.SYSTEM, title: 'New administrator added', body: `${r.user.name} was added as an administrator.`, data: { adminProfileId: String(r.profile._id) }, event: 'admin:added' });
-    created(res, shape(await r.profile.populate(populateUser)), 'Administrator created');
+    created(res, shape(await r.profile.populate([populateUser, populateRole])), 'Administrator created');
   },
   update: async (req: Request, res: Response) => {
     const body = { ...req.valid.body };
@@ -99,7 +108,7 @@ export const superAdminMgmtController = {
     const { roleId, societyId, ...rest } = req.valid.body;
     const r = await withTransaction((s) => provisionAdmin(societyId, roleId, rest, req.auth.userId, s));
     await writeAudit({ actorId: req.auth.userId, actorRole: 'SUPER_ADMIN', societyId, action: 'ADMIN_CREATED', entityType: 'AdminProfile', entityId: String(r.profile._id) });
-    created(res, shape(await r.profile.populate(populateUser)), 'Administrator created');
+    created(res, shape(await r.profile.populate([populateUser, populateRole])), 'Administrator created');
   },
   permissions: async (req: Request, res: Response) => ok(res, shape(await patch(undefined, req.valid.params.id, req.valid.body, req.auth.userId)), 'Permissions updated'),
   update: async (req: Request, res: Response) => ok(res, shape(await patch(undefined, req.valid.params.id, req.valid.body, req.auth.userId)), 'Administrator updated'),

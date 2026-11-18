@@ -21,8 +21,9 @@ export const superSocietyRouter = new ModuleRouter('/api/v1/super-admin/societie
 
 superSocietyRouter
   .add({ method: 'get', path: '/', summary: 'List societies', description: 'Filter by status (PENDING shows registrations awaiting approval), organization and type.', query: s.societyListQuery, response: s.societyItem, paginated: true, handler: c.superSocietyController.list })
-  .add({ method: 'post', path: '/', summary: 'Create society with its primary administrator', description: 'Atomically creates the society, seeds its role set from the global role templates and provisions the primary admin (must change password on first login).', body: s.createSocietyBody, response: s.societyItem, status: 201, errors: [409], handler: c.superSocietyController.create })
+  .add({ method: 'post', path: '/', summary: 'Create society with its primary administrator', description: 'The society code is generated (DDMM + initials + YY, e.g. 1811ROR26; a numeric suffix is added on a collision). Choose MULTIFAMILY (towers, floors and units per floor) or SINGLE_FAMILY (houses); the tower/floor/flat records are generated from the layout. Atomically creates the society, seeds its role set from the global role templates and provisions the primary admin (must change password on first login).', body: s.createSocietyBody, response: s.societyItem, status: 201, errors: [409], handler: c.superSocietyController.create })
   .add({ method: 'get', path: '/:id', summary: 'Get society details', params: idParam, response: s.societyItem, handler: c.superSocietyController.get })
+  .add({ method: 'get', path: '/:id/administration', summary: 'Administration details of a society', description: 'Primary and additional administrators (name, mobile, email, role, status, last sign-in), who created/approved the society and when, and the original applicant if it registered itself.', params: idParam, response: s.administrationItem, errors: [404], handler: c.superSocietyController.administration })
   .add({ method: 'patch', path: '/:id', summary: 'Update society', params: idParam, body: s.updateSocietyBody, response: s.societyItem, handler: c.superSocietyController.update })
   .add({ method: 'delete', path: '/:id', summary: 'Delete society (soft)', params: idParam, response: null, handler: c.superSocietyController.remove })
   .add({ method: 'post', path: '/:id/approve', summary: 'Verify a pending society registration and create its administrator', description: 'Seeds the society roles, creates the primary administrator (mobile + password; defaults to the applicant details; must change the password at first login), stores the floor plan / property details and hospitals, and activates the society. The administrator receives an in-app notification.', params: idParam, body: s.approveRegistrationBody, response: s.societyItem, status: 200, errors: [400, 409], handler: c.superSocietyController.approveRegistration })
@@ -52,20 +53,20 @@ societyPublicRouter.add({ method: 'get', path: '/:id/flats', summary: "List an a
 
 export const adminStructureRouter = new ModuleRouter('/api/v1/admin', {
   tag: 'Society Admin - Society Setup',
-  tagDescription: 'Society profile, rules, visitor policy, towers, blocks, floors, flats and gates',
+  tagDescription: 'Operating settings and gates; the society profile and its towers, blocks, floors and flats are read-only (owned by the Super Admin)',
   roles: [UserType.SOCIETY_ADMIN],
   societyScoped: true,
 });
 
 adminStructureRouter
   .add({ method: 'get', path: '/society', summary: 'Get my society configuration', permissions: [P.SOCIETY_READ], response: s.societyItem, handler: c.adminSocietyController.get })
-  .add({ method: 'patch', path: '/society', summary: 'Update society details, rules, hours, holidays, policies and module toggles', description: 'Module toggles can only turn off modules; modules not entitled by the platform stay disabled.', permissions: [P.SOCIETY_UPDATE], body: s.adminSocietyUpdateBody, response: s.societyItem, handler: c.adminSocietyController.update })
-  .add({ method: 'post', path: '/flats/bulk', summary: 'Bulk-generate flats for a tower', description: 'Creates unitsPerFloor flats for every floor in the range. Existing labels are skipped.', permissions: [P.STRUCTURE_MANAGE], body: s.bulkFlatsBody, response: s.bulkFlatsResponse, status: 201, handler: c.adminSocietyController.bulkFlats });
+  .add({ method: 'patch', path: '/society', summary: 'Update operating settings: rules, hours, holidays, visitor policy, finance and module toggles', description: 'Name, address, contact and property structure belong to the Super Admin and are not accepted here. Module toggles can only turn off modules; modules not entitled by the platform stay disabled.', permissions: [P.SOCIETY_UPDATE], body: s.adminSocietyUpdateBody, response: s.societyItem, handler: c.adminSocietyController.update });
 
-crudRoutes(adminStructureRouter, { path: '/blocks', name: 'Block', controller: c.blockController, create: s.blockBody, query: s.blockQuery, item: s.blockItem, read: [P.SOCIETY_READ], write: [P.STRUCTURE_MANAGE] });
-crudRoutes(adminStructureRouter, { path: '/towers', name: 'Tower', controller: c.towerController, create: s.towerBody, query: s.towerQuery, item: s.towerItem, read: [P.SOCIETY_READ], write: [P.STRUCTURE_MANAGE] });
-crudRoutes(adminStructureRouter, { path: '/floors', name: 'Floor', controller: c.floorController, create: s.floorBody, query: s.floorQuery, item: s.floorItem, read: [P.SOCIETY_READ], write: [P.STRUCTURE_MANAGE] });
-crudRoutes(adminStructureRouter, { path: '/flats', name: 'Flat', controller: c.flatController, create: s.flatBody, query: s.flatQuery, item: s.flatItem, read: [P.SOCIETY_READ], write: [P.STRUCTURE_MANAGE] });
+// Blocks, towers, floors and flats are generated from the layout the Super Admin configures: read-only here.
+crudRoutes(adminStructureRouter, { path: '/blocks', name: 'Block', controller: c.blockController, query: s.blockQuery, item: s.blockItem, read: [P.SOCIETY_READ] });
+crudRoutes(adminStructureRouter, { path: '/towers', name: 'Tower', controller: c.towerController, query: s.towerQuery, item: s.towerItem, read: [P.SOCIETY_READ] });
+crudRoutes(adminStructureRouter, { path: '/floors', name: 'Floor', controller: c.floorController, query: s.floorQuery, item: s.floorItem, read: [P.SOCIETY_READ] });
+crudRoutes(adminStructureRouter, { path: '/flats', name: 'Flat', controller: c.flatController, query: s.flatQuery, item: s.flatItem, read: [P.SOCIETY_READ] });
 crudRoutes(adminStructureRouter, { path: '/gates', name: 'Gate', controller: c.gateController, create: s.gateBody, query: s.gateQuery, item: s.gateItem, read: [P.SOCIETY_READ], write: [P.STRUCTURE_MANAGE] });
 
 
