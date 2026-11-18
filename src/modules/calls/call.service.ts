@@ -3,7 +3,7 @@ import { NotificationType, ProfileStatus, ResidentStatus, UserType } from '../..
 import { ApiError } from '../../common/utils/apiError';
 import { escapeRegex, applyListFilters, paginate } from '../../common/utils/pagination';
 import { env } from '../../config/env';
-import { realtime } from '../../realtime/socket';
+import { realtime, registerCallSignalHandler } from '../../realtime/socket';
 import { AdminProfile } from '../admin/admin.model';
 import { User } from '../auth/auth.model';
 import { Guard } from '../guard/guard.model';
@@ -189,3 +189,5 @@ export const callService = {
   },
 };
 
+
+registerCallSignalHandler((c, i) => callService.relaySignal(c, i));
