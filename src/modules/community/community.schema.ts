@@ -38,8 +38,9 @@ export const pollQuery = listQuery.extend({ kind: z.enum(vals(PollKind)).optiona
 export const voteBody = z.object({ flatId: objectId.optional(), answers: z.array(z.object({ questionId: objectId, optionIds: z.array(objectId).max(20).default([]), text: z.string().max(1000).optional() })).min(1).max(30) });
 export const pollResults = z.object({ pollId: objectId, totalVotes: z.number().int(), questions: z.array(z.object({ questionId: objectId, text: z.string(), responses: z.number().int(), options: z.array(z.object({ optionId: objectId, label: z.string(), votes: z.number().int() })), textAnswers: z.array(z.string()).optional() })) });
 
-export const postBody = z.object({ title: z.string().trim().min(3).max(150), body: z.string().trim().min(5).max(5000), images: z.array(objectId).max(5).default([]) });
-export const postItem = entity({ authorId: objectId, authorName: z.string().optional(), flatLabel: z.string().optional(), title: z.string(), body: z.string(), images: z.array(objectId), status: z.enum(vals(ApprovalStatus)), rejectionReason: z.string().optional(), publishedAt: dateTime.optional(), likeCount: z.number().int(), commentCount: z.number().int() });
+export const postBody = z.object({ title: z.string().trim().min(3).max(150), body: z.string().trim().min(5).max(5000), images: z.array(objectId).max(5).default([]), saveAsDraft: z.boolean().default(false) });
+export const postUpdateBody = z.object({ title: z.string().trim().min(3).max(150).optional(), body: z.string().trim().min(5).max(5000).optional(), images: z.array(objectId).max(5).optional() });
+export const postItem = entity({ authorId: objectId, authorName: z.string().optional(), flatLabel: z.string().optional(), title: z.string(), body: z.string(), images: z.array(objectId), status: z.enum(vals(ApprovalStatus)), rejectionReason: z.string().optional(), authorMobile: z.string().optional(), publishedAt: dateTime.optional(), likeCount: z.number().int(), commentCount: z.number().int() });
 export const postQuery = listQuery.extend({ status: z.enum(vals(ApprovalStatus)).optional() });
 export const commentBody = z.object({ text: z.string().trim().min(1).max(1000) });
 export const commentItem = entity({ postId: objectId, userId: objectId, userName: z.string().optional(), text: z.string() });

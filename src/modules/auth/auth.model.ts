@@ -84,6 +84,6 @@ export const LoginHistory = defineModel(
       ip: String,
       userAgent: String,
     },
-    { tenant: false, softDelete: false, audited: false, indexes: [[{ createdAt: 1 }, { expireAfterSeconds: 180 * 86400 }], [{ success: 1, createdAt: -1 }]] },
+    { tenant: false, softDelete: false, audited: false, indexes: [[{ createdAt: 1 }, { expireAfterSeconds: 180 * 86400 }], [{ success: 1, createdAt: -1 }], [{ societyId: 1, createdAt: -1 }]] },
   ),
 );

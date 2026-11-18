@@ -15,9 +15,21 @@ export interface AdminInput {
   designation?: string;
 }
 
-export async function provisionAdmin(societyId: string, roleId: string, input: AdminInput, actorId: string | undefined, session?: ClientSession) {
-  const role = await Role.findOne({ _id: roleId, societyId }).session(session ?? null);
+/**
+ * An administrator can only hand out permissions they hold, so a delegated admin can never
+ * promote someone (or themselves) above their own level. actorPermissions is undefined for
+ * platform-level callers (Super Admin).
+ */
+export function assertCanGrant(actorPermissions: Set<string> | undefined, grants: { rolePermissions?: string[]; extra?: string[] }) {
+  if (!actorPermissions) return;
+  const over = [...new Set([...(grants.rolePermissions ?? []), ...(grants.extra ?? [])])].filter((p) => !actorPermissions.has(p));
+  if (over.length) throw ApiError.forbidden(`You cannot grant permissions you do not hold: ${over.join(', ')}`, 'PRIVILEGE_ESCALATION');
+}
+
+export async function provisionAdmin(societyId: string, roleId: string, input: AdminInput, actorId: string | undefined, session?: ClientSession, actorPermissions?: Set<string>) {
+  const role: any = await Role.findOne({ _id: roleId, societyId }).session(session ?? null);
   if (!role) throw ApiError.notFound('Role not found in this society');
+  assertCanGrant(actorPermissions, { rolePermissions: role.permissions });
   const mobile = normalizeMobile(input.mobile);
   let user: any = await User.findOne({ mobile }).session(session ?? null);
   if (user && user.userType !== UserType.SOCIETY_ADMIN) throw ApiError.conflict('This mobile number belongs to a non-admin account', 'MOBILE_EXISTS');

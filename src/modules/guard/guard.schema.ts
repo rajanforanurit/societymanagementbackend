@@ -13,7 +13,7 @@ export const createGuardBody = z.object({
   agency: z.string().max(100).optional(),
   shift: z.enum(vals(Shift)).default('GENERAL'),
 });
-export const updateGuardBody = z.object({ gateId: objectId, employeeCode: z.string().max(30), agency: z.string().max(100), shift: z.enum(vals(Shift)), status: z.enum(vals(ProfileStatus)) }).partial();
+export const updateGuardBody = z.object({ name: z.string().trim().min(2).max(120), mobile, gateId: objectId, employeeCode: z.string().max(30), agency: z.string().max(100), shift: z.enum(vals(Shift)), status: z.enum(vals(ProfileStatus)) }).partial();
 export const guardQuery = listQuery.extend({ gateId: objectId.optional(), status: z.enum(vals(ProfileStatus)).optional(), shift: z.enum(vals(Shift)).optional() });
 export const guardItem = entity({
   userId: objectId,

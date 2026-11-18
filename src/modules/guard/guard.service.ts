@@ -42,7 +42,20 @@ export const guardMgmt = {
   },
   async update(societyId: string, id: string, actorId: string, body: any) {
     if (body.gateId && !(await Gate.exists({ _id: body.gateId, societyId }))) throw ApiError.notFound('Gate not found');
-    const g = await Guard.findOneAndUpdate({ _id: id, societyId }, { $set: { ...body, updatedBy: actorId } }, { new: true, runValidators: true });
+    const { name, mobile: rawMobile, ...profile } = body;
+    const existing: any = await Guard.findOne({ _id: id, societyId });
+    if (!existing) throw ApiError.notFound('Guard not found');
+    if (name !== undefined || rawMobile !== undefined) {
+      const set: Record<string, unknown> = {};
+      if (name !== undefined) set.name = name;
+      if (rawMobile !== undefined) {
+        const m = normalizeMobile(rawMobile);
+        if (await User.exists({ mobile: m, _id: { $ne: existing.userId } })) throw ApiError.conflict('Mobile number is already registered', 'MOBILE_EXISTS');
+        set.mobile = m;
+      }
+      await User.updateOne({ _id: existing.userId }, { $set: set });
+    }
+    const g = await Guard.findOneAndUpdate({ _id: id, societyId }, { $set: { ...profile, updatedBy: actorId } }, { new: true, runValidators: true });
     if (!g) throw ApiError.notFound('Guard not found');
     return shape(await g.populate(populateUser));
   },

@@ -6,6 +6,19 @@ import { address, email, hhmm, listQuery, mobile, objectId, password, dateTime }
 const featureFlags = z.object(Object.fromEntries(FEATURE_KEYS.map((k) => [k, z.boolean().optional()])) as Record<(typeof FEATURE_KEYS)[number], z.ZodOptional<z.ZodBoolean>>);
 const contact = z.object({ email: email.optional(), phone: z.string().max(20).optional(), emergencyPhone: z.string().max(20).optional(), website: z.string().max(200).optional() });
 
+export const propertyDetailsInput = z.object({
+  propertyName: z.string().trim().min(2).max(200).optional(),
+  description: z.string().trim().max(3000).optional(),
+  totalTowers: z.number().int().min(0).max(1000).optional(),
+  totalFloors: z.number().int().min(0).max(500).optional(),
+  totalUnits: z.number().int().min(0).max(100000).optional(),
+  parkingInfo: z.string().trim().max(1000).optional(),
+  notes: z.string().trim().max(3000).optional(),
+  floorPlans: z.array(z.object({ title: z.string().trim().min(1).max(120), description: z.string().trim().max(500).optional(), fileId: objectId.optional() })).max(50).optional(),
+});
+export const hospitalInput = z.object({ name: z.string().trim().min(2).max(150), phone: z.string().trim().min(3).max(20), address: z.string().trim().max(300).optional(), distanceKm: z.number().min(0).max(500).optional(), open24x7: z.boolean().default(true) });
+export const hospitalsInput = z.array(hospitalInput).max(30);
+
 export const primaryAdminInput = z.object({ name: z.string().trim().min(2).max(120), mobile, email: email.optional(), password });
 
 export const createSocietyBody = z.object({
@@ -18,6 +31,8 @@ export const createSocietyBody = z.object({
   contact: contact.optional(),
   registrationNumber: z.string().max(60).optional(),
   totalUnits: z.number().int().min(1).max(100000).optional(),
+  propertyDetails: propertyDetailsInput.optional(),
+  hospitals: hospitalsInput.optional(),
   primaryAdmin: primaryAdminInput,
 });
 
@@ -40,10 +55,32 @@ export const updateSocietyBody = z.object({
   registrationNumber: z.string().max(60),
   totalUnits: z.number().int().min(1).max(100000),
   logoFileId: objectId,
+  propertyDetails: propertyDetailsInput,
+  hospitals: hospitalsInput,
 }).partial();
 
 export const societyListQuery = listQuery.extend({ status: z.enum(vals(SocietyStatus)).optional(), organizationId: objectId.optional(), type: z.enum(vals(SocietyType)).optional() });
 export const statusBody = z.object({ reason: z.string().trim().max(500).optional() });
+export const approveRegistrationBody = z.object({
+  name: z.string().trim().min(2).max(120).optional(),
+  mobile: mobile.optional(),
+  email: email.optional(),
+  password,
+  designation: z.string().trim().max(100).optional(),
+  notes: z.string().trim().max(500).optional(),
+  propertyDetails: propertyDetailsInput.optional(),
+  hospitals: hospitalsInput.optional(),
+});
+export const rejectRegistrationBody = z.object({ reason: z.string().trim().min(3).max(500) });
+export const propertyInfoBody = z.object({ propertyDetails: propertyDetailsInput.optional(), hospitals: hospitalsInput.optional() }).refine((v) => v.propertyDetails !== undefined || v.hospitals !== undefined, 'Provide propertyDetails and/or hospitals');
+export const propertyInfoItem = z.object({
+  societyId: objectId,
+  societyName: z.string(),
+  address: address.optional(),
+  contact: z.object({ phone: z.string().optional(), emergencyPhone: z.string().optional() }).optional(),
+  propertyDetails: z.any().optional(),
+  hospitals: z.array(z.any()),
+});
 export const featuresBody = z.object({ features: featureFlags });
 export const planBody = z.object({ planId: objectId, applyPlanFeatures: z.boolean().default(true), subscriptionEndsAt: dateTime.optional() });
 
@@ -88,6 +125,8 @@ export const societyItem = globalEntity({
   address: address.optional(),
   contact: contact.optional(),
   totalUnits: z.number().int().optional(),
+  propertyDetails: z.any().optional(),
+  hospitals: z.array(z.any()).optional(),
   features: z.record(z.string(), z.boolean()),
   settings: z.record(z.string(), z.any()),
   applicant: z.object({ name: z.string().optional(), email: z.string().optional(), mobile: z.string().optional() }).optional(),

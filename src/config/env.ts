@@ -36,6 +36,22 @@ const schema = z
     SUPER_ADMIN_EMAIL: z.string().default('superadmin@example.com'),
     SUPER_ADMIN_MOBILE: z.string().default('+919999999999'),
     SUPER_ADMIN_PASSWORD: z.string().default('ChangeMe@123'),
+    // ---- Admin onboarding ----
+    // When true, a SOCIETY_ADMIN with mustChangePassword set can only call /auth/password/change,
+    // /auth/me and /auth/logout until the password is changed. Enable once the Admin app ships the
+    // forced change-password screen.
+    ENFORCE_ADMIN_PASSWORD_CHANGE: bool.default(false),
+    // ---- Emergency alarm ----
+    // A resident cannot raise a second alarm inside this window (accidental double taps).
+    EMERGENCY_DEDUPE_SECONDS: z.coerce.number().int().min(10).max(3600).default(60),
+    // ---- In-app calling (WebRTC signaling) ----
+    CALL_RING_SECONDS: z.coerce.number().int().min(15).max(120).default(45),
+    STUN_URLS: z.string().default('stun:stun.l.google.com:19302'),
+    // Comma separated, e.g. turn:turn.example.com:3478?transport=udp,turns:turn.example.com:5349
+    TURN_URLS: z.string().default(''),
+    // coturn `static-auth-secret` (time-limited REST credentials).
+    TURN_SECRET: z.string().default(''),
+    TURN_TTL_SECONDS: z.coerce.number().int().min(60).max(86400).default(3600),
     // ---- Push notifications (optional; push is disabled when absent) ----
     // Firebase Cloud Messaging — service account credentials.
     // Either the three discrete values, or FCM_SERVICE_ACCOUNT_JSON with the

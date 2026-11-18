@@ -47,7 +47,7 @@ export async function notifyUsers(p: NotifyInput) {
     // Fan out to registered devices. Fire-and-forget with logging — push must
     // never fail the caller that created the notification.
     const pushTargets = targets.map((u: any) => String(u._id));
-    sendPushToUsers(pushTargets, { title: p.title, body: p.body, data: { ...(p.data ?? {}), type: p.type } }).catch(
+    sendPushToUsers(pushTargets, { title: p.title, body: p.body, data: { ...(p.data ?? {}), type: p.type }, channelId: p.type === 'EMERGENCY' ? 'habito_emergency' : undefined }).catch(
       (err) => logger.warn('push_dispatch_failed', { error: err?.message ?? String(err) }),
     );
     return docs;

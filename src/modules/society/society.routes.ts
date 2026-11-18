@@ -5,12 +5,13 @@ import { Permission as P } from '../../common/constants/permissions';
 import { crudRoutes } from '../../common/openapi/crudRoutes';
 import { ModuleRouter } from '../../common/openapi/router';
 import { ok } from '../../common/responses/respond';
+import { ApiError } from '../../common/utils/apiError';
 import { idParam } from '../../common/validators/common';
 import { FlatStatus, vals } from '../../common/constants/enums';
 import { authLimiter } from '../../middleware/rateLimit.middleware';
 import * as c from './society.controller';
 import * as s from './society.schema';
-import { Flat } from './society.model';
+import { Flat, Society } from './society.model';
 
 export const superSocietyRouter = new ModuleRouter('/api/v1/super-admin/societies', {
   tag: 'Super Admin - Societies',
@@ -24,6 +25,9 @@ superSocietyRouter
   .add({ method: 'get', path: '/:id', summary: 'Get society details', params: idParam, response: s.societyItem, handler: c.superSocietyController.get })
   .add({ method: 'patch', path: '/:id', summary: 'Update society', params: idParam, body: s.updateSocietyBody, response: s.societyItem, handler: c.superSocietyController.update })
   .add({ method: 'delete', path: '/:id', summary: 'Delete society (soft)', params: idParam, response: null, handler: c.superSocietyController.remove })
+  .add({ method: 'post', path: '/:id/approve', summary: 'Verify a pending society registration and create its administrator', description: 'Seeds the society roles, creates the primary administrator (mobile + password; defaults to the applicant details; must change the password at first login), stores the floor plan / property details and hospitals, and activates the society. The administrator receives an in-app notification.', params: idParam, body: s.approveRegistrationBody, response: s.societyItem, status: 200, errors: [400, 409], handler: c.superSocietyController.approveRegistration })
+  .add({ method: 'post', path: '/:id/reject', summary: 'Reject a pending society registration', params: idParam, body: s.rejectRegistrationBody, response: s.societyItem, status: 200, errors: [409], handler: c.superSocietyController.rejectRegistration })
+  .add({ method: 'put', path: '/:id/property-info', summary: 'Set floor plan / property details and hospitals (Super Admin only)', description: 'Society admins cannot change these. Send propertyDetails and/or hospitals; each supplied part is replaced as a whole.', params: idParam, body: s.propertyInfoBody, response: s.societyItem, errors: [404], handler: c.superSocietyController.propertyInfo })
   .add({ method: 'post', path: '/:id/activate', summary: 'Activate or approve a society', params: idParam, body: s.statusBody, response: s.societyItem, status: 200, errors: [409], handler: c.superSocietyController.activate })
   .add({ method: 'post', path: '/:id/deactivate', summary: 'Deactivate a society', description: 'All users of the society lose access immediately.', params: idParam, body: s.statusBody, response: s.societyItem, status: 200, errors: [409], handler: c.superSocietyController.deactivate })
   .add({ method: 'put', path: '/:id/features', summary: 'Set module entitlements', params: idParam, body: s.featuresBody, response: s.societyItem, handler: c.superSocietyController.features })
@@ -40,6 +44,8 @@ societyPublicRouter.add({ method: 'post', path: '/register', public: true, limit
 // request needs a real flatId). The tenant middleware is bypassed via
 // skipTenantCheck: the societyId comes from the URL, not the auth context.
 societyPublicRouter.add({ method: 'get', path: '/:id/flats', summary: "List an active society's flats (for the join flow)", description: 'Returns the flats of an ACTIVE society so a resident can select their unit when applying. Any authenticated role can read this before joining.', params: idParam, response: z.array(s.flatItem), handler: async (req: Request, res: Response) => {
+  // Only ACTIVE societies are joinable; never reveal another society's structure.
+  if (!(await Society.exists({ _id: req.valid.params.id, status: 'ACTIVE' }))) throw ApiError.notFound('Society not found');
   const flats = await Flat.find({ societyId: req.valid.params.id, isDeleted: { $ne: true } }, undefined, { skipTenantCheck: true } as any).select('label unitNumber floorNumber status').sort({ label: 1 }).limit(200);
   ok(res, flats);
 } });
@@ -62,3 +68,9 @@ crudRoutes(adminStructureRouter, { path: '/floors', name: 'Floor', controller: c
 crudRoutes(adminStructureRouter, { path: '/flats', name: 'Flat', controller: c.flatController, create: s.flatBody, query: s.flatQuery, item: s.flatItem, read: [P.SOCIETY_READ], write: [P.STRUCTURE_MANAGE] });
 crudRoutes(adminStructureRouter, { path: '/gates', name: 'Gate', controller: c.gateController, create: s.gateBody, query: s.gateQuery, item: s.gateItem, read: [P.SOCIETY_READ], write: [P.STRUCTURE_MANAGE] });
 
+
+const infoRoute = { summary: 'Floor plan / property details and hospitals of my society', description: 'Configured by the platform team (Super Admin). Read-only.', response: s.propertyInfoItem, handler: c.propertyInfoController.mine };
+export const propertyInfoResidentRouter = new ModuleRouter('/api/v1/user/society-info', { tag: 'Resident - Society Info', roles: [UserType.RESIDENT], societyScoped: true });
+propertyInfoResidentRouter.add({ method: 'get', path: '/', ...infoRoute });
+export const propertyInfoGuardRouter = new ModuleRouter('/api/v1/guard/society-info', { tag: 'Guard', roles: [UserType.GUARD], societyScoped: true });
+propertyInfoGuardRouter.add({ method: 'get', path: '/', ...infoRoute });

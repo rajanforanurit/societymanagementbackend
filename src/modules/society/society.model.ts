@@ -20,6 +20,18 @@ export const Society = defineModel(
       contact: { email: String, phone: String, emergencyPhone: String, website: String },
       registrationNumber: String,
       totalUnits: Number,
+      // Owned by the platform (Super Admin) so a departing society admin cannot wipe them.
+      propertyDetails: {
+        propertyName: String,
+        description: String,
+        totalTowers: Number,
+        totalFloors: Number,
+        totalUnits: Number,
+        parkingInfo: String,
+        notes: String,
+        floorPlans: [{ title: { type: String, required: true }, description: String, fileId: ref('File') }],
+      },
+      hospitals: [{ name: { type: String, required: true }, phone: { type: String, required: true }, address: String, distanceKm: Number, open24x7: { type: Boolean, default: true } }],
       logoFileId: ref('File'),
       planId: ref('SubscriptionPlan'),
       subscription: { status: { type: String, enum: ['TRIAL', 'ACTIVE', 'EXPIRED', 'CANCELLED'], default: 'TRIAL' }, startsAt: Date, endsAt: Date },

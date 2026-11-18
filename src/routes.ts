@@ -21,9 +21,12 @@ import { propertyAdminRouter, propertyResidentRouter } from './modules/property/
 import { reportRouter } from './modules/reports/report.routes';
 import { familyRouter, moveAdminRouter, moveSelfRouter, residentAdminRouter, residentSelfRouter } from './modules/resident/resident.routes';
 import { rolesRouter, globalRolesRouter } from './modules/roles/roles.routes';
-import { adminStructureRouter, impersonationRouter, societyPublicRouter, superSocietyRouter } from './modules/society/society.routes';
+import { adminStructureRouter, impersonationRouter, propertyInfoGuardRouter, propertyInfoResidentRouter, societyPublicRouter, superSocietyRouter } from './modules/society/society.routes';
 import { staffAdminRouter } from './modules/staff/staff.routes';
 import { adminSupportRouter, announcementReadRouter, superDashboardRouter, superPlatformRouter, superSecurityRouter, superSupportRouter } from './modules/super-admin/super-admin.routes';
+import { callRouter } from './modules/calls/call.routes';
+import { helpdeskAdminRouter, helpdeskGuardRouter, helpdeskResidentRouter } from './modules/helpdesk/helpdesk.routes';
+import { platformMonitorRouter } from './modules/platform-monitor/platform.routes';
 import { vehicleAdminRouter, vehicleResidentRouter } from './modules/vehicles/vehicle.routes';
 import { adminVisitorRouter, residentVisitorRouter } from './modules/visitors/visitor.routes';
 
@@ -84,4 +87,11 @@ export const allRouters: ModuleRouter[] = [
   emergencyResidentRouter,
   personalContactRouter,
   documentResidentRouter,
+  platformMonitorRouter,
+  helpdeskAdminRouter,
+  helpdeskResidentRouter,
+  helpdeskGuardRouter,
+  propertyInfoResidentRouter,
+  propertyInfoGuardRouter,
+  callRouter,
 ];

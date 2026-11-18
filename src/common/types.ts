@@ -17,6 +17,7 @@ export interface AuthContext {
   permissions: Set<string>;
   features: Record<string, boolean>;
   impersonationId?: string;
+  mustChangePassword?: boolean;
   adminProfileId?: string;
   guardId?: string;
   gateId?: string;

@@ -40,6 +40,14 @@ export const initSocket = (server: HttpServer) => {
         io?.to(`user:${p.toUserId}`).emit('chat:typing', { conversationId: p.conversationId, fromUserId: a.userId });
       }
     });
+    socket.on('call:signal', async (p: { callId?: string; type?: string; data?: unknown }, ack?: (r: { ok: boolean }) => void) => {
+      let okRes = false;
+      if (a.societyId && p?.callId && /^[a-f\d]{24}$/i.test(p.callId) && ['offer', 'answer', 'candidate'].includes(p.type ?? '')) {
+        const { callService } = await import('../modules/calls/call.service');
+        okRes = await callService.relaySignal({ societyId: a.societyId, userId: a.userId }, { callId: p.callId, type: p.type!, data: p.data }).catch(() => false);
+      }
+      if (typeof ack === 'function') ack({ ok: okRes });
+    });
     logger.debug('socket_connected', { userId: a.userId });
   });
   return io;

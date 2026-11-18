@@ -29,6 +29,8 @@ export interface PushMessage {
   body: string;
   /** String-map payload the app routes on (e.g. `route`, `entityId`). */
   data?: Record<string, unknown>;
+  /** Android notification channel; defaults to habito_general. Emergencies use habito_emergency. */
+  channelId?: string;
 }
 
 export interface PushResult {
@@ -141,7 +143,7 @@ async function sendFcm(token: string, msg: PushMessage): Promise<SendOutcome> {
           token,
           notification: { title: msg.title, body: msg.body },
           data: stringData,
-          android: { priority: 'high', notification: { channel_id: 'habito_general', sound: 'default' } },
+          android: { priority: 'high', notification: { channel_id: msg.channelId ?? 'habito_general', sound: 'default' } },
           apns: {
             headers: { 'apns-priority': '10', 'apns-push-type': 'alert' },
             payload: { aps: { sound: 'default', 'content-available': 1 } },

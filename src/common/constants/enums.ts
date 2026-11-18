@@ -6,7 +6,7 @@ const e = <const T extends readonly string[]>(...keys: T) =>
 export const UserType = e('SUPER_ADMIN', 'SOCIETY_ADMIN', 'GUARD', 'RESIDENT');
 export type UserType = (typeof UserType)[keyof typeof UserType];
 
-export const SocietyStatus = e('PENDING', 'ACTIVE', 'INACTIVE', 'SUSPENDED');
+export const SocietyStatus = e('PENDING', 'ACTIVE', 'INACTIVE', 'SUSPENDED', 'REJECTED');
 export const SocietyType = e('APARTMENT', 'GATED_COMMUNITY', 'TOWNSHIP', 'VILLA_COMMUNITY', 'COMMERCIAL_COMPLEX');
 export const ProfileStatus = e('ACTIVE', 'INACTIVE', 'SUSPENDED');
 export const ResidentStatus = e('PENDING', 'APPROVED', 'REJECTED', 'INACTIVE', 'MOVED_OUT');
@@ -79,7 +79,7 @@ export const IncidentStatus = e('OPEN', 'INVESTIGATING', 'CLOSED');
 export const LostFoundType = e('LOST', 'FOUND');
 export const LostFoundStatus = e('OPEN', 'CLAIMED', 'CLOSED');
 
-export const NotificationType = e('VISITOR', 'DELIVERY', 'PAYMENT', 'COMPLAINT', 'MARKETPLACE', 'ANNOUNCEMENT', 'BOOKING', 'EMERGENCY', 'APPROVAL', 'CHAT', 'SYSTEM');
+export const NotificationType = e('VISITOR', 'DELIVERY', 'PAYMENT', 'COMPLAINT', 'MARKETPLACE', 'ANNOUNCEMENT', 'BOOKING', 'EMERGENCY', 'APPROVAL', 'CHAT', 'CALL', 'SYSTEM');
 export type NotificationType = (typeof NotificationType)[keyof typeof NotificationType];
 
 export const StaffType = e('HOUSEKEEPING', 'MAINTENANCE', 'ELECTRICIAN', 'PLUMBER', 'GARDENER', 'SECURITY', 'OTHER');
