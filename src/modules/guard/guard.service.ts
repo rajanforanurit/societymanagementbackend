@@ -31,7 +31,7 @@ export const guardMgmt = {
     return shape(g);
   },
   async create(societyId: string, actorId: string, input: any) {
-    if (!(await Gate.exists({ _id: input.gateId, societyId }))) throw ApiError.notFound('Gate not found');
+    if (input.gateId && !(await Gate.exists({ _id: input.gateId, societyId }))) throw ApiError.notFound('Gate not found');
     const mobile = normalizeMobile(input.mobile);
     return withTransaction(async (session) => {
       if (await User.exists({ mobile }).session(session ?? null)) throw ApiError.conflict('Mobile number is already registered', 'MOBILE_EXISTS');

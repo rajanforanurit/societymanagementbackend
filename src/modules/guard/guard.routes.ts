@@ -56,7 +56,8 @@ guardRouter
     ok(res, { today: { visitors, deliveries, domesticHelpPresent: present }, expectedVisitors: expected, pendingApprovals: { visitors: pv, deliveries: pd }, activeVisitors: active, activeEmergencyAlerts: alerts, recentActivity: recent });
   } })
   .add({ method: 'get', path: '/gate', summary: 'My assigned gate', response: z.object({ id: z.string(), name: z.string(), type: z.string(), location: z.string().optional() }), handler: async (req: Request, res: Response) => {
-    const g: any = await Gate.findOne({ _id: req.auth.gateId, societyId: sid(req) });
+    const g: any = req.auth.gateId ? await Gate.findOne({ _id: req.auth.gateId, societyId: sid(req) }) : null;
+    if (!g) return ok(res, { id: '', name: 'Unassigned', type: 'NONE' });
     ok(res, { id: String(g._id), name: g.name, type: g.type, location: g.location });
   } })
   .add({ method: 'get', path: '/flats/lookup', summary: 'Find a destination flat (label only)', description: 'Returns only flat labels — no resident names, phone numbers or other personal data.', query: vs.flatLookupQuery, response: z.array(vs.flatLookupItem), handler: async (req: Request, res: Response) => ok(res, await v.lookupFlats(sid(req), req.valid.query.q, req.valid.query.limit)) })

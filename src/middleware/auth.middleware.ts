@@ -72,7 +72,7 @@ export async function buildAuthContext(token: string): Promise<AuthContext> {
       const guard = await Guard.findOne({ userId: user._id, societyId: ctx.societyId, status: ProfileStatus.ACTIVE });
       if (!guard) throw ApiError.forbidden('No active guard assignment for this society', 'NO_GUARD_ACCESS');
       ctx.guardId = String(guard._id);
-      ctx.gateId = String(guard.gateId);
+      ctx.gateId = guard.gateId ? String(guard.gateId) : undefined;
     } else if (user.userType === UserType.RESIDENT) {
       const residents = await Resident.find({ userId: user._id, societyId: ctx.societyId, status: ResidentStatus.APPROVED });
       ctx.residents = residents.map((r: any) => ({

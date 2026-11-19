@@ -7,7 +7,7 @@ export const Guard = defineModel(
   makeSchema(
     {
       userId: refReq('User', { index: true }),
-      gateId: refReq('Gate', { index: true }),
+      gateId: ref('Gate', { index: true }),
       employeeCode: { type: String, trim: true },
       agency: String,
       shift: { type: String, enum: vals(Shift), default: 'GENERAL' },
