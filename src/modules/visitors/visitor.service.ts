@@ -4,13 +4,48 @@ import { addMinutes, minutesOf, weekdayOf, ymd } from '../../common/utils/dates'
 import { hmac, randomDigits, safeEqual } from '../../common/utils/crypto';
 import { applyListFilters, paginate } from '../../common/utils/pagination';
 import { writeAudit } from '../audit/audit.service';
-import { notifyAdmins, notifyFlat } from '../notifications/notify.service';
+import { notifyAdmins, notifyFlat, notifyUsers, residentUserIdsOfFlat } from '../notifications/notify.service';
+import { Guard } from '../guard/guard.model';
 import { Flat, Society } from '../society/society.model';
 import { realtime } from '../../realtime/socket';
 import { Visitor, VisitorInvitation } from './visitor.model';
 
 const qrFor = (invId: string) => `${invId}.${hmac(`inv:${invId}`).slice(0, 24)}`;
 const policyOf = async (societyId: string) => ((await Society.findById(societyId).select('settings.visitorPolicy')) as any)?.settings?.visitorPolicy ?? {};
+
+/** Set VISITOR_PUSH_DATA_ONLY=true once the resident app renders its own full-screen card from a data message. */
+const DATA_ONLY = process.env.VISITOR_PUSH_DATA_ONLY === 'true';
+
+const guardUserIds = async (societyId: string): Promise<string[]> =>
+  ((await Guard.find({ societyId, status: 'ACTIVE' }).select('userId')) as any[]).map((g) => String(g.userId));
+
+/** Payload the resident app uses to draw the approval card (lock screen, sleeping, or in-app). */
+const approvalData = (v: any, requiresApproval: boolean) => ({
+  kind: 'VISITOR_APPROVAL',
+  visitorId: String(v._id),
+  requiresApproval,
+  name: v.name,
+  visitorType: v.visitorType,
+  company: v.company ?? '',
+  purpose: v.purpose ?? '',
+  flatLabel: v.flatLabel,
+  requestedAt: (v.requestedAt ?? new Date()).toISOString?.() ?? String(v.requestedAt),
+});
+
+/** Tell every other device of the flat that the card is no longer actionable. */
+const dismissApproval = async (societyId: string, v: any, decision: string) => {
+  const userIds = await residentUserIdsOfFlat(societyId, String(v.flatId));
+  await notifyUsers({ societyId, userIds, type: NotificationType.VISITOR, title: 'Visitor resolved', body: decision, data: { kind: 'VISITOR_RESOLVED', visitorId: String(v._id), decision }, skipInbox: true, push: { silent: true } });
+};
+
+/** Push + socket to every on-duty guard (the decision came back from the flat). */
+const tellGuards = async (societyId: string, v: any, title: string, body: string, event: string, extra: Record<string, unknown> = {}) => {
+  const userIds = await guardUserIds(societyId);
+  await notifyUsers({ societyId, userIds, type: NotificationType.VISITOR, title, body, data: { visitorId: String(v._id), flatLabel: v.flatLabel, ...extra }, event, push: { urgent: true } });
+};
+
+const gateBoard = (societyId: string, event: string, v: any) =>
+  realtime.toAdmins(societyId, event, { visitorId: String(v._id), name: v.name, flatLabel: v.flatLabel, visitorType: v.visitorType });
 
 const GUEST_FIELDS = 'gateId flatId flatLabel visitorType name mobile vehicleNumber purpose company status approvalMode requestedAt decidedAt rejectReason entryAt exitAt isEmergencyEntry createdAt updatedAt societyId';
 
@@ -44,7 +79,19 @@ export const visitorService = {
       decidedAt: needs ? undefined : new Date(),
       createdBy: a.userId,
     });
-    await notifyFlat(a.societyId, input.flatId, { type: NotificationType.VISITOR, title: needs ? 'Visitor at the gate' : 'Visitor entering', body: `${input.name} (${input.visitorType.toLowerCase().replace('_', ' ')}) ${needs ? 'is waiting for your approval' : 'was allowed by society policy'}.`, data: { visitorId: String(doc._id), requiresApproval: needs }, event: 'visitor:arrived' }, 'canApproveVisitors');
+    await notifyFlat(
+      a.societyId,
+      input.flatId,
+      {
+        type: NotificationType.VISITOR,
+        title: needs ? 'Visitor at the gate' : 'Visitor entering',
+        body: `${input.name} (${input.visitorType.toLowerCase().replace('_', ' ')}) ${needs ? 'is waiting for your approval' : 'was allowed by society policy'}.`,
+        data: approvalData(doc, needs),
+        event: 'visitor:arrived',
+        push: needs ? { urgent: true, dataOnly: DATA_ONLY } : undefined,
+      },
+      'canApproveVisitors',
+    );
     return doc;
   },
 
@@ -92,13 +139,16 @@ export const visitorService = {
     const r = await Visitor.updateOne({ _id: id, societyId: a.societyId, status: { $in: [VisitorStatus.APPROVED, VisitorStatus.PENDING_APPROVAL] } }, { $set: { status: VisitorStatus.CHECKED_IN, entryAt: new Date(), enteredBy: a.userId, approvalMode: mode, gateId: a.gateId ?? v.gateId } });
     if (r.modifiedCount !== 1) throw ApiError.conflict('Visitor state changed', 'CONCURRENT_UPDATE');
     await notifyFlat(a.societyId, String(v.flatId), { type: NotificationType.VISITOR, title: 'Visitor entered', body: `${v.name} has entered the premises.`, data: { visitorId: id }, event: 'visitor:entered' });
-    return visitorService.getFor(a.societyId, id);
+    const inside: any = await visitorService.getFor(a.societyId, id);
+    gateBoard(a.societyId, 'visitor:entered', inside);
+    return inside;
   },
 
   async exit(a: { societyId: string; userId: string }, id: string) {
     const r = await Visitor.findOneAndUpdate({ _id: id, societyId: a.societyId, status: VisitorStatus.CHECKED_IN }, { $set: { status: VisitorStatus.CHECKED_OUT, exitAt: new Date(), exitedBy: a.userId } }, { new: true });
     if (!r) throw ApiError.conflict('Visitor is not currently checked in', 'NOT_CHECKED_IN');
     await notifyFlat(a.societyId, String(r.flatId), { type: NotificationType.VISITOR, title: 'Visitor left', body: `${r.name} has exited.`, data: { visitorId: id }, event: 'visitor:exited' });
+    gateBoard(a.societyId, 'visitor:exited', r);
     return r;
   },
 
@@ -106,12 +156,14 @@ export const visitorService = {
     const r = await Visitor.findOneAndUpdate({ _id: id, societyId: a.societyId, status: { $in: [VisitorStatus.PENDING_APPROVAL, VisitorStatus.APPROVED] } }, { $set: { status: VisitorStatus.DENIED, rejectReason: reason, decidedAt: new Date(), decidedBy: a.userId } }, { new: true });
     if (!r) throw ApiError.conflict('Visitor cannot be denied in its current state', 'INVALID_STATE');
     await notifyFlat(a.societyId, String(r.flatId), { type: NotificationType.VISITOR, title: 'Entry denied by security', body: `${r.name} was denied entry: ${reason}`, data: { visitorId: id }, event: 'visitor:denied' });
+    await dismissApproval(a.societyId, r, 'DENIED').catch(() => undefined);
+    gateBoard(a.societyId, 'visitor:denied', r);
     return r;
   },
 
   async resend(a: { societyId: string }, id: string) {
     const v = await visitorService.getFor(a.societyId, id, { status: VisitorStatus.PENDING_APPROVAL });
-    await notifyFlat(a.societyId, String(v.flatId), { type: NotificationType.VISITOR, title: 'Visitor still waiting', body: `${v.name} is waiting at the gate.`, data: { visitorId: String(v._id), requiresApproval: true }, event: 'visitor:arrived' }, 'canApproveVisitors');
+    await notifyFlat(a.societyId, String(v.flatId), { type: NotificationType.VISITOR, title: 'Visitor still waiting', body: `${v.name} is waiting at the gate.`, data: approvalData(v, true), event: 'visitor:arrived', push: { urgent: true, dataOnly: DATA_ONLY } }, 'canApproveVisitors');
     return v;
   },
 
@@ -138,6 +190,16 @@ export const visitorService = {
     const payload = { visitorId: id, decision: body.decision, name: r.name, flatLabel: r.flatLabel };
     if (r.gateId) realtime.toGate(String(r.gateId), 'visitor:decision', payload);
     realtime.toGuards(a.societyId, 'visitor:decision', payload);
+    gateBoard(a.societyId, 'visitor:decision', r);
+    await dismissApproval(a.societyId, r, approve ? 'APPROVED' : 'REJECTED').catch(() => undefined);
+    await tellGuards(
+      a.societyId,
+      r,
+      approve ? 'Visitor approved' : 'Visitor declined',
+      approve ? `${r.name} approved by ${r.flatLabel}. Allow entry.` : `${r.name} declined by ${r.flatLabel}${body.reason ? `: ${body.reason}` : ''}.`,
+      'visitor:decision',
+      { decision: body.decision, name: r.name, gateId: r.gateId ? String(r.gateId) : undefined },
+    ).catch(() => undefined);
     return r;
   },
 

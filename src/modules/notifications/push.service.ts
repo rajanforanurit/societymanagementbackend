@@ -31,6 +31,14 @@ export interface PushMessage {
   data?: Record<string, unknown>;
   /** Android notification channel; defaults to habito_general. Emergencies use habito_emergency. */
   channelId?: string;
+  /** Time-critical (visitor at the gate): max Android priority, public on the lock screen, iOS time-sensitive, short TTL. */
+  urgent?: boolean;
+  /** Data-only: no system notification; the app's background handler renders it (needed for a full-screen call-style card). */
+  dataOnly?: boolean;
+  /** Silent update (e.g. visitor decided elsewhere) so the app can dismiss a stale card. Implies dataOnly. */
+  silent?: boolean;
+  /** Seconds the push stays deliverable. Defaults to 60 for urgent, otherwise provider default. */
+  ttlSeconds?: number;
 }
 
 export interface PushResult {
@@ -125,6 +133,38 @@ interface SendOutcome {
   error?: string;
 }
 
+function buildFcmMessage(token: string, msg: PushMessage, data: Record<string, string>) {
+  const silent = !!msg.silent;
+  const dataOnly = silent || !!msg.dataOnly;
+  const ttl = msg.ttlSeconds ?? (msg.urgent ? 60 : undefined);
+  const channel = msg.channelId ?? (msg.urgent ? 'habito_visitor' : 'habito_general');
+  // Always carry title/body in data so a data-only handler can draw the card.
+  const payloadData = dataOnly ? { ...data, title: msg.title, body: msg.body } : data;
+  const android: Record<string, unknown> = { priority: 'high' };
+  if (ttl) android.ttl = `${ttl}s`;
+  if (!dataOnly) {
+    android.notification = {
+      channel_id: channel,
+      sound: 'default',
+      ...(msg.urgent ? { notification_priority: 'PRIORITY_MAX', visibility: 'PUBLIC', default_vibrate_timings: true, default_sound: true } : {}),
+    };
+  }
+  const apnsHeaders: Record<string, string> = silent
+    ? { 'apns-priority': '5', 'apns-push-type': 'background' }
+    : { 'apns-priority': '10', 'apns-push-type': 'alert' };
+  if (ttl) apnsHeaders['apns-expiration'] = String(Math.floor(Date.now() / 1000) + ttl);
+  const aps: Record<string, unknown> = silent
+    ? { 'content-available': 1 }
+    : { sound: 'default', 'content-available': 1, ...(msg.urgent ? { 'interruption-level': 'time-sensitive' } : {}) };
+  return {
+    token,
+    ...(dataOnly ? {} : { notification: { title: msg.title, body: msg.body } }),
+    data: payloadData,
+    android,
+    apns: { headers: apnsHeaders, payload: { aps } },
+  };
+}
+
 async function sendFcm(token: string, msg: PushMessage): Promise<SendOutcome> {
   try {
     const accessToken = await fcmAccessToken();
@@ -138,18 +178,7 @@ async function sendFcm(token: string, msg: PushMessage): Promise<SendOutcome> {
         Authorization: `Bearer ${accessToken}`,
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({
-        message: {
-          token,
-          notification: { title: msg.title, body: msg.body },
-          data: stringData,
-          android: { priority: 'high', notification: { channel_id: msg.channelId ?? 'habito_general', sound: 'default' } },
-          apns: {
-            headers: { 'apns-priority': '10', 'apns-push-type': 'alert' },
-            payload: { aps: { sound: 'default', 'content-available': 1 } },
-          },
-        },
-      }),
+      body: JSON.stringify({ message: buildFcmMessage(token, msg, stringData) }),
       signal: AbortSignal.timeout(10_000),
     });
     if (res.status === 404) return { ok: false, unregistered: true, provider: 'fcm', status: 404 };
@@ -187,14 +216,19 @@ function apnsJwt(): string {
 
 function sendApns(token: string, msg: PushMessage): Promise<SendOutcome> {
   const host = pushConfig.apns.useSandbox ? APNS_HOST_SANDBOX : APNS_HOST_PROD;
+  const silent = !!msg.silent;
   const payload = JSON.stringify({
-    aps: {
-      alert: { title: msg.title, body: msg.body },
-      sound: 'default',
-      'content-available': 1,
-    },
+    aps: silent
+      ? { 'content-available': 1 }
+      : {
+          alert: { title: msg.title, body: msg.body },
+          sound: 'default',
+          'content-available': 1,
+          ...(msg.urgent ? { 'interruption-level': 'time-sensitive' } : {}),
+        },
     data: msg.data ?? {},
   });
+  const apnsTtl = msg.ttlSeconds ?? (msg.urgent ? 60 : undefined);
 
   return new Promise<SendOutcome>((resolve) => {
     let client: http2.ClientHttp2Session | null = null;
@@ -213,8 +247,9 @@ function sendApns(token: string, msg: PushMessage): Promise<SendOutcome> {
         ':method': 'POST',
         ':path': `/3/device/${token}`,
         'apns-topic': pushConfig.apns.bundleId,
-        'apns-push-type': 'alert',
-        'apns-priority': '10',
+        'apns-push-type': silent ? 'background' : 'alert',
+        'apns-priority': silent ? '5' : '10',
+        ...(apnsTtl ? { 'apns-expiration': String(Math.floor(Date.now() / 1000) + apnsTtl) } : {}),
         authorization: `bearer ${apnsJwt()}`,
         'content-type': 'application/json',
         'content-length': Buffer.byteLength(payload),
