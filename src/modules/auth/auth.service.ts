@@ -109,6 +109,27 @@ async function issueSession(user: any, societyId: string | undefined, meta: Clie
   return { tokenType: 'Bearer' as const, accessToken, refreshToken, expiresIn: env.ACCESS_TOKEN_TTL_SECONDS, societyId, passwordChangeRequired: Boolean(user.mustChangePassword), user: user.toJSON(), societies: await memberships(user) };
 }
 
+/** Society a login attempt belongs to (for the society admin's own platform monitor), only when unambiguous. */
+async function attributeSociety(user: any, requested?: string): Promise<string | undefined> {
+  try {
+    const ids = [...new Set((await memberships(user)).map((m) => m.societyId))];
+    if (requested && ids.includes(requested)) return requested;
+    return ids.length === 1 ? ids[0] : undefined;
+  } catch {
+    return undefined;
+  }
+}
+
+/** Why a society-bound account (admin / guard) has no active society, in words the app can show. */
+async function explainNoAccess(list: { societyId: string }[]): Promise<ApiError> {
+  const societies: any[] = list.length ? await Society.find({ _id: { $in: list.map((m) => m.societyId) } }).select('status statusReason') : [];
+  const has = (s: string) => societies.find((x) => x.status === s);
+  if (has('PENDING')) return ApiError.forbidden('Your society is awaiting verification by the platform team. You can sign in once it is approved.', 'SOCIETY_PENDING_VERIFICATION');
+  if (has('REJECTED')) return ApiError.forbidden(`Your society registration was not approved${has('REJECTED').statusReason ? `: ${has('REJECTED').statusReason}` : '.'}`, 'SOCIETY_REJECTED');
+  if (has('INACTIVE') || has('SUSPENDED')) return ApiError.forbidden('This society is currently deactivated. Contact the platform team.', 'SOCIETY_INACTIVE');
+  return ApiError.forbidden('No active society access for this account', 'NO_ACTIVE_MEMBERSHIP');
+}
+
 async function pickSociety(user: any, requested?: string) {
   if (user.userType === UserType.SUPER_ADMIN) return undefined;
   const list = await memberships(user);
@@ -119,7 +140,7 @@ async function pickSociety(user: any, requested?: string) {
     return requested;
   }
   if (active.length === 1) return active[0].societyId;
-  if (active.length === 0 && user.userType !== UserType.RESIDENT) throw ApiError.forbidden('No active society access for this account', 'NO_ACTIVE_MEMBERSHIP');
+  if (active.length === 0 && user.userType !== UserType.RESIDENT) throw await explainNoAccess(list);
   return undefined;
 }
 
@@ -143,21 +164,27 @@ export async function login(input: { identifier: string; password: string; socie
     throw ApiError.unauthorized('Invalid credentials', 'INVALID_CREDENTIALS');
   }
   if (user.lockedUntil && user.lockedUntil > new Date()) {
-    await recordLogin(id, false, meta, { userId: user._id, reason: 'LOCKED' });
+    await recordLogin(id, false, meta, { userId: user._id, reason: 'LOCKED', societyId: await attributeSociety(user, input.societyId) });
     throw ApiError.tooMany('Account temporarily locked due to repeated failed logins', 'ACCOUNT_LOCKED');
   }
   if (!(await verifyPassword(input.password, user.passwordHash))) {
     const failed = (user.failedLoginCount ?? 0) + 1;
     await User.updateOne({ _id: user._id }, failed >= MAX_FAILED ? { $set: { failedLoginCount: 0, lockedUntil: addMinutes(new Date(), LOCK_MINUTES) } } : { $set: { failedLoginCount: failed } });
-    await recordLogin(id, false, meta, { userId: user._id, reason: 'BAD_PASSWORD' });
+    await recordLogin(id, false, meta, { userId: user._id, reason: 'BAD_PASSWORD', societyId: await attributeSociety(user, input.societyId) });
     throw ApiError.unauthorized('Invalid credentials', 'INVALID_CREDENTIALS');
   }
   if (!user.isActive) {
-    await recordLogin(id, false, meta, { userId: user._id, reason: 'INACTIVE' });
+    await recordLogin(id, false, meta, { userId: user._id, reason: 'INACTIVE', societyId: await attributeSociety(user, input.societyId) });
     throw ApiError.forbidden('Account is deactivated', 'ACCOUNT_INACTIVE');
   }
   await User.updateOne({ _id: user._id }, { $set: { failedLoginCount: 0, lastLoginAt: new Date() }, $unset: { lockedUntil: 1 } });
-  const societyId = await pickSociety(user, input.societyId);
+  let societyId: string | undefined;
+  try {
+    societyId = await pickSociety(user, input.societyId);
+  } catch (err) {
+    await recordLogin(id, false, meta, { userId: user._id, reason: (err as ApiError).code ?? 'NO_ACCESS', societyId: await attributeSociety(user, input.societyId) });
+    throw err;
+  }
   await recordLogin(id, true, meta, { userId: user._id, societyId });
   return issueSession(user, societyId, meta);
 }

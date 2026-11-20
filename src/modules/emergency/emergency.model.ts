@@ -8,6 +8,7 @@ export const EmergencyAlert = defineModel(
       type: { type: String, enum: vals(EmergencyType), default: 'PANIC' },
       source: { type: String, enum: ['RESIDENT', 'GUARD', 'ADMIN'], required: true },
       raisedBy: refReq('User'),
+      raisedByName: String,
       flatId: ref('Flat'),
       flatLabel: String,
       gateId: ref('Gate'),
@@ -15,8 +16,12 @@ export const EmergencyAlert = defineModel(
       message: String,
       status: { type: String, enum: vals(AlertStatus), default: 'ACTIVE', index: true },
       acknowledgedBy: ref('User'),
+      acknowledgedByName: String,
+      acknowledgedByRole: String,
       acknowledgedAt: Date,
       resolvedBy: ref('User'),
+      resolvedByName: String,
+      resolvedByRole: String,
       resolvedAt: Date,
       resolutionNote: String,
       notifiedContacts: [{ name: String, phone: String }],
@@ -70,7 +75,36 @@ export const EmergencyContact = defineModel(
       phone: { type: String, required: true },
       notes: String,
       order: { type: Number, default: 0 },
+      // The society admin chooses who sees each number (older documents without flags stay visible).
+      visibleToResidents: { type: Boolean, default: true },
+      visibleToGuards: { type: Boolean, default: true },
     },
     { indexes: [[{ societyId: 1, scope: 1, order: 1 }]] },
+  ),
+);
+
+/**
+ * One document per (society, resident), `_id = "<societyId>:<userId>"`. `lastAlarmAt` is claimed
+ * atomically so accidental double taps cannot raise duplicate alarms. Keying by _id needs no extra
+ * index (autoIndex is off in production).
+ */
+export const EmergencyAlarmLock = defineModel(
+  'EmergencyAlarmLock',
+  makeSchema({ _id: { type: String }, userId: ref('User'), lastAlarmAt: Date }, { softDelete: false, audited: false }),
+);
+
+/** Free-text emergency messages from residents to the guards or the society admins. */
+export const EmergencyStaffMessage = defineModel(
+  'EmergencyStaffMessage',
+  makeSchema(
+    {
+      fromUserId: refReq('User', { index: true }),
+      fromName: String,
+      flatLabel: String,
+      audience: { type: String, enum: ['GUARDS', 'ADMIN'], required: true },
+      subject: String,
+      message: { type: String, required: true },
+    },
+    { audited: false, indexes: [[{ societyId: 1, audience: 1, createdAt: -1 }]] },
   ),
 );

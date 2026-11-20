@@ -1,3 +1,4 @@
+import { realtime } from '../../realtime/socket';
 import { ApprovalEntityType, NotificationType } from '../../common/constants/enums';
 import { ApiError } from '../../common/utils/apiError';
 import { applyListFilters, paginate } from '../../common/utils/pagination';
@@ -125,7 +126,11 @@ export const postService = {
   async create(societyId: string, userId: string, flatIds: string[], body: any) {
     const user: any = await User.findById(userId).select('name');
     const flat: any = flatIds[0] ? await Flat.findOne({ _id: flatIds[0], societyId }) : null;
-    return CommunityPost.create({ ...body, societyId, authorId: userId, authorName: user?.name, flatLabel: flat?.label, createdBy: userId });
+    const { saveAsDraft, ...data } = body;
+    const post: any = await CommunityPost.create({ ...data, societyId, authorId: userId, authorName: user?.name, flatLabel: flat?.label, createdBy: userId });
+    // Posts go straight to the admin moderation queue unless the resident explicitly keeps a draft
+    // (previously every post stayed DRAFT until a separate /submit call, so admins never saw them).
+    return saveAsDraft ? post : postService.submit(societyId, userId, String(post._id));
   },
   async update(societyId: string, userId: string, id: string, body: any) {
     const p = await CommunityPost.findOneAndUpdate({ _id: id, societyId, authorId: userId, status: { $in: ['DRAFT', 'CHANGES_REQUESTED', 'REJECTED'] } }, { $set: { ...body, updatedBy: userId } }, { new: true });
@@ -135,6 +140,7 @@ export const postService = {
   async submit(societyId: string, userId: string, id: string) {
     const p = await applyTransition('COMMUNITY_POST', id, 'SUBMITTED', { userId, role: 'RESIDENT', societyId }, { ownerOnly: true });
     await notifyAdmins(societyId, 'approval:review', { type: NotificationType.APPROVAL, title: 'Community post awaiting approval', body: p.title, data: { entityType: 'COMMUNITY_POST', entityId: id } });
+    realtime.toAdmins(societyId, 'approval:new', { entityType: 'COMMUNITY_POST', entityId: id, title: p.title });
     return p;
   },
   withdraw: (societyId: string, userId: string, id: string) => applyTransition('COMMUNITY_POST', id, 'DRAFT', { userId, role: 'RESIDENT', societyId }, { ownerOnly: true }),
@@ -171,7 +177,22 @@ export const postService = {
     }
   },
   async adminList(societyId: string, q: any) {
-    return paginate(CommunityPost, applyListFilters({ societyId, ...(q.status ? { status: q.status } : {}) }, q, ['title', 'body']), q, { sortable: ['createdAt'] });
+    const r: any = await paginate(CommunityPost, applyListFilters({ societyId, ...(q.status ? { status: q.status } : {}) }, q, ['title', 'body']), q, { sortable: ['createdAt'] });
+    return postService.withAuthors(societyId, r);
+  },
+  async adminGet(societyId: string, id: string) {
+    const p: any = await CommunityPost.findOne({ _id: id, societyId });
+    if (!p) throw ApiError.notFound('Post not found');
+    const [one] = (await postService.withAuthors(societyId, { items: [p.toJSON ? p.toJSON() : p] })).items;
+    return one;
+  },
+  /** Adds the author's mobile (admins only) so the moderator can contact them. */
+  async withAuthors(societyId: string, r: any) {
+    const items: any[] = (r.items ?? r.data ?? []).map((i: any) => (i?.toJSON ? i.toJSON() : i));
+    const users: any[] = await User.find({ _id: { $in: items.map((i) => i.authorId) } }).select('mobile');
+    const m = new Map(users.map((u) => [String(u._id), u.mobile]));
+    const mapped = items.map((i) => ({ ...i, authorMobile: m.get(String(i.authorId)) }));
+    return r.items ? { ...r, items: mapped } : { ...r, data: mapped };
   },
 };
 

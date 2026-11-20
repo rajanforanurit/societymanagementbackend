@@ -56,7 +56,8 @@ guardRouter
     ok(res, { today: { visitors, deliveries, domesticHelpPresent: present }, expectedVisitors: expected, pendingApprovals: { visitors: pv, deliveries: pd }, activeVisitors: active, activeEmergencyAlerts: alerts, recentActivity: recent });
   } })
   .add({ method: 'get', path: '/gate', summary: 'My assigned gate', response: z.object({ id: z.string(), name: z.string(), type: z.string(), location: z.string().optional() }), handler: async (req: Request, res: Response) => {
-    const g: any = await Gate.findOne({ _id: req.auth.gateId, societyId: sid(req) });
+    const g: any = req.auth.gateId ? await Gate.findOne({ _id: req.auth.gateId, societyId: sid(req) }) : null;
+    if (!g) return ok(res, { id: '', name: 'Unassigned', type: 'NONE' });
     ok(res, { id: String(g._id), name: g.name, type: g.type, location: g.location });
   } })
   .add({ method: 'get', path: '/flats/lookup', summary: 'Find a destination flat (label only)', description: 'Returns only flat labels — no resident names, phone numbers or other personal data.', query: vs.flatLookupQuery, response: z.array(vs.flatLookupItem), handler: async (req: Request, res: Response) => ok(res, await v.lookupFlats(sid(req), req.valid.query.q, req.valid.query.limit)) })
@@ -95,7 +96,7 @@ guardRouter
 
   .add({ method: 'post', path: '/alerts', summary: 'Trigger an emergency alert', body: es.guardAlertBody, response: es.alertItem, status: 201, handler: async (req: Request, res: Response) => created(res, await emergencyService.raise({ ...ctx(req), source: 'GUARD' }, req.valid.body), 'Alert raised') })
   .add({ method: 'get', path: '/alerts', summary: 'Active emergency and panic alerts', query: es.alertQuery, response: es.alertItem, paginated: true, handler: async (req: Request, res: Response) => paged(res, await emergencyService.list(sid(req), req.valid.query)) })
-  .add({ method: 'patch', path: '/alerts/:id', summary: 'Acknowledge or resolve an alert', params: idParam, body: es.alertUpdateBody, response: es.alertItem, errors: [409], handler: async (req: Request, res: Response) => ok(res, await emergencyService.update(sid(req), req.valid.params.id, req.auth.userId, req.valid.body), 'Alert updated') })
+  .add({ method: 'patch', path: '/alerts/:id', summary: 'Acknowledge or resolve an alert', params: idParam, body: es.alertUpdateBody, response: es.alertItem, errors: [409], handler: async (req: Request, res: Response) => ok(res, await emergencyService.update(sid(req), req.valid.params.id, req.auth.userId, req.valid.body, { role: 'GUARD' }), 'Alert updated') })
   .add({ method: 'post', path: '/incidents', summary: 'Report a suspicious activity or security incident', body: es.incidentBody, response: es.incidentItem, status: 201, handler: async (req: Request, res: Response) => created(res, await reportIncident(sid(req), req.auth.userId, 'GUARD', req.valid.body), 'Incident recorded') })
   .add({ method: 'post', path: '/lost-found', summary: 'Report a lost or found item', body: es.lostFoundBody, response: es.lostFoundItem, status: 201, handler: async (req: Request, res: Response) => created(res, await lostFoundService.create(sid(req), req.auth.userId, { ...req.valid.body, reportedBy: req.auth.userId }), 'Item recorded') })
-  .add({ method: 'get', path: '/emergency-contacts', summary: 'Society emergency contacts and instructions', query: es.contactQuery, response: es.contactItem, paginated: true, handler: async (req: Request, res: Response) => paged(res, await contactService.list(sid(req), req.valid.query, { scope: 'SOCIETY' })) });
+  .add({ method: 'get', path: '/emergency-contacts', summary: 'Society emergency contacts and instructions', query: es.contactQuery, response: es.contactItem, paginated: true, handler: async (req: Request, res: Response) => paged(res, await contactService.list(sid(req), req.valid.query, { scope: 'SOCIETY', visibleToGuards: { $ne: false } })) });

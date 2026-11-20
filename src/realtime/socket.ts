@@ -40,9 +40,23 @@ export const initSocket = (server: HttpServer) => {
         io?.to(`user:${p.toUserId}`).emit('chat:typing', { conversationId: p.conversationId, fromUserId: a.userId });
       }
     });
+    socket.on('call:signal', async (p: { callId?: string; type?: string; data?: unknown }, ack?: (r: { ok: boolean }) => void) => {
+      let okRes = false;
+      if (a.societyId && p?.callId && /^[a-f\d]{24}$/i.test(p.callId) && ['offer', 'answer', 'candidate'].includes(p.type ?? '')) {
+        okRes = signalHandler ? await signalHandler({ societyId: a.societyId, userId: a.userId }, { callId: p.callId, type: p.type!, data: p.data }).catch(() => false) : false;
+      }
+      if (typeof ack === 'function') ack({ ok: okRes });
+    });
     logger.debug('socket_connected', { userId: a.userId });
   });
   return io;
+};
+
+type SignalHandler = (c: { societyId: string; userId: string }, i: { callId: string; type: string; data: unknown }) => Promise<boolean>;
+let signalHandler: SignalHandler | undefined;
+/** The calls module registers its WebRTC signaling relay here (avoids a circular import). */
+export const registerCallSignalHandler = (h: SignalHandler) => {
+  signalHandler = h;
 };
 
 const emit = (room: string, event: string, payload: unknown) => {

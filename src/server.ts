@@ -4,14 +4,20 @@ import { connectDatabase, disconnectDatabase } from './config/database';
 import { env } from './config/env';
 import { createApp } from './app';
 import { startScheduler } from './jobs/scheduler';
+import { syncSystemRoles } from './modules/roles/roles.sync';
+import { callService } from './modules/calls/call.service';
 import { initSocket } from './realtime/socket';
 
 async function main() {
   await connectDatabase();
+  await syncSystemRoles().catch((e) => logger.error('role_sync_failed', { error: String(e) }));
   const app = createApp();
   const server = http.createServer(app);
   initSocket(server);
   const stopScheduler = env.SCHEDULER_ENABLED ? startScheduler() : () => undefined;
+
+  const callSweep = setInterval(() => void callService.sweep().catch(() => undefined), 30000);
+  callSweep.unref();
 
   server.listen(env.PORT, () => {
     logger.info('server_started', { port: env.PORT, docs: `http://localhost:${env.PORT}/api-docs`, openapi: `http://localhost:${env.PORT}/api-docs.json` });

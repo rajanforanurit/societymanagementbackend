@@ -19,6 +19,8 @@ export const adminItem = entity({
   revokedPermissions: z.array(z.string()),
   status: z.enum(vals(ProfileStatus)),
   user: z.object({ id: objectId, name: z.string(), mobile: z.string(), email: z.string().optional(), lastLoginAt: dateTime.optional() }).optional(),
+  role: z.object({ id: objectId, name: z.string(), key: z.string().optional() }).optional(),
+  society: z.object({ id: objectId, name: z.string(), code: z.string().optional(), status: z.string().optional() }).optional(),
 });
 export const resetAccessResponse = z.object({ temporaryPassword: z.string() });
 export const activityItem = z.object({ id: objectId, action: z.string(), entityType: z.string().optional(), entityId: z.string().optional(), createdAt: dateTime, statusCode: z.number().optional() });

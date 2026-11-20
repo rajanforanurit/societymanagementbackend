@@ -1,4 +1,4 @@
-import { SocietyStatus } from '../../common/constants/enums';
+import { NotificationType, SocietyStatus, UserType } from '../../common/constants/enums';
 import { ApiError } from '../../common/utils/apiError';
 import { createCrudService } from '../../common/services/crud.service';
 import { applyListFilters, paginate, toDotPaths } from '../../common/utils/pagination';
@@ -6,25 +6,153 @@ import { addMinutes } from '../../common/utils/dates';
 import { signAccessToken } from '../../common/utils/jwt';
 import { withTransaction } from '../../common/utils/transaction';
 import { env } from '../../config/env';
+import { realtime } from '../../realtime/socket';
 import { writeAudit } from '../audit/audit.service';
 import { provisionAdmin } from '../admin/admin.service';
 import { User } from '../auth/auth.model';
+import { notifyUsers } from '../notifications/notify.service';
+import { Role } from '../roles/roles.model';
 import { seedSocietyRoles } from '../roles/roles.service';
 import { ImpersonationSession, SubscriptionPlan } from '../super-admin/super-admin.model';
 import { Block, Flat, Floor, Gate, Society, Tower } from './society.model';
+import { applyLayout, assertLayoutNotShrinking, generateSocietyCode, societyTypeFor, summarize } from './society.layout';
+import { AdminProfile } from '../admin/admin.model';
+
+/** Societies registered through the public form are PENDING and have no roles yet; make sure the role set exists. */
+async function ensureSocietyRoles(societyId: string, actorId: string, session?: any) {
+  const existing: any = await Role.findOne({ societyId, key: 'COMMUNITY_ADMIN' }).session(session ?? null);
+  if (existing) return existing;
+  const roles = await seedSocietyRoles(societyId, actorId, session);
+  return roles.find((r) => r.key === 'COMMUNITY_ADMIN')!;
+}
+
+async function welcomeAdmin(society: any, userId: string) {
+  await notifyUsers({
+    societyId: String(society._id),
+    userIds: [userId],
+    type: NotificationType.SYSTEM,
+    title: `${society.name} is verified`,
+    body: 'Your society is live. Sign in, change your temporary password, then add amenities, guards, other administrators and helpdesk contacts.',
+    data: { route: 'society-setup', societyId: String(society._id) },
+    event: 'society:verified',
+  });
+}
+
+
+/** Property details with the derived totals filled in, so the stored summary always matches the layout. */
+const withTotals = (details: any, type: 'MULTIFAMILY' | 'SINGLE_FAMILY') => ({ ...details, ...summarize(details, type) });
+
+const isDuplicateCode = (e: any) => e?.code === 11000 && JSON.stringify(e.keyPattern ?? e.keyValue ?? {}).includes('code');
 
 export const societyAdminService = {
   async create(input: any, actorId: string) {
-    return withTransaction(async (session) => {
-      if (await Society.exists({ code: input.code }).session(session ?? null)) throw ApiError.conflict('Society code already exists', 'CODE_EXISTS');
-      const { primaryAdmin, ...rest } = input;
-      const [society]: any[] = await Society.create([{ ...rest, status: SocietyStatus.ACTIVE, approvedAt: new Date(), approvedBy: actorId, createdBy: actorId, subscription: { status: 'TRIAL', startsAt: new Date() } }], { session });
-      const roles = await seedSocietyRoles(String(society._id), actorId, session);
-      const owner = roles.find((r) => r.key === 'COMMUNITY_ADMIN')!;
-      await provisionAdmin(String(society._id), String(owner._id), { ...primaryAdmin, designation: 'Primary Administrator' }, actorId, session);
-      await writeAudit({ actorId, actorRole: 'SUPER_ADMIN', societyId: String(society._id), action: 'SOCIETY_CREATED', entityType: 'Society', entityId: String(society._id), after: { name: society.name, code: society.code } }, session);
-      return society;
+    // The code embeds the creation date and the society's initials; a rare collision (two
+    // societies with the same initials on the same day) gets a numeric suffix, retried on a race.
+    for (let attempt = 0; attempt < 5; attempt++) {
+      try {
+        const { society, adminUserId } = await withTransaction(async (session) => {
+          const { primaryAdmin, propertyType, propertyDetails, ...rest } = input;
+          const code = await generateSocietyCode(input.name, session);
+          const details = withTotals(propertyDetails, propertyType);
+          const [society]: any[] = await Society.create([{ ...rest, code, propertyType, type: societyTypeFor(propertyType), propertyDetails: details, totalUnits: details.totalUnits, status: SocietyStatus.ACTIVE, approvedAt: new Date(), approvedBy: actorId, createdBy: actorId, subscription: { status: 'TRIAL', startsAt: new Date() } }], { session });
+          const roles = await seedSocietyRoles(String(society._id), actorId, session);
+          const owner = roles.find((r) => r.key === 'COMMUNITY_ADMIN')!;
+          const { user } = await provisionAdmin(String(society._id), String(owner._id), { ...primaryAdmin, designation: 'Primary Administrator' }, actorId, session);
+          await applyLayout(String(society._id), propertyType, details, actorId, session);
+          await writeAudit({ actorId, actorRole: 'SUPER_ADMIN', societyId: String(society._id), action: 'SOCIETY_CREATED', entityType: 'Society', entityId: String(society._id), after: { name: society.name, code: society.code, propertyType } }, session);
+          return { society, adminUserId: String(user._id) };
+        });
+        await welcomeAdmin(society, adminUserId);
+        return society;
+      } catch (e: any) {
+        if (!isDuplicateCode(e) || attempt === 4) throw e;
+      }
+    }
+    throw ApiError.conflict('Could not generate a unique society code', 'CODE_EXISTS');
+  },
+  /** Verify a publicly registered society: create roles + primary admin, store property/hospital details, activate. */
+  async approveRegistration(id: string, input: any, actorId: string) {
+    const { society, adminUserId } = await withTransaction(async (session) => {
+      const s: any = await Society.findById(id).session(session ?? null);
+      if (!s) throw ApiError.notFound('Society not found');
+      if (s.status !== SocietyStatus.PENDING) throw ApiError.conflict('Only PENDING registrations can be approved', 'INVALID_STATE');
+      const name = input.name ?? s.applicant?.name;
+      const mobile = input.mobile ?? s.applicant?.mobile;
+      if (!name || !mobile) throw ApiError.badRequest('Administrator name and mobile are required', 'ADMIN_DETAILS_REQUIRED');
+      const owner = await ensureSocietyRoles(id, actorId, session);
+      const { user } = await provisionAdmin(id, String(owner._id), { name, mobile, email: input.email ?? s.applicant?.email, password: input.password, designation: input.designation ?? 'Primary Administrator' }, actorId, session);
+      const details = withTotals(input.propertyDetails, input.propertyType);
+      s.propertyType = input.propertyType;
+      s.type = societyTypeFor(input.propertyType);
+      s.propertyDetails = details;
+      s.totalUnits = details.totalUnits;
+      if (input.hospitals) s.hospitals = input.hospitals;
+      await applyLayout(id, input.propertyType, details, actorId, session);
+      s.status = SocietyStatus.ACTIVE;
+      s.statusReason = input.notes;
+      s.approvedAt = new Date();
+      s.approvedBy = actorId;
+      s.updatedBy = actorId;
+      s.subscription = { status: 'TRIAL', startsAt: new Date() };
+      await s.save({ session });
+      await writeAudit({ actorId, actorRole: 'SUPER_ADMIN', societyId: id, action: 'SOCIETY_REGISTRATION_APPROVED', entityType: 'Society', entityId: id, after: { adminUserId: String(user._id) } }, session);
+      return { society: s, adminUserId: String(user._id) };
     });
+    await welcomeAdmin(society, adminUserId);
+    return society;
+  },
+  async rejectRegistration(id: string, reason: string, actorId: string) {
+    const s: any = await Society.findOneAndUpdate({ _id: id, status: SocietyStatus.PENDING }, { $set: { status: SocietyStatus.REJECTED, statusReason: reason, updatedBy: actorId } }, { new: true });
+    if (!s) throw ApiError.conflict('Only PENDING registrations can be rejected', 'INVALID_STATE');
+    await writeAudit({ actorId, actorRole: 'SUPER_ADMIN', societyId: id, action: 'SOCIETY_REGISTRATION_REJECTED', entityType: 'Society', entityId: id, metadata: { reason } });
+    return s;
+  },
+  /** Floor plan / property details / layout and hospitals. Super Admin only; replaces the supplied part(s). */
+  async setPropertyInfo(id: string, input: any, actorId: string) {
+    const existing: any = await Society.findById(id);
+    if (!existing) throw ApiError.notFound('Society not found');
+    const set: Record<string, unknown> = { updatedBy: actorId };
+    if (input.hospitals) set.hospitals = input.hospitals;
+    if (input.propertyDetails) {
+      const type = input.propertyType ?? existing.propertyType;
+      const hasLayout = !!(input.propertyDetails.towers?.length || input.propertyDetails.singleFamily);
+      if (!hasLayout) {
+        // Floor plans / description only: keep the stored layout and totals.
+        const keep = existing.propertyDetails?.toObject?.() ?? existing.propertyDetails ?? {};
+        set.propertyDetails = { ...keep, ...input.propertyDetails, towers: keep.towers, singleFamily: keep.singleFamily, totalTowers: keep.totalTowers, totalFloors: keep.totalFloors, totalUnits: keep.totalUnits };
+      } else {
+        if (!type) throw ApiError.badRequest('Set the property type together with its layout', 'PROPERTY_TYPE_REQUIRED');
+        if (existing.propertyType && existing.propertyType !== type && (await Flat.exists({ societyId: id }))) throw ApiError.conflict('The property type cannot change once units exist', 'PROPERTY_TYPE_LOCKED');
+        const hadLayout = !!(existing.propertyDetails?.towers?.length || existing.propertyDetails?.singleFamily?.totalHouses);
+        if (hadLayout) await assertLayoutNotShrinking(id, type, input.propertyDetails);
+        const details = withTotals(input.propertyDetails, type);
+        set.propertyDetails = details;
+        set.propertyType = type;
+        set.type = societyTypeFor(type);
+        set.totalUnits = details.totalUnits;
+        await withTransaction(async (session) => {
+          await applyLayout(id, type, details, actorId, session);
+        });
+      }
+    }
+    const s: any = await Society.findByIdAndUpdate(id, { $set: set }, { new: true, runValidators: true });
+    await writeAudit({ actorId, actorRole: 'SUPER_ADMIN', societyId: id, action: 'SOCIETY_PROPERTY_INFO_UPDATED', entityType: 'Society', entityId: id });
+    realtime.toSociety(id, 'society:property-info-changed', { societyId: id });
+    return s;
+  },
+  /** Everything the Super Admin needs on the "Administration" card of a society, from the saved records. */
+  async administration(id: string) {
+    const s: any = await Society.findById(id).select('name code status approvedAt approvedBy createdAt createdBy statusReason applicant');
+    if (!s) throw ApiError.notFound('Society not found');
+    const profiles: any[] = await AdminProfile.find({ societyId: id }).sort({ createdAt: 1 }).populate({ path: 'userId', select: 'name mobile email lastLoginAt isActive mustChangePassword' }).populate({ path: 'roleId', select: 'name key' });
+    const actors: any[] = await User.find({ _id: { $in: [s.approvedBy, s.createdBy].filter(Boolean) } }).select('name');
+    const nameOf = (uid: any) => actors.find((u) => String(u._id) === String(uid))?.name;
+    const administrators = profiles.map((p) => {
+      const u = p.userId && typeof p.userId === 'object' ? p.userId : undefined;
+      const r = p.roleId && typeof p.roleId === 'object' ? p.roleId : undefined;
+      return { id: String(p._id), userId: u ? String(u._id) : String(p.userId), name: u?.name ?? 'Unknown', mobile: u?.mobile, email: u?.email, designation: p.designation, role: r ? { id: String(r._id), name: r.name, key: r.key } : undefined, status: p.status, lastLoginAt: u?.lastLoginAt, mustChangePassword: !!u?.mustChangePassword, addedAt: p.createdAt, isPrimary: p.designation === 'Primary Administrator' };
+    });
+    return { societyId: id, societyName: s.name, code: s.code, status: s.status, createdAt: s.createdAt, createdByName: nameOf(s.createdBy), approvedAt: s.approvedAt, approvedByName: nameOf(s.approvedBy), statusReason: s.statusReason, applicant: s.applicant, administrators, counts: { total: administrators.length, active: administrators.filter((a) => a.status === 'ACTIVE').length } };
   },
   async list(query: any) {
     const filter: Record<string, any> = {};
@@ -46,6 +174,7 @@ export const societyAdminService = {
     if (!s) throw ApiError.notFound('Society not found');
     if (s.status === status) throw ApiError.conflict(`Society is already ${status}`, 'NO_CHANGE');
     const before = s.status;
+    if (status === SocietyStatus.ACTIVE) await ensureSocietyRoles(id, actorId);
     s.status = status;
     s.statusReason = reason;
     s.updatedBy = actorId;
@@ -96,8 +225,11 @@ export const societyAdminService = {
     await writeAudit({ actorId, actorRole: 'SUPER_ADMIN', societyId: String(s.societyId), action: 'IMPERSONATION_ENDED', entityType: 'ImpersonationSession', entityId: sessionId, impersonationId: sessionId });
   },
   async registerPublic(input: any) {
-    if (await Society.exists({ code: input.code })) throw ApiError.conflict('Society code already exists', 'CODE_EXISTS');
-    return Society.create({ ...input, status: SocietyStatus.PENDING });
+    const code = await generateSocietyCode(input.name);
+    const society: any = await Society.create({ ...input, code, status: SocietyStatus.PENDING });
+    const superAdmins: any[] = await User.find({ userType: UserType.SUPER_ADMIN, isActive: true }).select('_id');
+    await notifyUsers({ userIds: superAdmins.map((u) => u._id), type: NotificationType.SYSTEM, title: 'New society registration', body: `${society.name} (${society.code}) is waiting for verification`, data: { societyId: String(society._id), route: 'society-requests' }, event: 'society:registration' });
+    return society;
   },
 };
 
@@ -109,7 +241,15 @@ export const societyMineService = {
     const flat = toDotPaths(data);
     const s = await Society.findByIdAndUpdate(societyId, { $set: { ...flat, updatedBy: actorId } }, { new: true, runValidators: true });
     if (!s) throw ApiError.notFound('Society not found');
+    realtime.toSociety(societyId, 'society:updated', { societyId });
     return s;
+  },
+  /** Read-only view of what the platform configured (floor plan + hospitals), for residents, guards and admins. */
+  async propertyInfo(societyId: string) {
+    const s: any = await Society.findById(societyId).select('name address contact propertyDetails hospitals');
+    if (!s) throw ApiError.notFound('Society not found');
+    const j = s.toJSON();
+    return { societyId, societyName: j.name, address: j.address, contact: j.contact ? { phone: j.contact.phone, emergencyPhone: j.contact.emergencyPhone } : undefined, propertyDetails: j.propertyDetails, hospitals: j.hospitals ?? [] };
   },
 };
 

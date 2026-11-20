@@ -34,6 +34,8 @@ export const Permission = {
   REPORT_READ: 'report:read',
   AUDIT_READ: 'audit:read',
   SUPPORT_MANAGE: 'support:manage',
+  HELPDESK_MANAGE: 'helpdesk:manage',
+  PLATFORM_READ: 'platform:read',
 } as const;
 
 export type PermissionKey = (typeof Permission)[keyof typeof Permission];
@@ -53,7 +55,7 @@ export const SYSTEM_ROLE_TEMPLATES: RoleTemplateDef[] = [
     key: 'SOCIETY_MANAGER',
     name: 'Society Manager',
     description: 'Day-to-day society operations',
-    permissions: [P.SOCIETY_READ, P.SOCIETY_UPDATE, P.STRUCTURE_MANAGE, P.RESIDENT_READ, P.RESIDENT_MANAGE, P.RESIDENT_APPROVE, P.APPROVAL_REVIEW, P.LISTING_MANAGE, P.NOTICE_MANAGE, P.POLL_MANAGE, P.DOCUMENT_MANAGE, P.AMENITY_MANAGE, P.BOOKING_MANAGE, P.STAFF_MANAGE, P.VENDOR_MANAGE, P.TASK_MANAGE, P.VISITOR_READ, P.COMPLAINT_READ, P.REPORT_READ, P.DOMESTIC_HELP_MANAGE, P.SUPPORT_MANAGE],
+    permissions: [P.SOCIETY_READ, P.SOCIETY_UPDATE, P.STRUCTURE_MANAGE, P.RESIDENT_READ, P.RESIDENT_MANAGE, P.RESIDENT_APPROVE, P.APPROVAL_REVIEW, P.LISTING_MANAGE, P.NOTICE_MANAGE, P.POLL_MANAGE, P.DOCUMENT_MANAGE, P.AMENITY_MANAGE, P.BOOKING_MANAGE, P.STAFF_MANAGE, P.VENDOR_MANAGE, P.TASK_MANAGE, P.VISITOR_READ, P.COMPLAINT_READ, P.REPORT_READ, P.DOMESTIC_HELP_MANAGE, P.SUPPORT_MANAGE, P.GUARD_MANAGE, P.SECURITY_MANAGE, P.EMERGENCY_MANAGE, P.HELPDESK_MANAGE],
   },
   {
     key: 'SECURITY_ADMIN',
@@ -65,7 +67,7 @@ export const SYSTEM_ROLE_TEMPLATES: RoleTemplateDef[] = [
     key: 'HELPDESK_MANAGER',
     name: 'Helpdesk Manager',
     description: 'Complaint handling and resident communication',
-    permissions: [P.SOCIETY_READ, P.COMPLAINT_READ, P.COMPLAINT_MANAGE, P.NOTICE_MANAGE, P.RESIDENT_READ, P.TASK_MANAGE, P.REPORT_READ],
+    permissions: [P.SOCIETY_READ, P.COMPLAINT_READ, P.COMPLAINT_MANAGE, P.NOTICE_MANAGE, P.RESIDENT_READ, P.TASK_MANAGE, P.REPORT_READ, P.HELPDESK_MANAGE],
   },
   {
     key: 'ACCOUNTANT',
@@ -93,4 +95,15 @@ export const computePermissions = (rolePerms: string[] = [], extra: string[] = [
   const set = new Set([...rolePerms, ...extra].filter((p) => valid.has(p)));
   revoked.forEach((p) => set.delete(p));
   return set;
+};
+
+/**
+ * Permissions introduced after the first release. System roles already seeded into
+ * existing societies carry a frozen copy of the template permissions, so
+ * syncSystemRoles() (roles.sync.ts) grants these once. It only adds, never removes.
+ */
+export const PERMISSION_GRANTS_V2: Record<string, PermissionKey[]> = {
+  COMMUNITY_ADMIN: [P.HELPDESK_MANAGE, P.PLATFORM_READ],
+  SOCIETY_MANAGER: [P.GUARD_MANAGE, P.SECURITY_MANAGE, P.EMERGENCY_MANAGE, P.HELPDESK_MANAGE],
+  HELPDESK_MANAGER: [P.HELPDESK_MANAGE],
 };

@@ -1,6 +1,6 @@
 import { model, Schema } from 'mongoose';
 import {
-  FEATURE_KEYS, FeeType, FlatStatus, Priority, Shift, SocietyStatus, SocietyType, TimeoutAction, VisitorType, Weekday, vals,
+  FEATURE_KEYS, FeeType, FlatStatus, Priority, PropertyType, Shift, SocietyStatus, SocietyType, TimeoutAction, VisitorType, Weekday, vals,
 } from '../../common/constants/enums';
 import { defineModel, makeSchema, ref, refReq } from '../../common/models/makeSchema';
 
@@ -15,11 +15,28 @@ export const Society = defineModel(
       code: { type: String, required: true, trim: true, uppercase: true },
       organizationId: ref('Organization', { index: true }),
       type: { type: String, enum: vals(SocietyType), default: 'APARTMENT' },
+      propertyType: { type: String, enum: vals(PropertyType) },
       status: { type: String, enum: vals(SocietyStatus), default: 'PENDING', index: true },
       address: { line1: String, line2: String, city: String, state: String, country: { type: String, default: 'India' }, pincode: String, latitude: Number, longitude: Number },
       contact: { email: String, phone: String, emergencyPhone: String, website: String },
       registrationNumber: String,
       totalUnits: Number,
+      // Owned by the platform (Super Admin) so a departing society admin cannot wipe them.
+      propertyDetails: {
+        propertyName: String,
+        description: String,
+        totalTowers: Number,
+        totalFloors: Number,
+        totalUnits: Number,
+        parkingInfo: String,
+        notes: String,
+        floorPlans: [{ title: { type: String, required: true }, description: String, fileId: ref('File') }],
+        // MULTIFAMILY: every tower with its own floors and units per floor. Unit labels are derived from this.
+        towers: [{ name: { type: String, required: true }, code: { type: String, required: true }, floors: [{ number: { type: Number, required: true }, units: { type: Number, required: true } }] }],
+        // SINGLE_FAMILY: individual houses instead of towers.
+        singleFamily: { totalHouses: Number, labelPrefix: String, startNumber: Number },
+      },
+      hospitals: [{ name: { type: String, required: true }, phone: { type: String, required: true }, address: String, distanceKm: Number, open24x7: { type: Boolean, default: true } }],
       logoFileId: ref('File'),
       planId: ref('SubscriptionPlan'),
       subscription: { status: { type: String, enum: ['TRIAL', 'ACTIVE', 'EXPIRED', 'CANCELLED'], default: 'TRIAL' }, startsAt: Date, endsAt: Date },

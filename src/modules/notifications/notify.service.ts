@@ -27,6 +27,10 @@ export interface NotifyInput {
   body: string;
   data?: Record<string, unknown>;
   event?: string;
+  /** Push options for time-critical alerts (see PushMessage). */
+  push?: { urgent?: boolean; dataOnly?: boolean; silent?: boolean; channelId?: string; ttlSeconds?: number };
+  /** Skip the inbox row (used for silent state updates). */
+  skipInbox?: boolean;
 }
 
 export async function notifyUsers(p: NotifyInput) {
@@ -37,17 +41,19 @@ export async function notifyUsers(p: NotifyInput) {
     const prefKey = PREF_KEY[p.type];
     const targets = users.filter((u) => p.type === 'EMERGENCY' || !prefKey || u.notificationPrefs?.[prefKey] !== false);
     if (!targets.length) return [];
-    const docs: any[] = await Notification.insertMany(
-      targets.map((u) => ({ userId: u._id, societyId: p.societyId, type: p.type, title: p.title, body: p.body, data: p.data })),
-    );
+    const docs: any[] = p.skipInbox
+      ? targets.map((u) => ({ userId: u._id, toJSON: () => ({}) }))
+      : await Notification.insertMany(
+          targets.map((u) => ({ userId: u._id, societyId: p.societyId, type: p.type, title: p.title, body: p.body, data: p.data })),
+        );
     docs.forEach((d) => {
-      realtime.toUser(String(d.userId), 'notification:new', d.toJSON());
+      if (!p.skipInbox) realtime.toUser(String(d.userId), 'notification:new', d.toJSON());
       if (p.event) realtime.toUser(String(d.userId), p.event, { title: p.title, body: p.body, ...p.data });
     });
     // Fan out to registered devices. Fire-and-forget with logging — push must
     // never fail the caller that created the notification.
     const pushTargets = targets.map((u: any) => String(u._id));
-    sendPushToUsers(pushTargets, { title: p.title, body: p.body, data: { ...(p.data ?? {}), type: p.type } }).catch(
+    sendPushToUsers(pushTargets, { title: p.title, body: p.body, data: { ...(p.data ?? {}), type: p.type }, channelId: p.push?.channelId ?? (p.type === 'EMERGENCY' ? 'habito_emergency' : undefined), urgent: p.push?.urgent, dataOnly: p.push?.dataOnly, silent: p.push?.silent, ttlSeconds: p.push?.ttlSeconds }).catch(
       (err) => logger.warn('push_dispatch_failed', { error: err?.message ?? String(err) }),
     );
     return docs;

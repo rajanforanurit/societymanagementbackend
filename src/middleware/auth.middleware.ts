@@ -2,6 +2,7 @@ import { NextFunction, Request, Response } from 'express';
 import { ALL_PERMISSIONS, computePermissions } from '../common/constants/permissions';
 import { FEATURE_KEYS, ProfileStatus, ResidentStatus, UserType } from '../common/constants/enums';
 import { AuthContext } from '../common/types';
+import { env } from '../config/env';
 import { ApiError } from '../common/utils/apiError';
 import { verifyAccessToken } from '../common/utils/jwt';
 import { AdminProfile } from '../modules/admin/admin.model';
@@ -39,6 +40,7 @@ export async function buildAuthContext(token: string): Promise<AuthContext> {
     features: {},
     residents: [],
     flatIds: [],
+    mustChangePassword: Boolean(user.mustChangePassword),
   };
 
   if (payload.imp) {
@@ -70,7 +72,7 @@ export async function buildAuthContext(token: string): Promise<AuthContext> {
       const guard = await Guard.findOne({ userId: user._id, societyId: ctx.societyId, status: ProfileStatus.ACTIVE });
       if (!guard) throw ApiError.forbidden('No active guard assignment for this society', 'NO_GUARD_ACCESS');
       ctx.guardId = String(guard._id);
-      ctx.gateId = String(guard.gateId);
+      ctx.gateId = guard.gateId ? String(guard.gateId) : undefined;
     } else if (user.userType === UserType.RESIDENT) {
       const residents = await Resident.find({ userId: user._id, societyId: ctx.societyId, status: ResidentStatus.APPROVED });
       ctx.residents = residents.map((r: any) => ({
@@ -87,11 +89,19 @@ export async function buildAuthContext(token: string): Promise<AuthContext> {
   return ctx;
 }
 
+// A new / reset society admin must pick their own password before using the Admin app.
+const PASSWORD_CHANGE_ALLOWED = /^\/api\/v1\/auth\/(password\/change|me|logout)\/?$/;
+
 export const authenticate = async (req: Request, _res: Response, next: NextFunction) => {
   try {
     const header = req.headers.authorization;
     if (!header || !header.startsWith('Bearer ')) throw ApiError.unauthorized('Missing bearer token', 'TOKEN_MISSING');
     req.auth = await buildAuthContext(header.slice(7).trim());
+    if (env.ENFORCE_ADMIN_PASSWORD_CHANGE && req.auth.mustChangePassword && req.auth.userType === UserType.SOCIETY_ADMIN && !req.auth.impersonationId) {
+      if (!PASSWORD_CHANGE_ALLOWED.test(req.originalUrl.split('?')[0])) {
+        throw ApiError.forbidden('You must change your temporary password before continuing', 'PASSWORD_CHANGE_REQUIRED');
+      }
+    }
     next();
   } catch (err) {
     next(err);
