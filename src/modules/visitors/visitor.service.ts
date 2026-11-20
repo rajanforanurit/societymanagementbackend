@@ -12,7 +12,7 @@ import { Visitor, VisitorInvitation } from './visitor.model';
 const qrFor = (invId: string) => `${invId}.${hmac(`inv:${invId}`).slice(0, 24)}`;
 const policyOf = async (societyId: string) => ((await Society.findById(societyId).select('settings.visitorPolicy')) as any)?.settings?.visitorPolicy ?? {};
 
-const GUEST_FIELDS = 'gateId flatId flatLabel visitorType name mobile vehicleNumber purpose company status approvalMode requestedAt decidedAt rejectReason entryAt exitAt isEmergencyEntry createdAt updatedAt societyId';
+const GUEST_FIELDS = 'gateId flatId flatLabel visitorType name mobile vehicleNumber purpose company photoFileId status approvalMode requestedAt decidedAt rejectReason entryAt exitAt isEmergencyEntry createdAt updatedAt societyId';
 
 const flatCtx = async (societyId: string, flatId: string) => {
   const flat: any = await Flat.findOne({ _id: flatId, societyId });
