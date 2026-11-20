@@ -8,7 +8,6 @@ import { ok } from '../../common/responses/respond';
 import { ApiError } from '../../common/utils/apiError';
 import { idParam } from '../../common/validators/common';
 import { FlatStatus, vals } from '../../common/constants/enums';
-import { authLimiter } from '../../middleware/rateLimit.middleware';
 import * as c from './society.controller';
 import * as s from './society.schema';
 import { Flat, Society } from './society.model';
@@ -20,16 +19,14 @@ export const superSocietyRouter = new ModuleRouter('/api/v1/super-admin/societie
 });
 
 superSocietyRouter
-  .add({ method: 'get', path: '/', summary: 'List societies', description: 'Filter by status (PENDING shows registrations awaiting approval), organization and type.', query: s.societyListQuery, response: s.societyItem, paginated: true, handler: c.superSocietyController.list })
-  .add({ method: 'post', path: '/', summary: 'Create society with its primary administrator', description: 'The society code is generated (DDMM + initials + YY, e.g. 1811ROR26; a numeric suffix is added on a collision). Choose MULTIFAMILY (towers, floors and units per floor) or SINGLE_FAMILY (houses); the tower/floor/flat records are generated from the layout. Atomically creates the society, seeds its role set from the global role templates and provisions the primary admin (must change password on first login).', body: s.createSocietyBody, response: s.societyItem, status: 201, errors: [409], handler: c.superSocietyController.create })
+  .add({ method: 'get', path: '/', summary: 'List societies', description: 'Filter by status (ACTIVE, or INACTIVE for every society that is not active), organization and type.', query: s.societyListQuery, response: s.societyItem, paginated: true, handler: c.superSocietyController.list })
+  .add({ method: 'post', path: '/', summary: 'Create society with its primary administrator', description: 'The society code is generated (DDMM + initials + YY, e.g. 1811ROR26; a numeric suffix is added on a collision). Choose MULTIFAMILY (towers with their flat names) or SINGLE_FAMILY (named houses / villas); the tower/floor/flat records are generated from the layout. Atomically creates the society, seeds its role set from the global role templates and provisions the primary admin (must change password on first login).', body: s.createSocietyBody, response: s.societyItem, status: 201, errors: [409], handler: c.superSocietyController.create })
   .add({ method: 'get', path: '/:id', summary: 'Get society details', params: idParam, response: s.societyItem, handler: c.superSocietyController.get })
-  .add({ method: 'get', path: '/:id/administration', summary: 'Administration details of a society', description: 'Primary and additional administrators (name, mobile, email, role, status, last sign-in), who created/approved the society and when, and the original applicant if it registered itself.', params: idParam, response: s.administrationItem, errors: [404], handler: c.superSocietyController.administration })
+  .add({ method: 'get', path: '/:id/administration', summary: 'Administration details of a society', description: 'Primary and additional administrators (name, mobile, email, role, status, last sign-in), and who created the society and when.', params: idParam, response: s.administrationItem, errors: [404], handler: c.superSocietyController.administration })
   .add({ method: 'patch', path: '/:id', summary: 'Update society', params: idParam, body: s.updateSocietyBody, response: s.societyItem, handler: c.superSocietyController.update })
   .add({ method: 'delete', path: '/:id', summary: 'Delete society (soft)', params: idParam, response: null, handler: c.superSocietyController.remove })
-  .add({ method: 'post', path: '/:id/approve', summary: 'Verify a pending society registration and create its administrator', description: 'Seeds the society roles, creates the primary administrator (mobile + password; defaults to the applicant details; must change the password at first login), stores the floor plan / property details and hospitals, and activates the society. The administrator receives an in-app notification.', params: idParam, body: s.approveRegistrationBody, response: s.societyItem, status: 200, errors: [400, 409], handler: c.superSocietyController.approveRegistration })
-  .add({ method: 'post', path: '/:id/reject', summary: 'Reject a pending society registration', params: idParam, body: s.rejectRegistrationBody, response: s.societyItem, status: 200, errors: [409], handler: c.superSocietyController.rejectRegistration })
   .add({ method: 'put', path: '/:id/property-info', summary: 'Set floor plan / property details and hospitals (Super Admin only)', description: 'Society admins cannot change these. Send propertyDetails and/or hospitals; each supplied part is replaced as a whole.', params: idParam, body: s.propertyInfoBody, response: s.societyItem, errors: [404], handler: c.superSocietyController.propertyInfo })
-  .add({ method: 'post', path: '/:id/activate', summary: 'Activate or approve a society', params: idParam, body: s.statusBody, response: s.societyItem, status: 200, errors: [409], handler: c.superSocietyController.activate })
+  .add({ method: 'post', path: '/:id/activate', summary: 'Activate a society', params: idParam, body: s.statusBody, response: s.societyItem, status: 200, errors: [409], handler: c.superSocietyController.activate })
   .add({ method: 'post', path: '/:id/deactivate', summary: 'Deactivate a society', description: 'All users of the society lose access immediately.', params: idParam, body: s.statusBody, response: s.societyItem, status: 200, errors: [409], handler: c.superSocietyController.deactivate })
   .add({ method: 'put', path: '/:id/features', summary: 'Set module entitlements', params: idParam, body: s.featuresBody, response: s.societyItem, handler: c.superSocietyController.features })
   .add({ method: 'put', path: '/:id/plan', summary: 'Assign subscription plan', params: idParam, body: s.planBody, response: s.societyItem, handler: c.superSocietyController.plan })
@@ -39,7 +36,6 @@ export const impersonationRouter = new ModuleRouter('/api/v1/super-admin/imperso
 impersonationRouter.add({ method: 'post', path: '/:id/end', summary: 'End an impersonation session', params: idParam, response: null, status: 200, handler: c.superSocietyController.endImpersonation });
 
 export const societyPublicRouter = new ModuleRouter('/api/v1/auth/societies', { tag: 'Authentication', roles: [UserType.RESIDENT] });
-societyPublicRouter.add({ method: 'post', path: '/register', public: true, limiter: authLimiter, summary: 'Submit a society registration request', description: 'Creates a PENDING society awaiting platform approval.', body: s.registerSocietyBody, response: s.societyItem, status: 201, errors: [409, 429], handler: c.superSocietyController.registerPublic });
 // Flats of an ACTIVE society, so a resident can pick the right unit when
 // applying. Any signed-in role may read this before joining (the membership
 // request needs a real flatId). The tenant middleware is bypassed via

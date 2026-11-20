@@ -11,8 +11,6 @@ export const superSocietyController = {
   update: async (req: Request, res: Response) => ok(res, await svc.societyAdminService.update(req.valid.params.id, req.valid.body, req.auth.userId), 'Society updated'),
   activate: async (req: Request, res: Response) => ok(res, await svc.societyAdminService.setStatus(req.valid.params.id, 'ACTIVE', req.valid.body.reason, req.auth.userId), 'Society activated'),
   deactivate: async (req: Request, res: Response) => ok(res, await svc.societyAdminService.setStatus(req.valid.params.id, 'INACTIVE', req.valid.body.reason, req.auth.userId), 'Society deactivated'),
-  approveRegistration: async (req: Request, res: Response) => ok(res, await svc.societyAdminService.approveRegistration(req.valid.params.id, req.valid.body, req.auth.userId), 'Society verified and administrator created'),
-  rejectRegistration: async (req: Request, res: Response) => ok(res, await svc.societyAdminService.rejectRegistration(req.valid.params.id, req.valid.body.reason, req.auth.userId), 'Registration rejected'),
   propertyInfo: async (req: Request, res: Response) => ok(res, await svc.societyAdminService.setPropertyInfo(req.valid.params.id, req.valid.body, req.auth.userId), 'Property details saved'),
   administration: async (req: Request, res: Response) => ok(res, await svc.societyAdminService.administration(req.valid.params.id)),
   remove: async (req: Request, res: Response) => {
@@ -29,7 +27,6 @@ export const superSocietyController = {
     await svc.societyAdminService.endImpersonation(req.valid.params.id, req.auth.userId);
     ok(res, null, 'Impersonation session ended');
   },
-  registerPublic: async (req: Request, res: Response) => created(res, await svc.societyAdminService.registerPublic(req.valid.body), 'Registration submitted for review'),
 };
 
 export const propertyInfoController = {

@@ -49,6 +49,13 @@ export const unitLabel = (towerCode: string, floor: number, index: number) => `$
 
 export const houseLabel = (prefix: string, n: number) => `${prefix}${n}`;
 
+/** Every house name of a single-family layout: the names entered, or (older societies) the generated H-1, H-2 ... */
+export function houseNames(sf: any): string[] {
+  if (!sf) return [];
+  if (sf.houses?.length) return sf.houses as string[];
+  return Array.from({ length: sf.totalHouses ?? 0 }, (_, i) => houseLabel(sf.labelPrefix ?? 'H-', (sf.startNumber ?? 1) + i));
+}
+
 /** Every flat of a tower: the names entered for it, or (older towers) the names generated from its floors. */
 export function expandTower(t: TowerLayout): { floor?: number; unitNumber: string; label: string }[] {
   if (t.flats?.length) return t.flats.map((f) => ({ unitNumber: f, label: f }));
@@ -61,8 +68,7 @@ export function summarize(details: any, type: PropertyTypeKey) {
     const towers: TowerLayout[] = details.towers ?? [];
     return { totalTowers: towers.length, totalFloors: towers.reduce((m, t) => Math.max(m, t.flats?.length ? 0 : (t.floors?.length ?? 0)), 0), totalUnits: towers.reduce((s, t) => s + expandTower(t).length, 0) };
   }
-  const h = details.singleFamily?.totalHouses ?? 0;
-  return { totalTowers: 0, totalFloors: 0, totalUnits: h };
+  return { totalTowers: 0, totalFloors: 0, totalUnits: houseNames(details.singleFamily).length };
 }
 
 // ---------------------------------------------------------- materialize
@@ -98,14 +104,10 @@ export async function applyLayout(societyId: string, type: PropertyTypeKey, deta
       flats += docs.length;
     }
   } else {
-    const { totalHouses, labelPrefix, startNumber } = details.singleFamily;
     const existing = new Set((await Flat.find({ societyId }).select('label').session(session ?? null)).map((x: any) => x.label));
-    const docs: any[] = [];
-    for (let i = 0; i < totalHouses; i++) {
-      const n = (startNumber ?? 1) + i;
-      const label = houseLabel(labelPrefix ?? 'H-', n);
-      if (!existing.has(label)) docs.push({ ...base, unitNumber: String(n), label });
-    }
+    const docs: any[] = houseNames(details.singleFamily)
+      .filter((label) => !existing.has(label))
+      .map((label) => ({ ...base, unitNumber: label, label }));
     if (docs.length) await Flat.insertMany(docs, opt);
     flats += docs.length;
   }
@@ -114,13 +116,8 @@ export async function applyLayout(societyId: string, type: PropertyTypeKey, deta
 
 /** Rejects a layout change that would drop a tower or unit that already exists (it would orphan residents). */
 export async function assertLayoutNotShrinking(societyId: string, type: PropertyTypeKey, details: any) {
-  if (type !== 'MULTIFAMILY') {
-    const have = await Flat.countDocuments({ societyId });
-    if (details.singleFamily.totalHouses < have) throw ApiError.conflict(`This society already has ${have} houses; the layout cannot be reduced`, 'LAYOUT_SHRINK');
-    return;
-  }
-  const wanted = new Set((details.towers as TowerLayout[]).flatMap((t) => expandTower(t).map((u) => u.label)));
+  const wanted = new Set(type === 'MULTIFAMILY' ? (details.towers as TowerLayout[]).flatMap((t) => expandTower(t).map((u) => u.label)) : houseNames(details.singleFamily));
   const flats: any[] = await Flat.find({ societyId }).select('label');
   const missing = flats.filter((f) => !wanted.has(f.label));
-  if (missing.length) throw ApiError.conflict(`The new layout would remove ${missing.length} existing unit(s), e.g. ${missing.slice(0, 3).map((f) => f.label).join(', ')}. Layouts can be extended but not reduced.`, 'LAYOUT_SHRINK');
+  if (missing.length) throw ApiError.conflict(`The new layout would remove or rename ${missing.length} existing unit(s), e.g. ${missing.slice(0, 3).map((f) => f.label).join(', ')}. Layouts can be extended but not reduced.`, 'LAYOUT_SHRINK');
 }

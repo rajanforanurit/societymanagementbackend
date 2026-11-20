@@ -32,7 +32,7 @@ export const ticketUpdate = z.object({ status: z.enum(vals(TicketStatus)).option
 export const ticketComment = z.object({ message: z.string().trim().min(1).max(3000) });
 
 export const dashboardItem = z.object({
-  societies: z.object({ total: z.number().int(), active: z.number().int(), inactive: z.number().int(), pending: z.number().int() }),
+  societies: z.object({ total: z.number().int(), active: z.number().int(), inactive: z.number().int() }),
   builders: z.number().int(),
   admins: z.number().int(),
   residents: z.number().int(),

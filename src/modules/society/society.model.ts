@@ -16,7 +16,7 @@ export const Society = defineModel(
       organizationId: ref('Organization', { index: true }),
       type: { type: String, enum: vals(SocietyType), default: 'APARTMENT' },
       propertyType: { type: String, enum: vals(PropertyType) },
-      status: { type: String, enum: vals(SocietyStatus), default: 'PENDING', index: true },
+      status: { type: String, enum: vals(SocietyStatus), default: 'ACTIVE', index: true },
       address: { line1: String, line2: String, city: String, state: String, country: { type: String, default: 'India' }, pincode: String, latitude: Number, longitude: Number },
       contact: { email: String, phone: String, emergencyPhone: String, website: String },
       registrationNumber: String,
@@ -33,9 +33,10 @@ export const Society = defineModel(
         floorPlans: [{ title: { type: String, required: true }, description: String, fileId: ref('File') }],
         // MULTIFAMILY: every tower with its flat names (the floor is part of the flat name).
         // `code` / `floors` are kept only so towers saved in the older format can still be read.
-        towers: [{ name: { type: String, required: true }, flats: [String], code: String, floors: [{ number: { type: Number, required: true }, units: { type: Number, required: true } }] }],
-        // SINGLE_FAMILY: individual houses instead of towers.
-        singleFamily: { totalHouses: Number, labelPrefix: String, startNumber: Number },
+        towers: [{ name: { type: String, required: true }, flats: { type: [String], default: undefined }, code: String, floors: [{ number: { type: Number, required: true }, units: { type: Number, required: true } }] }],
+        // SINGLE_FAMILY: named houses / villas instead of towers.
+        // totalHouses / labelPrefix / startNumber are kept only so older societies can still be read.
+        singleFamily: { houses: { type: [String], default: undefined }, totalHouses: Number, labelPrefix: String, startNumber: Number },
       },
       hospitals: [{ name: { type: String, required: true }, phone: { type: String, required: true }, address: String, distanceKm: Number, open24x7: { type: Boolean, default: true } }],
       logoFileId: ref('File'),

@@ -15,7 +15,7 @@ const SA = [UserType.SUPER_ADMIN];
 
 export const superDashboardRouter = new ModuleRouter('/api/v1/super-admin', { tag: 'Super Admin - Dashboard & Monitoring', tagDescription: 'Platform dashboard, health, error and feature-usage monitoring', roles: SA });
 superDashboardRouter
-  .add({ method: 'get', path: '/dashboard', summary: 'Platform dashboard', description: 'Societies (active/inactive/pending), builders, admins, residents, guards, platform activity and error statistics.', response: s.dashboardItem, handler: async (_r: Request, res: Response) => ok(res, await svc.dashboard()) })
+  .add({ method: 'get', path: '/dashboard', summary: 'Platform dashboard', description: 'Societies (active/inactive), builders, admins, residents, guards, platform activity and error statistics.', response: s.dashboardItem, handler: async (_r: Request, res: Response) => ok(res, await svc.dashboard()) })
   .add({ method: 'get', path: '/monitoring/health', summary: 'Backend service health', response: s.healthItem, handler: async (_r: Request, res: Response) => ok(res, await svc.health()) })
   .add({ method: 'get', path: '/monitoring/errors', summary: 'API errors and failed requests', description: 'Server errors and security-relevant failures (401/403/429) retained for 30 days. Stack traces are never returned.', query: s.errorLogQuery, response: s.errorLogItem, paginated: true, handler: async (req: Request, res: Response) => paged(res, await svc.errors(req.valid.query)) })
   .add({ method: 'get', path: '/monitoring/feature-usage', summary: 'Feature usage by module (mutating actions)', query: s.usageQuery, response: s.featureUsage, handler: async (req: Request, res: Response) => ok(res, await svc.featureUsage(req.valid.query)) })
