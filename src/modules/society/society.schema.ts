@@ -15,10 +15,10 @@ export const propertyDetailsInput = z.object({
   parkingInfo: z.string().trim().max(1000).optional(),
   notes: z.string().trim().max(3000).optional(),
   floorPlans: z.array(z.object({ title: z.string().trim().min(1).max(120), description: z.string().trim().max(500).optional(), fileId: objectId.optional() })).max(50).optional(),
+  // Each tower is just its name and its flat names (e.g. A-101). The floor is part of the flat name.
   towers: z.array(z.object({
     name: z.string().trim().min(1).max(60),
-    code: z.string().trim().toUpperCase().regex(/^[A-Z0-9]{1,6}$/, 'Tower code: 1-6 letters or digits'),
-    floors: z.array(z.object({ number: z.number().int().min(-5).max(300), units: z.number().int().min(1).max(50) })).min(1).max(200),
+    flats: z.array(z.string().trim().min(1, 'Flat name cannot be empty').max(30, 'Flat name: at most 30 characters')).min(1, 'Add at least one flat').max(2000),
   })).max(100).optional(),
   singleFamily: z.object({
     totalHouses: z.number().int().min(1).max(20000),
@@ -43,18 +43,18 @@ export const checkLayout = (v: { propertyType?: string; propertyDetails?: z.infe
     if (d.singleFamily) bad('Multifamily properties have no single-family block', ['propertyDetails', 'singleFamily']);
     if (required && !d.towers?.length) bad('Add at least one tower', ['propertyDetails', 'towers']);
     const names = new Set<string>();
-    const codes = new Set<string>();
+    // Flat names identify a flat across the whole society, so they must be unique (A-101 and B-101, not 101 twice).
+    const flatTower = new Map<string, string>();
     let total = 0;
     (d.towers ?? []).forEach((t, i) => {
       if (names.has(t.name.toLowerCase())) bad(`Duplicate tower name "${t.name}"`, ['propertyDetails', 'towers', i, 'name']);
-      if (codes.has(t.code)) bad(`Duplicate tower code "${t.code}"`, ['propertyDetails', 'towers', i, 'code']);
       names.add(t.name.toLowerCase());
-      codes.add(t.code);
-      const fl = new Set<number>();
-      t.floors.forEach((f, j) => {
-        if (fl.has(f.number)) bad(`Tower ${t.name}: floor ${f.number} is listed twice`, ['propertyDetails', 'towers', i, 'floors', j]);
-        fl.add(f.number);
-        total += f.units;
+      t.flats.forEach((f, j) => {
+        const key = f.toLowerCase();
+        const owner = flatTower.get(key);
+        if (owner !== undefined) bad(owner === t.name ? `Tower ${t.name}: flat "${f}" is listed twice` : `Flat "${f}" is in both ${owner} and ${t.name}; flat names must be unique`, ['propertyDetails', 'towers', i, 'flats', j]);
+        flatTower.set(key, t.name);
+        total += 1;
       });
     });
     if (total > 20000) bad('A society can have at most 20,000 units');

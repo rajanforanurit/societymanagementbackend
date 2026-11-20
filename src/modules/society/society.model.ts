@@ -31,8 +31,9 @@ export const Society = defineModel(
         parkingInfo: String,
         notes: String,
         floorPlans: [{ title: { type: String, required: true }, description: String, fileId: ref('File') }],
-        // MULTIFAMILY: every tower with its own floors and units per floor. Unit labels are derived from this.
-        towers: [{ name: { type: String, required: true }, code: { type: String, required: true }, floors: [{ number: { type: Number, required: true }, units: { type: Number, required: true } }] }],
+        // MULTIFAMILY: every tower with its flat names (the floor is part of the flat name).
+        // `code` / `floors` are kept only so towers saved in the older format can still be read.
+        towers: [{ name: { type: String, required: true }, flats: [String], code: String, floors: [{ number: { type: Number, required: true }, units: { type: Number, required: true } }] }],
         // SINGLE_FAMILY: individual houses instead of towers.
         singleFamily: { totalHouses: Number, labelPrefix: String, startNumber: Number },
       },
