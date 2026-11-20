@@ -40,3 +40,17 @@ export async function resolveFile(societyId: string, userId: string, id: string,
   if (file.visibility === 'PRIVATE' && !isAdmin && String(file.uploadedBy) !== userId) throw ApiError.forbidden('You cannot access this file', 'FILE_FORBIDDEN');
   return { file, fullPath: path.join(dir, file.storageName) };
 }
+
+/**
+ * Deletes a file outright — the stored bytes and the File document.
+ *
+ * Used by retention sweeps (visitor photos outlive their record by design).
+ * Callers own the authorisation question: this is a maintenance path, not a
+ * user-facing endpoint, and it silently no-ops when the id is already gone.
+ */
+export async function purgeFile(id: string) {
+  const file: any = await File.findOne({ _id: id }).select('+storageName');
+  if (!file) return;
+  await fs.promises.rm(path.join(dir, file.storageName), { force: true });
+  await file.deleteOne();
+}

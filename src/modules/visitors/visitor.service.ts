@@ -7,8 +7,14 @@ import { writeAudit } from '../audit/audit.service';
 import { notifyAdmins, notifyFlat, notifyUsers, residentUserIdsOfFlat } from '../notifications/notify.service';
 import { Guard } from '../guard/guard.model';
 import { Flat, Society } from '../society/society.model';
+import { purgeFile } from '../files/files.service';
 import { realtime } from '../../realtime/socket';
 import { Visitor, VisitorInvitation } from './visitor.model';
+
+/** How long a finished visitor record stays in the database. */
+const RETENTION_DAYS = 90;
+/** Records still in play — never purged regardless of age. */
+const LIVE_STATUSES = [VisitorStatus.PENDING_APPROVAL, VisitorStatus.APPROVED, VisitorStatus.CHECKED_IN];
 
 const qrFor = (invId: string) => `${invId}.${hmac(`inv:${invId}`).slice(0, 24)}`;
 const policyOf = async (societyId: string) => ((await Society.findById(societyId).select('settings.visitorPolicy')) as any)?.settings?.visitorPolicy ?? {};
@@ -252,7 +258,7 @@ export const visitorService = {
     const societies: any[] = await Society.find({ status: 'ACTIVE' }).select('settings.visitorPolicy');
     for (const s of societies) {
       const p = s.settings?.visitorPolicy ?? {};
-      const cutoff = new Date(Date.now() - (p.approvalTimeoutSeconds ?? 120) * 1000);
+      const cutoff = new Date(Date.now() - (p.approvalTimeoutSeconds ?? 30 * 60) * 1000);
       if (p.onTimeout === 'ALLOW') continue;
       const stale: any[] = await Visitor.find({ societyId: s._id, status: VisitorStatus.PENDING_APPROVAL, requestedAt: { $lt: cutoff } }).limit(100);
       for (const v of stale) {
@@ -275,5 +281,55 @@ export const visitorService = {
       }
     }
     await VisitorInvitation.updateMany({ status: 'ACTIVE', validTo: { $lt: new Date() } }, { $set: { status: 'EXPIRED' } }).setOptions({ skipTenantCheck: true });
+  },
+
+  /**
+   * Retention: finished visitor records leave the database after
+   * [RETENTION_DAYS]. The visitor log is the highest-volume, lowest-value
+   * collection in the long run — yesterday's deliveries and gate walks have
+   * no operational meaning a season later — so history is deleted outright
+   * rather than archived.
+   *
+   * A record is finished when its status is no longer live (checked out,
+   * denied, rejected, cancelled, expired or a stale expectation) AND its last
+   * activity (exit, otherwise decision, otherwise creation) is older than the
+   * cutoff. Anything pending, approved or still inside is kept no matter how
+   * old — the guard's queue is the source of truth for a live entry.
+   *
+   * The visitor's photo (a purpose=VISITOR file) is deleted with the record
+   * once no other record references it, so storage does not grow forever
+   * either. Runs hourly from the scheduler.
+   */
+  async purgeExpired() {
+    const cutoff = new Date(Date.now() - RETENTION_DAYS * 24 * 60 * 60 * 1000);
+    const stale: any[] = await Visitor.find({
+      status: { $nin: LIVE_STATUSES },
+      $or: [
+        { exitAt: { $ne: null, $lt: cutoff } },
+        { exitAt: null, decidedAt: { $ne: null, $lt: cutoff } },
+        { exitAt: null, decidedAt: null, createdAt: { $lt: cutoff } },
+      ],
+    })
+      .select('photoFileId')
+      .limit(2000)
+      .lean();
+    if (stale.length === 0) return 0;
+
+    const ids = stale.map((v) => v._id);
+    const photoIds = [...new Set(stale.map((v) => v.photoFileId).filter(Boolean).map(String))];
+
+    await Visitor.deleteMany({ _id: { $in: ids } });
+
+    if (photoIds.length > 0) {
+      const stillReferenced = new Set(
+        (await Visitor.distinct('photoFileId', { photoFileId: { $in: photoIds } })).map(String),
+      );
+      const orphans = photoIds.filter((id) => !stillReferenced.has(id));
+      for (const id of orphans) {
+        await purgeFile(id).catch(() => undefined);
+      }
+    }
+
+    return stale.length;
   },
 };
