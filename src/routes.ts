@@ -23,6 +23,7 @@ import { familyRouter, moveAdminRouter, moveSelfRouter, residentAdminRouter, res
 import { rolesRouter, globalRolesRouter } from './modules/roles/roles.routes';
 import { adminStructureRouter, impersonationRouter, propertyInfoGuardRouter, propertyInfoResidentRouter, societyPublicRouter, superSocietyRouter } from './modules/society/society.routes';
 import { staffAdminRouter } from './modules/staff/staff.routes';
+import { superSocietyMgmtRouter } from './modules/society/society.super-mgmt.routes';
 import { adminSupportRouter, announcementReadRouter, superDashboardRouter, superPlatformRouter, superSecurityRouter, superSupportRouter } from './modules/super-admin/super-admin.routes';
 import { callRouter } from './modules/calls/call.routes';
 import { helpdeskAdminRouter, helpdeskGuardRouter, helpdeskResidentRouter } from './modules/helpdesk/helpdesk.routes';
@@ -40,6 +41,7 @@ export const allRouters: ModuleRouter[] = [
   paymentWebhookRouter,
   superDashboardRouter,
   superSocietyRouter,
+  superSocietyMgmtRouter,
   impersonationRouter,
   superAdminMgmtRouter,
   superPlatformRouter,

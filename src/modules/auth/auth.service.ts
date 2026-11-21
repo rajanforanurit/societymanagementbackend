@@ -123,10 +123,7 @@ async function attributeSociety(user: any, requested?: string): Promise<string |
 /** Why a society-bound account (admin / guard) has no active society, in words the app can show. */
 async function explainNoAccess(list: { societyId: string }[]): Promise<ApiError> {
   const societies: any[] = list.length ? await Society.find({ _id: { $in: list.map((m) => m.societyId) } }).select('status statusReason') : [];
-  const has = (s: string) => societies.find((x) => x.status === s);
-  if (has('PENDING')) return ApiError.forbidden('Your society is awaiting verification by the platform team. You can sign in once it is approved.', 'SOCIETY_PENDING_VERIFICATION');
-  if (has('REJECTED')) return ApiError.forbidden(`Your society registration was not approved${has('REJECTED').statusReason ? `: ${has('REJECTED').statusReason}` : '.'}`, 'SOCIETY_REJECTED');
-  if (has('INACTIVE') || has('SUSPENDED')) return ApiError.forbidden('This society is currently deactivated. Contact the platform team.', 'SOCIETY_INACTIVE');
+  if (societies.some((x) => x.status !== 'ACTIVE')) return ApiError.forbidden('This society is currently deactivated. Contact the platform team.', 'SOCIETY_INACTIVE');
   return ApiError.forbidden('No active society access for this account', 'NO_ACTIVE_MEMBERSHIP');
 }
 

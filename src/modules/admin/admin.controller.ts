@@ -13,6 +13,7 @@ import { notifyUsers } from '../notifications/notify.service';
 import { Role } from '../roles/roles.model';
 import { adminUserIdsWith } from '../roles/roles.service';
 import { AdminProfile } from './admin.model';
+import { Society } from '../society/society.model';
 import { assertCanGrant, provisionAdmin } from './admin.service';
 
 const assertRoleGrantable = async (req: Request, roleId?: string, extra?: string[]) => {
@@ -20,6 +21,14 @@ const assertRoleGrantable = async (req: Request, roleId?: string, extra?: string
   const role: any = roleId ? await Role.findOne({ _id: roleId, societyId: req.auth.societyId }) : null;
   if (roleId && !role) throw ApiError.notFound('Role not found in this society');
   assertCanGrant(req.auth.permissions, { rolePermissions: role?.permissions, extra });
+};
+
+/** A Super Admin can only give an administrator a role from that administrator's own society. */
+const assertRoleInAdminsSociety = async (adminProfileId: string, roleId?: string) => {
+  if (!roleId) return;
+  const p: any = await AdminProfile.findOne({ _id: adminProfileId }, null, { skipTenantCheck: true });
+  if (!p) throw ApiError.notFound('Administrator not found');
+  if (!(await Role.exists({ _id: roleId, societyId: p.societyId }))) throw ApiError.notFound('Role not found in this society');
 };
 
 const populateUser = { path: 'userId', select: 'name mobile email lastLoginAt' };
@@ -106,12 +115,24 @@ export const superAdminMgmtController = {
   list: async (req: Request, res: Response) => paged(res, await listFor(req.valid.query.societyId, req.valid.query).catch((e) => { throw e; })),
   create: async (req: Request, res: Response) => {
     const { roleId, societyId, ...rest } = req.valid.body;
+    const society: any = await Society.findById(societyId).select('name');
+    if (!society) throw ApiError.notFound('Society not found');
     const r = await withTransaction((s) => provisionAdmin(societyId, roleId, rest, req.auth.userId, s));
     await writeAudit({ actorId: req.auth.userId, actorRole: 'SUPER_ADMIN', societyId, action: 'ADMIN_CREATED', entityType: 'AdminProfile', entityId: String(r.profile._id) });
+    const newUserId = String(r.user._id);
+    await notifyUsers({ societyId, userIds: [newUserId], type: NotificationType.SYSTEM, title: `You are now an administrator of ${society.name}`, body: 'Sign in with your mobile number and the temporary password you were given, then change it.', data: { route: 'society-setup', societyId }, event: 'admin:added' });
+    const others = (await adminUserIdsWith(societyId)).filter((id) => id !== newUserId);
+    await notifyUsers({ societyId, userIds: others, type: NotificationType.SYSTEM, title: 'New administrator added', body: `${r.user.name} was added as an administrator by the platform team.`, data: { adminProfileId: String(r.profile._id) }, event: 'admin:added' });
     created(res, shape(await r.profile.populate([populateUser, populateRole])), 'Administrator created');
   },
-  permissions: async (req: Request, res: Response) => ok(res, shape(await patch(undefined, req.valid.params.id, req.valid.body, req.auth.userId)), 'Permissions updated'),
-  update: async (req: Request, res: Response) => ok(res, shape(await patch(undefined, req.valid.params.id, req.valid.body, req.auth.userId)), 'Administrator updated'),
+  permissions: async (req: Request, res: Response) => {
+    await assertRoleInAdminsSociety(req.valid.params.id, req.valid.body.roleId);
+    ok(res, shape(await patch(undefined, req.valid.params.id, req.valid.body, req.auth.userId)), 'Permissions updated');
+  },
+  update: async (req: Request, res: Response) => {
+    await assertRoleInAdminsSociety(req.valid.params.id, req.valid.body.roleId);
+    ok(res, shape(await patch(undefined, req.valid.params.id, req.valid.body, req.auth.userId)), 'Administrator updated');
+  },
   resetAccess: async (req: Request, res: Response) => ok(res, await resetAccess(undefined, req.valid.params.id, req.auth), 'Access reset'),
   activity: async (req: Request, res: Response) => {
     const p: any = await AdminProfile.findOne({ _id: req.valid.params.id }, null, { skipTenantCheck: true });

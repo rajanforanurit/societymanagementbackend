@@ -5,7 +5,8 @@ import { Society, Tower, Floor, Flat } from './society.model';
 
 export type PropertyTypeKey = 'MULTIFAMILY' | 'SINGLE_FAMILY';
 
-export interface TowerLayout { name: string; code: string; floors: { number: number; units: number }[] }
+/** A tower and its flat names. `code` / `floors` belong to the older format (generated A-101 style names) and are only read. */
+export interface TowerLayout { name: string; flats?: string[]; code?: string; floors?: { number: number; units: number }[] }
 
 /** MULTIFAMILY maps to the existing APARTMENT society type, SINGLE_FAMILY to VILLA_COMMUNITY, so older filters keep working. */
 export const societyTypeFor = (t: PropertyTypeKey) => (t === 'MULTIFAMILY' ? 'APARTMENT' : 'VILLA_COMMUNITY') as (typeof SocietyType)[keyof typeof SocietyType];
@@ -43,31 +44,39 @@ export async function generateSocietyCode(name: string, session?: ClientSession 
 
 // ---------------------------------------------------------------- naming
 
-/** A-101 / A-1204: tower code, floor, then the unit's position on the floor (2 digits). */
+/** Legacy A-101 / A-1204: tower code, floor, then the unit's position on the floor (2 digits). */
 export const unitLabel = (towerCode: string, floor: number, index: number) => `${towerCode}-${floor}${String(index).padStart(2, '0')}`;
 
 export const houseLabel = (prefix: string, n: number) => `${prefix}${n}`;
 
-export function expandTower(t: TowerLayout) {
-  return t.floors.flatMap((f) => Array.from({ length: f.units }, (_, i) => ({ floor: f.number, unitNumber: `${f.number}${String(i + 1).padStart(2, '0')}`, label: unitLabel(t.code, f.number, i + 1) })));
+/** Every house name of a single-family layout: the names entered, or (older societies) the generated H-1, H-2 ... */
+export function houseNames(sf: any): string[] {
+  if (!sf) return [];
+  if (sf.houses?.length) return sf.houses as string[];
+  return Array.from({ length: sf.totalHouses ?? 0 }, (_, i) => houseLabel(sf.labelPrefix ?? 'H-', (sf.startNumber ?? 1) + i));
+}
+
+/** Every flat of a tower: the names entered for it, or (older towers) the names generated from its floors. */
+export function expandTower(t: TowerLayout): { floor?: number; unitNumber: string; label: string }[] {
+  if (t.flats?.length) return t.flats.map((f) => ({ unitNumber: f, label: f }));
+  return (t.floors ?? []).flatMap((f) => Array.from({ length: f.units }, (_, i) => ({ floor: f.number, unitNumber: `${f.number}${String(i + 1).padStart(2, '0')}`, label: unitLabel(t.code ?? '', f.number, i + 1) })));
 }
 
 /** Derived totals so the stored summary can never drift from the configuration. */
 export function summarize(details: any, type: PropertyTypeKey) {
   if (type === 'MULTIFAMILY') {
     const towers: TowerLayout[] = details.towers ?? [];
-    return { totalTowers: towers.length, totalFloors: towers.reduce((m, t) => Math.max(m, t.floors.length), 0), totalUnits: towers.reduce((s, t) => s + t.floors.reduce((a, f) => a + f.units, 0), 0) };
+    return { totalTowers: towers.length, totalFloors: towers.reduce((m, t) => Math.max(m, t.flats?.length ? 0 : (t.floors?.length ?? 0)), 0), totalUnits: towers.reduce((s, t) => s + expandTower(t).length, 0) };
   }
-  const h = details.singleFamily?.totalHouses ?? 0;
-  return { totalTowers: 0, totalFloors: 0, totalUnits: h };
+  return { totalTowers: 0, totalFloors: 0, totalUnits: houseNames(details.singleFamily).length };
 }
 
 // ---------------------------------------------------------- materialize
 
 /**
  * Creates the Tower / Floor / Flat records for a layout. Idempotent: anything that already exists
- * (matched by tower name / floor number / flat label) is left untouched, and nothing is ever deleted,
- * so a later edit can add towers, floors and units but cannot remove a flat residents may live in.
+ * (matched by tower name / flat label) is left untouched, and nothing is ever deleted,
+ * so a later edit can add towers and flats but cannot remove a flat residents may live in.
  */
 export async function applyLayout(societyId: string, type: PropertyTypeKey, details: any, actorId: string, session?: ClientSession | null) {
   const opt = { session: session ?? undefined };
@@ -76,31 +85,29 @@ export async function applyLayout(societyId: string, type: PropertyTypeKey, deta
   let flats = 0;
   if (type === 'MULTIFAMILY') {
     for (const t of details.towers as TowerLayout[]) {
+      const legacyFloors = t.flats?.length ? [] : (t.floors ?? []);
       let tower: any = await Tower.findOne({ societyId, name: t.name }).session(session ?? null);
       if (!tower) {
-        [tower] = await Tower.create([{ ...base, name: t.name, totalFloors: t.floors.length }], opt);
+        [tower] = await Tower.create([{ ...base, name: t.name, ...(legacyFloors.length ? { totalFloors: legacyFloors.length } : {}) }], opt);
         towers++;
-      } else if (tower.totalFloors !== t.floors.length) {
-        tower.totalFloors = t.floors.length;
+      } else if (legacyFloors.length && tower.totalFloors !== legacyFloors.length) {
+        tower.totalFloors = legacyFloors.length;
         await tower.save(opt);
       }
-      for (const f of t.floors) {
+      // Floor records exist only for older layouts; new towers keep the floor inside the flat name.
+      for (const f of legacyFloors) {
         if (!(await Floor.exists({ societyId, towerId: tower._id, number: f.number }).session(session ?? null))) await Floor.create([{ ...base, towerId: tower._id, number: f.number, label: `Floor ${f.number}` }], opt);
       }
       const existing = new Set((await Flat.find({ societyId, towerId: tower._id }).select('label').session(session ?? null)).map((x: any) => x.label));
-      const docs = expandTower(t).filter((u) => !existing.has(u.label)).map((u) => ({ ...base, towerId: tower._id, floorNumber: u.floor, unitNumber: u.unitNumber, label: u.label }));
+      const docs = expandTower(t).filter((u) => !existing.has(u.label)).map((u) => ({ ...base, towerId: tower._id, ...(u.floor !== undefined ? { floorNumber: u.floor } : {}), unitNumber: u.unitNumber, label: u.label }));
       if (docs.length) await Flat.insertMany(docs, opt);
       flats += docs.length;
     }
   } else {
-    const { totalHouses, labelPrefix, startNumber } = details.singleFamily;
     const existing = new Set((await Flat.find({ societyId }).select('label').session(session ?? null)).map((x: any) => x.label));
-    const docs: any[] = [];
-    for (let i = 0; i < totalHouses; i++) {
-      const n = (startNumber ?? 1) + i;
-      const label = houseLabel(labelPrefix ?? 'H-', n);
-      if (!existing.has(label)) docs.push({ ...base, unitNumber: String(n), label });
-    }
+    const docs: any[] = houseNames(details.singleFamily)
+      .filter((label) => !existing.has(label))
+      .map((label) => ({ ...base, unitNumber: label, label }));
     if (docs.length) await Flat.insertMany(docs, opt);
     flats += docs.length;
   }
@@ -109,13 +116,8 @@ export async function applyLayout(societyId: string, type: PropertyTypeKey, deta
 
 /** Rejects a layout change that would drop a tower or unit that already exists (it would orphan residents). */
 export async function assertLayoutNotShrinking(societyId: string, type: PropertyTypeKey, details: any) {
-  if (type !== 'MULTIFAMILY') {
-    const have = await Flat.countDocuments({ societyId });
-    if (details.singleFamily.totalHouses < have) throw ApiError.conflict(`This society already has ${have} houses; the layout cannot be reduced`, 'LAYOUT_SHRINK');
-    return;
-  }
-  const wanted = new Set((details.towers as TowerLayout[]).flatMap((t) => expandTower(t).map((u) => u.label)));
+  const wanted = new Set(type === 'MULTIFAMILY' ? (details.towers as TowerLayout[]).flatMap((t) => expandTower(t).map((u) => u.label)) : houseNames(details.singleFamily));
   const flats: any[] = await Flat.find({ societyId }).select('label');
   const missing = flats.filter((f) => !wanted.has(f.label));
-  if (missing.length) throw ApiError.conflict(`The new layout would remove ${missing.length} existing unit(s), e.g. ${missing.slice(0, 3).map((f) => f.label).join(', ')}. Layouts can be extended but not reduced.`, 'LAYOUT_SHRINK');
+  if (missing.length) throw ApiError.conflict(`The new layout would remove or rename ${missing.length} existing unit(s), e.g. ${missing.slice(0, 3).map((f) => f.label).join(', ')}. Layouts can be extended but not reduced.`, 'LAYOUT_SHRINK');
 }

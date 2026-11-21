@@ -20,11 +20,11 @@ const skip = { skipTenantCheck: true };
 
 export const superAdminService = {
   async dashboard() {
-    const [total, active, inactive, pending, builders, admins, residents, guards, reqs, logins, failed, newRes, serverErr, authFail, tickets] = await Promise.all([
+    const [total, active, inactive, builders, admins, residents, guards, reqs, logins, failed, newRes, serverErr, authFail, tickets] = await Promise.all([
       Society.countDocuments({}),
       Society.countDocuments({ status: 'ACTIVE' }),
-      Society.countDocuments({ status: { $in: ['INACTIVE', 'SUSPENDED'] } }),
-      Society.countDocuments({ status: 'PENDING' }),
+      // Anything that is not active counts as inactive (there is no approval workflow any more).
+      Society.countDocuments({ status: { $ne: 'ACTIVE' } }),
       Organization.countDocuments({}),
       User.countDocuments({ userType: 'SOCIETY_ADMIN' }),
       Resident.countDocuments({ status: 'APPROVED' }).setOptions(skip),
@@ -37,7 +37,7 @@ export const superAdminService = {
       ErrorLog.countDocuments({ status: { $in: [401, 403] }, createdAt: { $gte: day() } }),
       SupportTicket.countDocuments({ status: { $in: ['OPEN', 'IN_PROGRESS'] } }),
     ]);
-    return { societies: { total, active, inactive, pending }, builders, admins, residents, guards, activity: { requestsLast24h: reqs, loginsLast24h: logins, failedLoginsLast24h: failed, newResidentsLast7d: newRes }, errors: { serverErrorsLast24h: serverErr, authFailuresLast24h: authFail }, openSupportTickets: tickets };
+    return { societies: { total, active, inactive }, builders, admins, residents, guards, activity: { requestsLast24h: reqs, loginsLast24h: logins, failedLoginsLast24h: failed, newResidentsLast7d: newRes }, errors: { serverErrorsLast24h: serverErr, authFailuresLast24h: authFail }, openSupportTickets: tickets };
   },
   async health() {
     const state = ['disconnected', 'connected', 'connecting', 'disconnecting'][mongoose.connection.readyState] ?? 'unknown';
