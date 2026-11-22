@@ -121,7 +121,12 @@ export const emergencyService = {
 };
 
 export const incidentService = createCrudService({ model: SecurityIncident, name: 'Incident', searchFields: ['description', 'location'], filterable: ['status', 'type'], sortable: ['createdAt', 'status'] });
-export const lostFoundService = createCrudService({ model: LostFoundItem, name: 'Lost & found item', searchFields: ['title', 'description'], filterable: ['type', 'status'], sortable: ['createdAt'] });
+const lostFoundCrud = { model: LostFoundItem, name: 'Lost & found item', searchFields: ['title', 'description'], filterable: ['type', 'status'], sortable: ['createdAt'] };
+export const lostFoundService = createCrudService(lostFoundCrud);
+export const listGuardLostFound = createCrudService({
+  ...lostFoundCrud,
+  select: 'type title status createdAt locationFound',
+}).list;
 export const contactService = createCrudService({ model: EmergencyContact, name: 'Emergency contact', searchFields: ['name', 'category'], sortable: ['order', 'name'], defaultSort: 'order' });
 
 export async function reportIncident(societyId: string, userId: string, role: string, body: any) {

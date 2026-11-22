@@ -70,4 +70,10 @@ const infoRoute = { summary: 'Floor plan / property details and hospitals of my 
 export const propertyInfoResidentRouter = new ModuleRouter('/api/v1/user/society-info', { tag: 'Resident - Society Info', roles: [UserType.RESIDENT], societyScoped: true });
 propertyInfoResidentRouter.add({ method: 'get', path: '/', ...infoRoute });
 export const propertyInfoGuardRouter = new ModuleRouter('/api/v1/guard/society-info', { tag: 'Guard', roles: [UserType.GUARD], societyScoped: true });
-propertyInfoGuardRouter.add({ method: 'get', path: '/', ...infoRoute });
+propertyInfoGuardRouter.add({
+  method: 'get',
+  path: '/',
+  summary: 'Society information and destination units for the gate',
+  response: s.guardPropertyInfoItem,
+  handler: c.propertyInfoController.guard,
+});

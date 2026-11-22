@@ -33095,8 +33095,7 @@ paths:
       operationId: get_api_v1_guard_dashboard
       security:
         - bearerAuth: []
-      x-required-role: &a81
-        - GUARD
+      x-required-role: *a80
       x-required-permissions: []
       responses:
         "200":
@@ -33263,7 +33262,7 @@ paths:
       operationId: get_api_v1_guard_gate
       security:
         - bearerAuth: []
-      x-required-role: *a81
+      x-required-role: *a80
       x-required-permissions: []
       responses:
         "200":
@@ -33341,7 +33340,7 @@ paths:
       operationId: get_api_v1_guard_flats_lookup
       security:
         - bearerAuth: []
-      x-required-role: *a81
+      x-required-role: *a80
       x-required-permissions: []
       responses:
         "200":
@@ -33446,7 +33445,7 @@ paths:
       operationId: post_api_v1_guard_visitors
       security:
         - bearerAuth: []
-      x-required-role: *a81
+      x-required-role: *a80
       x-required-permissions: []
       responses:
         "201":
@@ -33683,7 +33682,7 @@ paths:
       operationId: get_api_v1_guard_visitors
       security:
         - bearerAuth: []
-      x-required-role: *a81
+      x-required-role: *a80
       x-required-permissions: []
       responses:
         "200":
@@ -33968,7 +33967,7 @@ paths:
       operationId: get_api_v1_guard_visitors_pending
       security:
         - bearerAuth: []
-      x-required-role: *a81
+      x-required-role: *a80
       x-required-permissions: []
       responses:
         "200":
@@ -34223,7 +34222,7 @@ paths:
       operationId: get_api_v1_guard_visitors_active
       security:
         - bearerAuth: []
-      x-required-role: *a81
+      x-required-role: *a80
       x-required-permissions: []
       responses:
         "200":
@@ -34481,7 +34480,7 @@ paths:
       operationId: get_api_v1_guard_visitors_expected
       security:
         - bearerAuth: []
-      x-required-role: *a81
+      x-required-role: *a80
       x-required-permissions: []
       responses:
         "200":
@@ -34580,7 +34579,7 @@ paths:
       operationId: post_api_v1_guard_visitors_verify
       security:
         - bearerAuth: []
-      x-required-role: *a81
+      x-required-role: *a80
       x-required-permissions: []
       responses:
         "200":
@@ -34800,7 +34799,7 @@ paths:
       operationId: post_api_v1_guard_visitors_emergency_entry
       security:
         - bearerAuth: []
-      x-required-role: *a81
+      x-required-role: *a80
       x-required-permissions: []
       responses:
         "201":
@@ -35044,7 +35043,7 @@ paths:
       operationId: post_api_v1_guard_visitors_id_request_approval
       security:
         - bearerAuth: []
-      x-required-role: *a81
+      x-required-role: *a80
       x-required-permissions: []
       responses:
         "200":
@@ -35243,7 +35242,7 @@ paths:
       operationId: post_api_v1_guard_visitors_id_entry
       security:
         - bearerAuth: []
-      x-required-role: *a81
+      x-required-role: *a80
       x-required-permissions: []
       responses:
         "200":
@@ -35445,7 +35444,7 @@ paths:
       operationId: post_api_v1_guard_visitors_id_exit
       security:
         - bearerAuth: []
-      x-required-role: *a81
+      x-required-role: *a80
       x-required-permissions: []
       responses:
         "200":
@@ -35647,7 +35646,7 @@ paths:
       operationId: post_api_v1_guard_visitors_id_deny
       security:
         - bearerAuth: []
-      x-required-role: *a81
+      x-required-role: *a80
       x-required-permissions: []
       responses:
         "200":
@@ -35870,7 +35869,7 @@ paths:
       operationId: post_api_v1_guard_deliveries
       security:
         - bearerAuth: []
-      x-required-role: *a81
+      x-required-role: *a80
       x-required-permissions: []
       responses:
         "201":
@@ -36087,7 +36086,7 @@ paths:
       operationId: get_api_v1_guard_deliveries
       security:
         - bearerAuth: []
-      x-required-role: *a81
+      x-required-role: *a80
       x-required-permissions: []
       responses:
         "200":
@@ -36357,7 +36356,7 @@ paths:
       operationId: post_api_v1_guard_deliveries_id_request_approval
       security:
         - bearerAuth: []
-      x-required-role: *a81
+      x-required-role: *a80
       x-required-permissions: []
       responses:
         "200":
@@ -36534,7 +36533,7 @@ paths:
       operationId: post_api_v1_guard_deliveries_id_entry
       security:
         - bearerAuth: []
-      x-required-role: *a81
+      x-required-role: *a80
       x-required-permissions: []
       responses:
         "200":
@@ -36717,7 +36716,7 @@ paths:
       operationId: post_api_v1_guard_deliveries_id_exit
       security:
         - bearerAuth: []
-      x-required-role: *a81
+      x-required-role: *a80
       x-required-permissions: []
       responses:
         "200":
@@ -36903,7 +36902,7 @@ paths:
       operationId: post_api_v1_guard_deliveries_id_leave_at_gate
       security:
         - bearerAuth: []
-      x-required-role: *a81
+      x-required-role: *a80
       x-required-permissions: []
       responses:
         "200":
@@ -37086,7 +37085,7 @@ paths:
       operationId: post_api_v1_guard_deliveries_id_handover
       security:
         - bearerAuth: []
-      x-required-role: *a81
+      x-required-role: *a80
       x-required-permissions: []
       responses:
         "200":
@@ -37295,7 +37294,7 @@ paths:
       operationId: post_api_v1_guard_domestic_help_lookup
       security:
         - bearerAuth: []
-      x-required-role: *a81
+      x-required-role: *a80
       x-required-permissions: []
       responses:
         "200":
@@ -37432,7 +37431,7 @@ paths:
       operationId: post_api_v1_guard_domestic_help_check_in
       security:
         - bearerAuth: []
-      x-required-role: *a81
+      x-required-role: *a80
       x-required-permissions: []
       responses:
         "200":
@@ -37575,7 +37574,7 @@ paths:
       operationId: post_api_v1_guard_domestic_help_check_out
       security:
         - bearerAuth: []
-      x-required-role: *a81
+      x-required-role: *a80
       x-required-permissions: []
       responses:
         "200":
@@ -37718,7 +37717,7 @@ paths:
       operationId: get_api_v1_guard_domestic_help_expected
       security:
         - bearerAuth: []
-      x-required-role: *a81
+      x-required-role: *a80
       x-required-permissions: []
       responses:
         "200":
@@ -37799,7 +37798,7 @@ paths:
       operationId: post_api_v1_guard_domestic_help_unauthorized_report
       security:
         - bearerAuth: []
-      x-required-role: *a81
+      x-required-role: *a80
       x-required-permissions: []
       responses:
         "201":
@@ -37959,7 +37958,7 @@ paths:
       operationId: post_api_v1_guard_alerts
       security:
         - bearerAuth: []
-      x-required-role: *a81
+      x-required-role: *a80
       x-required-permissions: []
       responses:
         "201":
@@ -38017,6 +38016,10 @@ paths:
                       raisedBy:
                         type: string
                         pattern: ^[a-f\d]{24}$
+                      raisedByName:
+                        type: string
+                      raisedByMobile:
+                        type: string
                       flatId:
                         type: string
                         pattern: ^[a-f\d]{24}$
@@ -38044,6 +38047,14 @@ paths:
                         type: string
                         format: date-time
                         pattern: ^(?:(?:\d\d[2468][048]|\d\d[13579][26]|\d\d0[48]|[02468][048]00|[13579][26]00)-02-29|\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\d|30)|(?:02)-(?:0[1-9]|1\d|2[0-8])))T(?:(?:[01]\d|2[0-3]):[0-5]\d:[0-5]\d(?:\.\d+)?(?:Z|([+-](?:[01]\d|2[0-3]):[0-5]\d)))$
+                      acknowledgedByName:
+                        type: string
+                      acknowledgedByRole:
+                        type: string
+                      resolvedByName:
+                        type: string
+                      resolvedByRole:
+                        type: string
                       notifiedContacts:
                         type: array
                         items:
@@ -38077,6 +38088,8 @@ paths:
                   type: PANIC
                   source: RESIDENT
                   raisedBy: 64f1c0a2b3c4d5e6f7a8b9c0
+                  raisedByName: Sample name
+                  raisedByMobile: "+919876543210"
                   flatId: 64f1c0a2b3c4d5e6f7a8b9c0
                   flatLabel: string
                   gateId: 64f1c0a2b3c4d5e6f7a8b9c0
@@ -38085,6 +38098,10 @@ paths:
                   status: ACTIVE
                   acknowledgedAt: 2026-11-02T10:30:00.000Z
                   resolvedAt: 2026-11-02T10:30:00.000Z
+                  acknowledgedByName: Sample name
+                  acknowledgedByRole: string
+                  resolvedByName: Sample name
+                  resolvedByRole: string
                   notifiedContacts:
                     - name: Sample name
                       phone: "+919876543210"
@@ -38159,7 +38176,7 @@ paths:
       operationId: get_api_v1_guard_alerts
       security:
         - bearerAuth: []
-      x-required-role: *a81
+      x-required-role: *a80
       x-required-permissions: []
       responses:
         "200":
@@ -38219,6 +38236,10 @@ paths:
                         raisedBy:
                           type: string
                           pattern: ^[a-f\d]{24}$
+                        raisedByName:
+                          type: string
+                        raisedByMobile:
+                          type: string
                         flatId:
                           type: string
                           pattern: ^[a-f\d]{24}$
@@ -38246,6 +38267,14 @@ paths:
                           type: string
                           format: date-time
                           pattern: ^(?:(?:\d\d[2468][048]|\d\d[13579][26]|\d\d0[48]|[02468][048]00|[13579][26]00)-02-29|\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\d|30)|(?:02)-(?:0[1-9]|1\d|2[0-8])))T(?:(?:[01]\d|2[0-3]):[0-5]\d:[0-5]\d(?:\.\d+)?(?:Z|([+-](?:[01]\d|2[0-3]):[0-5]\d)))$
+                        acknowledgedByName:
+                          type: string
+                        acknowledgedByRole:
+                          type: string
+                        resolvedByName:
+                          type: string
+                        resolvedByRole:
+                          type: string
                         notifiedContacts:
                           type: array
                           items:
@@ -38281,6 +38310,8 @@ paths:
                     type: PANIC
                     source: RESIDENT
                     raisedBy: 64f1c0a2b3c4d5e6f7a8b9c0
+                    raisedByName: Sample name
+                    raisedByMobile: "+919876543210"
                     flatId: 64f1c0a2b3c4d5e6f7a8b9c0
                     flatLabel: string
                     gateId: 64f1c0a2b3c4d5e6f7a8b9c0
@@ -38289,6 +38320,10 @@ paths:
                     status: ACTIVE
                     acknowledgedAt: 2026-11-02T10:30:00.000Z
                     resolvedAt: 2026-11-02T10:30:00.000Z
+                    acknowledgedByName: Sample name
+                    acknowledgedByRole: string
+                    resolvedByName: Sample name
+                    resolvedByRole: string
                     notifiedContacts:
                       - name: Sample name
                         phone: "+919876543210"
@@ -38417,7 +38452,7 @@ paths:
       operationId: patch_api_v1_guard_alerts_id
       security:
         - bearerAuth: []
-      x-required-role: *a81
+      x-required-role: *a80
       x-required-permissions: []
       responses:
         "200":
@@ -38475,6 +38510,10 @@ paths:
                       raisedBy:
                         type: string
                         pattern: ^[a-f\d]{24}$
+                      raisedByName:
+                        type: string
+                      raisedByMobile:
+                        type: string
                       flatId:
                         type: string
                         pattern: ^[a-f\d]{24}$
@@ -38502,6 +38541,14 @@ paths:
                         type: string
                         format: date-time
                         pattern: ^(?:(?:\d\d[2468][048]|\d\d[13579][26]|\d\d0[48]|[02468][048]00|[13579][26]00)-02-29|\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\d|30)|(?:02)-(?:0[1-9]|1\d|2[0-8])))T(?:(?:[01]\d|2[0-3]):[0-5]\d:[0-5]\d(?:\.\d+)?(?:Z|([+-](?:[01]\d|2[0-3]):[0-5]\d)))$
+                      acknowledgedByName:
+                        type: string
+                      acknowledgedByRole:
+                        type: string
+                      resolvedByName:
+                        type: string
+                      resolvedByRole:
+                        type: string
                       notifiedContacts:
                         type: array
                         items:
@@ -38535,6 +38582,8 @@ paths:
                   type: PANIC
                   source: RESIDENT
                   raisedBy: 64f1c0a2b3c4d5e6f7a8b9c0
+                  raisedByName: Sample name
+                  raisedByMobile: "+919876543210"
                   flatId: 64f1c0a2b3c4d5e6f7a8b9c0
                   flatLabel: string
                   gateId: 64f1c0a2b3c4d5e6f7a8b9c0
@@ -38543,6 +38592,10 @@ paths:
                   status: ACTIVE
                   acknowledgedAt: 2026-11-02T10:30:00.000Z
                   resolvedAt: 2026-11-02T10:30:00.000Z
+                  acknowledgedByName: Sample name
+                  acknowledgedByRole: string
+                  resolvedByName: Sample name
+                  resolvedByRole: string
                   notifiedContacts:
                     - name: Sample name
                       phone: "+919876543210"
@@ -38626,7 +38679,7 @@ paths:
       operationId: post_api_v1_guard_incidents
       security:
         - bearerAuth: []
-      x-required-role: *a81
+      x-required-role: *a80
       x-required-permissions: []
       responses:
         "201":
@@ -38778,7 +38831,7 @@ paths:
                   type: string
                   pattern: ^[a-f\d]{24}$
                 attachments:
-                  default: &a82 []
+                  default: &a81 []
                   maxItems: 5
                   type: array
                   items:
@@ -38791,8 +38844,414 @@ paths:
               description: string
               location: string
               flatId: 64f1c0a2b3c4d5e6f7a8b9c0
-              attachments: *a82
+              attachments: *a81
+    get:
+      tags:
+        - Guard
+      summary: My reported security incidents
+      description: "Required role: GUARD."
+      operationId: get_api_v1_guard_incidents
+      security:
+        - bearerAuth: []
+      x-required-role: *a80
+      x-required-permissions: []
+      responses:
+        "200":
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - success
+                  - data
+                properties:
+                  success:
+                    type: boolean
+                    const: true
+                  message:
+                    type: string
+                  data:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        id:
+                          type: string
+                          pattern: ^[a-f\d]{24}$
+                        societyId:
+                          type: string
+                          pattern: ^[a-f\d]{24}$
+                        createdBy:
+                          type: string
+                          pattern: ^[a-f\d]{24}$
+                        updatedBy:
+                          type: string
+                          pattern: ^[a-f\d]{24}$
+                        createdAt:
+                          type: string
+                          format: date-time
+                          pattern: ^(?:(?:\d\d[2468][048]|\d\d[13579][26]|\d\d0[48]|[02468][048]00|[13579][26]00)-02-29|\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\d|30)|(?:02)-(?:0[1-9]|1\d|2[0-8])))T(?:(?:[01]\d|2[0-3]):[0-5]\d:[0-5]\d(?:\.\d+)?(?:Z|([+-](?:[01]\d|2[0-3]):[0-5]\d)))$
+                        updatedAt:
+                          type: string
+                          format: date-time
+                          pattern: ^(?:(?:\d\d[2468][048]|\d\d[13579][26]|\d\d0[48]|[02468][048]00|[13579][26]00)-02-29|\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\d|30)|(?:02)-(?:0[1-9]|1\d|2[0-8])))T(?:(?:[01]\d|2[0-3]):[0-5]\d:[0-5]\d(?:\.\d+)?(?:Z|([+-](?:[01]\d|2[0-3]):[0-5]\d)))$
+                        reportedBy:
+                          type: string
+                          pattern: ^[a-f\d]{24}$
+                        reporterRole:
+                          type: string
+                        type:
+                          type: string
+                          enum:
+                            - SUSPICIOUS_ACTIVITY
+                            - THEFT
+                            - ALTERCATION
+                            - TRESPASS
+                            - DAMAGE
+                            - OTHER
+                        description:
+                          type: string
+                        location:
+                          type: string
+                        status:
+                          type: string
+                          enum:
+                            - OPEN
+                            - INVESTIGATING
+                            - CLOSED
+                        resolutionNote:
+                          type: string
+                      required:
+                        - id
+                        - societyId
+                        - createdAt
+                        - updatedAt
+                        - reportedBy
+                        - type
+                        - description
+                        - status
+                      additionalProperties: false
+                  meta:
+                    $ref: "#/components/schemas/PaginationMeta"
+              example:
+                success: true
+                message: Success
+                data:
+                  - id: 64f1c0a2b3c4d5e6f7a8b9c0
+                    societyId: 64f1c0a2b3c4d5e6f7a8b9c0
+                    createdBy: 64f1c0a2b3c4d5e6f7a8b9c0
+                    updatedBy: 64f1c0a2b3c4d5e6f7a8b9c0
+                    createdAt: 2026-11-02T10:30:00.000Z
+                    updatedAt: 2026-11-02T10:30:00.000Z
+                    reportedBy: 64f1c0a2b3c4d5e6f7a8b9c0
+                    reporterRole: string
+                    type: SUSPICIOUS_ACTIVITY
+                    description: string
+                    location: string
+                    status: OPEN
+                    resolutionNote: string
+                meta:
+                  page: 1
+                  limit: 20
+                  total: 1
+                  totalPages: 1
+        "401":
+          description: Missing, invalid or expired access token
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "403":
+          description: Authenticated but not permitted (role, permission, feature flag or tenant)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "422":
+          description: Request validation failed
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "429":
+          description: Rate limit exceeded
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "500":
+          description: Unexpected server error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+      parameters:
+        - name: page
+          in: query
+          required: false
+          schema:
+            default: 1
+            type: integer
+            minimum: 1
+            maximum: 9007199254740991
+          example: 1
+        - name: limit
+          in: query
+          required: false
+          schema:
+            default: 20
+            type: integer
+            minimum: 1
+            maximum: 100
+          example: 20
+        - name: sort
+          in: query
+          required: false
+          schema:
+            type: string
+            pattern: ^-?[A-Za-z_.]+(,-?[A-Za-z_.]+)*$
+          example: string
+        - name: search
+          in: query
+          required: false
+          schema:
+            type: string
+            minLength: 1
+            maxLength: 100
+          example: string
+        - name: from
+          in: query
+          required: false
+          schema:
+            anyOf:
+              - type: string
+                format: date
+                pattern: ^(?:(?:\d\d[2468][048]|\d\d[13579][26]|\d\d0[48]|[02468][048]00|[13579][26]00)-02-29|\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\d|30)|(?:02)-(?:0[1-9]|1\d|2[0-8])))$
+              - type: string
+                format: date-time
+                pattern: ^(?:(?:\d\d[2468][048]|\d\d[13579][26]|\d\d0[48]|[02468][048]00|[13579][26]00)-02-29|\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\d|30)|(?:02)-(?:0[1-9]|1\d|2[0-8])))T(?:(?:[01]\d|2[0-3]):[0-5]\d:[0-5]\d(?:\.\d+)?(?:Z|([+-](?:[01]\d|2[0-3]):[0-5]\d)))$
+          example: 2026-11-02
+        - name: to
+          in: query
+          required: false
+          schema:
+            anyOf:
+              - type: string
+                format: date
+                pattern: ^(?:(?:\d\d[2468][048]|\d\d[13579][26]|\d\d0[48]|[02468][048]00|[13579][26]00)-02-29|\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\d|30)|(?:02)-(?:0[1-9]|1\d|2[0-8])))$
+              - type: string
+                format: date-time
+                pattern: ^(?:(?:\d\d[2468][048]|\d\d[13579][26]|\d\d0[48]|[02468][048]00|[13579][26]00)-02-29|\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\d|30)|(?:02)-(?:0[1-9]|1\d|2[0-8])))T(?:(?:[01]\d|2[0-3]):[0-5]\d:[0-5]\d(?:\.\d+)?(?:Z|([+-](?:[01]\d|2[0-3]):[0-5]\d)))$
+          example: 2026-11-02
+        - name: status
+          in: query
+          required: false
+          schema:
+            type: string
+            enum:
+              - OPEN
+              - INVESTIGATING
+              - CLOSED
+          example: OPEN
+        - name: type
+          in: query
+          required: false
+          schema:
+            type: string
+            enum:
+              - SUSPICIOUS_ACTIVITY
+              - THEFT
+              - ALTERCATION
+              - TRESPASS
+              - DAMAGE
+              - OTHER
+          example: SUSPICIOUS_ACTIVITY
   /api/v1/guard/lost-found:
+    get:
+      tags:
+        - Guard
+      summary: Browse the society lost-and-found register
+      description: "Required role: GUARD."
+      operationId: get_api_v1_guard_lost_found
+      security:
+        - bearerAuth: []
+      x-required-role: *a80
+      x-required-permissions: []
+      responses:
+        "200":
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - success
+                  - data
+                properties:
+                  success:
+                    type: boolean
+                    const: true
+                  message:
+                    type: string
+                  data:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        id:
+                          type: string
+                          pattern: ^[a-f\d]{24}$
+                        type:
+                          type: string
+                          enum:
+                            - LOST
+                            - FOUND
+                        title:
+                          type: string
+                        status:
+                          type: string
+                          enum:
+                            - OPEN
+                            - CLAIMED
+                            - CLOSED
+                        createdAt:
+                          type: string
+                          format: date-time
+                          pattern: ^(?:(?:\d\d[2468][048]|\d\d[13579][26]|\d\d0[48]|[02468][048]00|[13579][26]00)-02-29|\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\d|30)|(?:02)-(?:0[1-9]|1\d|2[0-8])))T(?:(?:[01]\d|2[0-3]):[0-5]\d:[0-5]\d(?:\.\d+)?(?:Z|([+-](?:[01]\d|2[0-3]):[0-5]\d)))$
+                        locationFound:
+                          type: string
+                      required:
+                        - id
+                        - type
+                        - title
+                        - status
+                        - createdAt
+                      additionalProperties: false
+                  meta:
+                    $ref: "#/components/schemas/PaginationMeta"
+              example:
+                success: true
+                message: Success
+                data:
+                  - id: 64f1c0a2b3c4d5e6f7a8b9c0
+                    type: LOST
+                    title: string
+                    status: OPEN
+                    createdAt: 2026-11-02T10:30:00.000Z
+                    locationFound: string
+                meta:
+                  page: 1
+                  limit: 20
+                  total: 1
+                  totalPages: 1
+        "401":
+          description: Missing, invalid or expired access token
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "403":
+          description: Authenticated but not permitted (role, permission, feature flag or tenant)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "422":
+          description: Request validation failed
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "429":
+          description: Rate limit exceeded
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "500":
+          description: Unexpected server error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+      parameters:
+        - name: page
+          in: query
+          required: false
+          schema:
+            default: 1
+            type: integer
+            minimum: 1
+            maximum: 9007199254740991
+          example: 1
+        - name: limit
+          in: query
+          required: false
+          schema:
+            default: 20
+            type: integer
+            minimum: 1
+            maximum: 100
+          example: 20
+        - name: sort
+          in: query
+          required: false
+          schema:
+            type: string
+            pattern: ^-?[A-Za-z_.]+(,-?[A-Za-z_.]+)*$
+          example: string
+        - name: search
+          in: query
+          required: false
+          schema:
+            type: string
+            minLength: 1
+            maxLength: 100
+          example: string
+        - name: from
+          in: query
+          required: false
+          schema:
+            anyOf:
+              - type: string
+                format: date
+                pattern: ^(?:(?:\d\d[2468][048]|\d\d[13579][26]|\d\d0[48]|[02468][048]00|[13579][26]00)-02-29|\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\d|30)|(?:02)-(?:0[1-9]|1\d|2[0-8])))$
+              - type: string
+                format: date-time
+                pattern: ^(?:(?:\d\d[2468][048]|\d\d[13579][26]|\d\d0[48]|[02468][048]00|[13579][26]00)-02-29|\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\d|30)|(?:02)-(?:0[1-9]|1\d|2[0-8])))T(?:(?:[01]\d|2[0-3]):[0-5]\d:[0-5]\d(?:\.\d+)?(?:Z|([+-](?:[01]\d|2[0-3]):[0-5]\d)))$
+          example: 2026-11-02
+        - name: to
+          in: query
+          required: false
+          schema:
+            anyOf:
+              - type: string
+                format: date
+                pattern: ^(?:(?:\d\d[2468][048]|\d\d[13579][26]|\d\d0[48]|[02468][048]00|[13579][26]00)-02-29|\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\d|30)|(?:02)-(?:0[1-9]|1\d|2[0-8])))$
+              - type: string
+                format: date-time
+                pattern: ^(?:(?:\d\d[2468][048]|\d\d[13579][26]|\d\d0[48]|[02468][048]00|[13579][26]00)-02-29|\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\d|30)|(?:02)-(?:0[1-9]|1\d|2[0-8])))T(?:(?:[01]\d|2[0-3]):[0-5]\d:[0-5]\d(?:\.\d+)?(?:Z|([+-](?:[01]\d|2[0-3]):[0-5]\d)))$
+          example: 2026-11-02
+        - name: type
+          in: query
+          required: false
+          schema:
+            type: string
+            enum:
+              - LOST
+              - FOUND
+          example: LOST
+        - name: status
+          in: query
+          required: false
+          schema:
+            type: string
+            enum:
+              - OPEN
+              - CLAIMED
+              - CLOSED
+          example: OPEN
     post:
       tags:
         - Guard
@@ -38801,7 +39260,7 @@ paths:
       operationId: post_api_v1_guard_lost_found
       security:
         - bearerAuth: []
-      x-required-role: *a81
+      x-required-role: *a80
       x-required-permissions: []
       responses:
         "201":
@@ -38938,7 +39397,7 @@ paths:
                   type: string
                   maxLength: 200
                 images:
-                  default: &a83 []
+                  default: &a82 []
                   maxItems: 5
                   type: array
                   items:
@@ -38952,7 +39411,7 @@ paths:
               title: string
               description: string
               locationFound: string
-              images: *a83
+              images: *a82
   /api/v1/guard/emergency-contacts:
     get:
       tags:
@@ -38962,7 +39421,7 @@ paths:
       operationId: get_api_v1_guard_emergency_contacts
       security:
         - bearerAuth: []
-      x-required-role: *a81
+      x-required-role: *a80
       x-required-permissions: []
       responses:
         "200":
@@ -39022,6 +39481,10 @@ paths:
                           type: integer
                           minimum: -9007199254740991
                           maximum: 9007199254740991
+                        visibleToResidents:
+                          type: boolean
+                        visibleToGuards:
+                          type: boolean
                       required:
                         - id
                         - societyId
@@ -39051,6 +39514,8 @@ paths:
                     phone: "+919876543210"
                     notes: string
                     order: 1
+                    visibleToResidents: true
+                    visibleToGuards: true
                 meta:
                   page: 1
                   limit: 20
@@ -87552,6 +88017,702 @@ paths:
             type: string
             pattern: ^[a-f\d]{24}$
           example: 64f1c0a2b3c4d5e6f7a8b9c0
+  /api/v1/guard/profile:
+    get:
+      tags:
+        - Guard
+      summary: Get my guard account profile
+      description: "Required role: GUARD."
+      operationId: get_api_v1_guard_profile
+      security:
+        - bearerAuth: []
+      x-required-role: &a80
+        - GUARD
+      x-required-permissions: []
+      responses:
+        "200":
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - success
+                  - data
+                properties:
+                  success:
+                    type: boolean
+                    const: true
+                  message:
+                    type: string
+                  data:
+                    type: object
+                    properties:
+                      id:
+                        type: string
+                        pattern: ^[a-f\d]{24}$
+                      createdAt:
+                        type: string
+                        format: date-time
+                        pattern: ^(?:(?:\d\d[2468][048]|\d\d[13579][26]|\d\d0[48]|[02468][048]00|[13579][26]00)-02-29|\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\d|30)|(?:02)-(?:0[1-9]|1\d|2[0-8])))T(?:(?:[01]\d|2[0-3]):[0-5]\d:[0-5]\d(?:\.\d+)?(?:Z|([+-](?:[01]\d|2[0-3]):[0-5]\d)))$
+                      updatedAt:
+                        type: string
+                        format: date-time
+                        pattern: ^(?:(?:\d\d[2468][048]|\d\d[13579][26]|\d\d0[48]|[02468][048]00|[13579][26]00)-02-29|\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\d|30)|(?:02)-(?:0[1-9]|1\d|2[0-8])))T(?:(?:[01]\d|2[0-3]):[0-5]\d:[0-5]\d(?:\.\d+)?(?:Z|([+-](?:[01]\d|2[0-3]):[0-5]\d)))$
+                      name:
+                        type: string
+                      mobile:
+                        type: string
+                      email:
+                        type: string
+                      notificationPrefs:
+                        type: object
+                        propertyNames:
+                          type: string
+                        additionalProperties:
+                          type: boolean
+                    required:
+                      - id
+                      - createdAt
+                      - updatedAt
+                      - name
+                      - mobile
+                    additionalProperties: false
+              example:
+                success: true
+                message: Success
+                data:
+                  id: 64f1c0a2b3c4d5e6f7a8b9c0
+                  createdAt: 2026-11-02T10:30:00.000Z
+                  updatedAt: 2026-11-02T10:30:00.000Z
+                  name: Sample name
+                  mobile: "+919876543210"
+                  email: user@example.com
+                  notificationPrefs: {}
+        "401":
+          description: Missing, invalid or expired access token
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "403":
+          description: Authenticated but not permitted (role, permission, feature flag or tenant)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "429":
+          description: Rate limit exceeded
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "500":
+          description: Unexpected server error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+    patch:
+      tags:
+        - Guard
+      summary: Update my guard account profile
+      description: "Required role: GUARD."
+      operationId: patch_api_v1_guard_profile
+      security:
+        - bearerAuth: []
+      x-required-role: *a80
+      x-required-permissions: []
+      responses:
+        "200":
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - success
+                  - data
+                properties:
+                  success:
+                    type: boolean
+                    const: true
+                  message:
+                    type: string
+                  data:
+                    type: object
+                    properties:
+                      id:
+                        type: string
+                        pattern: ^[a-f\d]{24}$
+                      createdAt:
+                        type: string
+                        format: date-time
+                        pattern: ^(?:(?:\d\d[2468][048]|\d\d[13579][26]|\d\d0[48]|[02468][048]00|[13579][26]00)-02-29|\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\d|30)|(?:02)-(?:0[1-9]|1\d|2[0-8])))T(?:(?:[01]\d|2[0-3]):[0-5]\d:[0-5]\d(?:\.\d+)?(?:Z|([+-](?:[01]\d|2[0-3]):[0-5]\d)))$
+                      updatedAt:
+                        type: string
+                        format: date-time
+                        pattern: ^(?:(?:\d\d[2468][048]|\d\d[13579][26]|\d\d0[48]|[02468][048]00|[13579][26]00)-02-29|\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\d|30)|(?:02)-(?:0[1-9]|1\d|2[0-8])))T(?:(?:[01]\d|2[0-3]):[0-5]\d:[0-5]\d(?:\.\d+)?(?:Z|([+-](?:[01]\d|2[0-3]):[0-5]\d)))$
+                      name:
+                        type: string
+                      mobile:
+                        type: string
+                      email:
+                        type: string
+                      notificationPrefs:
+                        type: object
+                        propertyNames:
+                          type: string
+                        additionalProperties:
+                          type: boolean
+                    required:
+                      - id
+                      - createdAt
+                      - updatedAt
+                      - name
+                      - mobile
+                    additionalProperties: false
+              example:
+                success: true
+                message: Success
+                data:
+                  id: 64f1c0a2b3c4d5e6f7a8b9c0
+                  createdAt: 2026-11-02T10:30:00.000Z
+                  updatedAt: 2026-11-02T10:30:00.000Z
+                  name: Sample name
+                  mobile: "+919876543210"
+                  email: user@example.com
+                  notificationPrefs: {}
+        "401":
+          description: Missing, invalid or expired access token
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "403":
+          description: Authenticated but not permitted (role, permission, feature flag or tenant)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "409":
+          description: Conflict with current resource state
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "422":
+          description: Request validation failed
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "429":
+          description: Rate limit exceeded
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "500":
+          description: Unexpected server error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+                  minLength: 2
+                  maxLength: 120
+                email:
+                  type: string
+                  maxLength: 254
+                  format: email
+                  pattern: ^(?:[A-Za-z0-9_'+\-]+\.)*[A-Za-z0-9_'+\-]*[A-Za-z0-9_+-]@(?:[A-Za-z0-9][A-Za-z0-9\-]*\.)+[A-Za-z]{2,}$
+                avatarFileId:
+                  type: string
+                  pattern: ^[a-f\d]{24}$
+            example:
+              name: Sample name
+              email: user@example.com
+              avatarFileId: 64f1c0a2b3c4d5e6f7a8b9c0
+  /api/v1/guard/notification-preferences:
+    put:
+      tags:
+        - Guard
+      summary: Manage my guard notification preferences
+      description: "Required role: GUARD."
+      operationId: put_api_v1_guard_notification_preferences
+      security:
+        - bearerAuth: []
+      x-required-role: *a80
+      x-required-permissions: []
+      responses:
+        "200":
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - success
+                  - data
+                properties:
+                  success:
+                    type: boolean
+                    const: true
+                  message:
+                    type: string
+                  data:
+                    type: object
+                    properties:
+                      id:
+                        type: string
+                        pattern: ^[a-f\d]{24}$
+                      createdAt:
+                        type: string
+                        format: date-time
+                        pattern: ^(?:(?:\d\d[2468][048]|\d\d[13579][26]|\d\d0[48]|[02468][048]00|[13579][26]00)-02-29|\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\d|30)|(?:02)-(?:0[1-9]|1\d|2[0-8])))T(?:(?:[01]\d|2[0-3]):[0-5]\d:[0-5]\d(?:\.\d+)?(?:Z|([+-](?:[01]\d|2[0-3]):[0-5]\d)))$
+                      updatedAt:
+                        type: string
+                        format: date-time
+                        pattern: ^(?:(?:\d\d[2468][048]|\d\d[13579][26]|\d\d0[48]|[02468][048]00|[13579][26]00)-02-29|\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\d|30)|(?:02)-(?:0[1-9]|1\d|2[0-8])))T(?:(?:[01]\d|2[0-3]):[0-5]\d:[0-5]\d(?:\.\d+)?(?:Z|([+-](?:[01]\d|2[0-3]):[0-5]\d)))$
+                      name:
+                        type: string
+                      mobile:
+                        type: string
+                      email:
+                        type: string
+                      notificationPrefs:
+                        type: object
+                        propertyNames:
+                          type: string
+                        additionalProperties:
+                          type: boolean
+                    required:
+                      - id
+                      - createdAt
+                      - updatedAt
+                      - name
+                      - mobile
+                    additionalProperties: false
+              example:
+                success: true
+                message: Success
+                data:
+                  id: 64f1c0a2b3c4d5e6f7a8b9c0
+                  createdAt: 2026-11-02T10:30:00.000Z
+                  updatedAt: 2026-11-02T10:30:00.000Z
+                  name: Sample name
+                  mobile: "+919876543210"
+                  email: user@example.com
+                  notificationPrefs: {}
+        "401":
+          description: Missing, invalid or expired access token
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "403":
+          description: Authenticated but not permitted (role, permission, feature flag or tenant)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "422":
+          description: Request validation failed
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "429":
+          description: Rate limit exceeded
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "500":
+          description: Unexpected server error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                visitor:
+                  type: boolean
+                delivery:
+                  type: boolean
+                payment:
+                  type: boolean
+                complaint:
+                  type: boolean
+                marketplace:
+                  type: boolean
+                announcement:
+                  type: boolean
+                booking:
+                  type: boolean
+                chat:
+                  type: boolean
+                push:
+                  type: boolean
+                sms:
+                  type: boolean
+                email:
+                  type: boolean
+            example:
+              visitor: true
+              delivery: true
+              payment: true
+              complaint: true
+              marketplace: true
+              announcement: true
+              booking: true
+              chat: true
+              push: true
+              sms: true
+              email: true
+  /api/v1/guard/society-info:
+    get:
+      tags:
+        - Guard
+      summary: Society information and destination units for the gate
+      description: "Required role: GUARD."
+      operationId: get_api_v1_guard_society_info
+      security:
+        - bearerAuth: []
+      x-required-role:
+        - GUARD
+      x-required-permissions: []
+      responses:
+        "200":
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - success
+                  - data
+                properties:
+                  success:
+                    type: boolean
+                    const: true
+                  message:
+                    type: string
+                  data:
+                    type: object
+                    properties:
+                      societyId:
+                        type: string
+                        pattern: ^[a-f\d]{24}$
+                      societyName:
+                        type: string
+                      address:
+                        type: object
+                        properties:
+                          line1:
+                            type: string
+                            maxLength: 200
+                          line2:
+                            type: string
+                            maxLength: 200
+                          city:
+                            type: string
+                            maxLength: 100
+                          state:
+                            type: string
+                            maxLength: 100
+                          country:
+                            type: string
+                            maxLength: 100
+                          pincode:
+                            type: string
+                            maxLength: 12
+                          latitude:
+                            type: number
+                            minimum: -90
+                            maximum: 90
+                          longitude:
+                            type: number
+                            minimum: -180
+                            maximum: 180
+                        additionalProperties: false
+                      contact:
+                        type: object
+                        properties:
+                          phone:
+                            type: string
+                          emergencyPhone:
+                            type: string
+                        additionalProperties: false
+                      propertyDetails: {}
+                      hospitals:
+                        type: array
+                        items: {}
+                      gateDirectory:
+                        type: array
+                        items:
+                          type: object
+                          properties:
+                            name:
+                              type: string
+                            flats:
+                              type: array
+                              items:
+                                type: object
+                                properties:
+                                  id:
+                                    type: string
+                                    pattern: ^[a-f\d]{24}$
+                                  label:
+                                    type: string
+                                required:
+                                  - id
+                                  - label
+                                additionalProperties: false
+                          required:
+                            - name
+                            - flats
+                          additionalProperties: false
+                    required:
+                      - societyId
+                      - societyName
+                      - hospitals
+                      - gateDirectory
+                    additionalProperties: false
+              example:
+                success: true
+                message: Success
+                data:
+                  societyId: 64f1c0a2b3c4d5e6f7a8b9c0
+                  societyName: Sample name
+                  address:
+                    line1: string
+                    line2: string
+                    city: string
+                    state: string
+                    country: string
+                    pincode: string
+                    latitude: 100
+                    longitude: 100
+                  contact:
+                    phone: "+919876543210"
+                    emergencyPhone: "+919876543210"
+                  propertyDetails: null
+                  hospitals:
+                    - null
+                  gateDirectory:
+                    - name: Sample name
+                      flats:
+                        - id: 64f1c0a2b3c4d5e6f7a8b9c0
+                          label: string
+        "401":
+          description: Missing, invalid or expired access token
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "403":
+          description: Authenticated but not permitted (role, permission, feature flag or tenant)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "429":
+          description: Rate limit exceeded
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "500":
+          description: Unexpected server error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+  /api/v1/guard/helpdesk:
+    get:
+      tags:
+        - Guard
+      summary: Helpdesk contacts of my society
+      description: "Required role: GUARD."
+      operationId: get_api_v1_guard_helpdesk
+      security:
+        - bearerAuth: []
+      x-required-role:
+        - GUARD
+      x-required-permissions: []
+      responses:
+        "200":
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - success
+                  - data
+                properties:
+                  success:
+                    type: boolean
+                    const: true
+                  message:
+                    type: string
+                  data:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        id:
+                          type: string
+                        name:
+                          type: string
+                        mobile:
+                          type: string
+                        alternateMobile:
+                          type: string
+                        category:
+                          type: string
+                        designation:
+                          type: string
+                        description:
+                          type: string
+                        availability:
+                          type: string
+                      required:
+                        - id
+                        - name
+                        - mobile
+                        - category
+                      additionalProperties: false
+                  meta:
+                    $ref: "#/components/schemas/PaginationMeta"
+              example:
+                success: true
+                message: Success
+                data:
+                  - id: string
+                    name: Sample name
+                    mobile: "+919876543210"
+                    alternateMobile: "+919876543210"
+                    category: string
+                    designation: string
+                    description: string
+                    availability: string
+                meta:
+                  page: 1
+                  limit: 20
+                  total: 1
+                  totalPages: 1
+        "401":
+          description: Missing, invalid or expired access token
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "403":
+          description: Authenticated but not permitted (role, permission, feature flag or tenant)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "422":
+          description: Request validation failed
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "429":
+          description: Rate limit exceeded
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "500":
+          description: Unexpected server error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+      parameters:
+        - name: page
+          in: query
+          required: false
+          schema:
+            default: 1
+            type: integer
+            minimum: 1
+            maximum: 9007199254740991
+          example: 1
+        - name: limit
+          in: query
+          required: false
+          schema:
+            default: 20
+            type: integer
+            minimum: 1
+            maximum: 100
+          example: 20
+        - name: sort
+          in: query
+          required: false
+          schema:
+            type: string
+            pattern: ^-?[A-Za-z_.]+(,-?[A-Za-z_.]+)*$
+          example: string
+        - name: search
+          in: query
+          required: false
+          schema:
+            type: string
+            minLength: 1
+            maxLength: 100
+          example: string
+        - name: from
+          in: query
+          required: false
+          schema:
+            anyOf:
+              - type: string
+                format: date
+                pattern: ^(?:(?:\d\d[2468][048]|\d\d[13579][26]|\d\d0[48]|[02468][048]00|[13579][26]00)-02-29|\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\d|30)|(?:02)-(?:0[1-9]|1\d|2[0-8])))$
+              - type: string
+                format: date-time
+                pattern: ^(?:(?:\d\d[2468][048]|\d\d[13579][26]|\d\d0[48]|[02468][048]00|[13579][26]00)-02-29|\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\d|30)|(?:02)-(?:0[1-9]|1\d|2[0-8])))T(?:(?:[01]\d|2[0-3]):[0-5]\d:[0-5]\d(?:\.\d+)?(?:Z|([+-](?:[01]\d|2[0-3]):[0-5]\d)))$
+          example: 2026-11-02
+        - name: to
+          in: query
+          required: false
+          schema:
+            anyOf:
+              - type: string
+                format: date
+                pattern: ^(?:(?:\d\d[2468][048]|\d\d[13579][26]|\d\d0[48]|[02468][048]00|[13579][26]00)-02-29|\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\d|30)|(?:02)-(?:0[1-9]|1\d|2[0-8])))$
+              - type: string
+                format: date-time
+                pattern: ^(?:(?:\d\d[2468][048]|\d\d[13579][26]|\d\d0[48]|[02468][048]00|[13579][26]00)-02-29|\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\d|30)|(?:02)-(?:0[1-9]|1\d|2[0-8])))T(?:(?:[01]\d|2[0-3]):[0-5]\d:[0-5]\d(?:\.\d+)?(?:Z|([+-](?:[01]\d|2[0-3]):[0-5]\d)))$
+          example: 2026-11-02
+        - name: category
+          in: query
+          required: false
+          schema:
+            type: string
+            minLength: 2
+            maxLength: 40
+          example: string
 components:
   securitySchemes:
     bearerAuth:

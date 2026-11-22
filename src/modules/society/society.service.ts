@@ -211,6 +211,27 @@ export const societyMineService = {
     const j = s.toJSON();
     return { societyId, societyName: j.name, address: j.address, contact: j.contact ? { phone: j.contact.phone, emergencyPhone: j.contact.emergencyPhone } : undefined, propertyDetails: j.propertyDetails, hospitals: j.hospitals ?? [] };
   },
+
+  async guardPropertyInfo(societyId: string) {
+    const [info, towers, flats] = await Promise.all([
+      this.propertyInfo(societyId),
+      Tower.find({ societyId }).select('name').sort({ name: 1 }).lean(),
+      Flat.find({ societyId }).select('label towerId').sort({ label: 1 }).lean(),
+    ]);
+    const groups = towers.map((tower) => ({ name: tower.name, flats: [] as { id: string; label: string }[] }));
+    const byTower = new Map(towers.map((tower, index) => [String(tower._id), groups[index]]));
+    const ungrouped: { id: string; label: string }[] = [];
+    for (const flat of flats) {
+      const group = flat.towerId ? byTower.get(String(flat.towerId)) : undefined;
+      (group?.flats ?? ungrouped).push({ id: String(flat._id), label: flat.label });
+    }
+    if (ungrouped.length) {
+      let name = groups.length ? 'Other units' : 'Houses';
+      while (groups.some((group) => group.name === name)) name += ' (unassigned)';
+      groups.push({ name, flats: ungrouped });
+    }
+    return { ...info, gateDirectory: groups.filter((group) => group.flats.length > 0) };
+  },
 };
 
 const noChildren = (model: any, field: string, label: string) => async (societyId: string, id: string) => {

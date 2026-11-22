@@ -104,6 +104,12 @@ export const propertyInfoItem = z.object({
   propertyDetails: z.any().optional(),
   hospitals: z.array(z.any()),
 });
+export const guardPropertyInfoItem = propertyInfoItem.extend({
+  gateDirectory: z.array(z.object({
+    name: z.string(),
+    flats: z.array(z.object({ id: objectId, label: z.string() })),
+  })),
+});
 export const featuresBody = z.object({ features: featureFlags });
 export const planBody = z.object({ planId: objectId, applyPlanFeatures: z.boolean().default(true), subscriptionEndsAt: dateTime.optional() });
 

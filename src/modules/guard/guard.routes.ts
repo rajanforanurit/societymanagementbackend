@@ -12,7 +12,9 @@ import { domesticService as dh } from '../domestic-help/domestic.service';
 import * as dhs from '../domestic-help/domestic.schema';
 import { EmergencyAlert } from '../emergency/emergency.model';
 import * as es from '../emergency/emergency.schema';
-import { contactService, emergencyService, lostFoundService, reportIncident } from '../emergency/emergency.service';
+import { contactService, emergencyService, incidentService, listGuardLostFound, lostFoundService, reportIncident } from '../emergency/emergency.service';
+import { residentSelfController } from '../resident/resident.controller';
+import * as rs from '../resident/resident.schema';
 import { Visitor, VisitorInvitation } from '../visitors/visitor.model';
 import * as vs from '../visitors/visitor.schema';
 import { visitorService as v } from '../visitors/visitor.service';
@@ -38,6 +40,9 @@ const dashboardItem = z.object({
 });
 
 guardRouter
+  .add({ method: 'get', path: '/profile', summary: 'Get my guard account profile', response: rs.profileItem, handler: residentSelfController.profile })
+  .add({ method: 'patch', path: '/profile', summary: 'Update my guard account profile', body: rs.profileUpdateBody, response: rs.profileItem, errors: [409], handler: residentSelfController.updateProfile })
+  .add({ method: 'put', path: '/notification-preferences', summary: 'Manage my guard notification preferences', body: rs.notificationPrefsBody, response: rs.profileItem, handler: residentSelfController.prefs })
   .add({ method: 'get', path: '/dashboard', summary: 'Guard dashboard', description: 'Today\'s visitor count, expected visitors, pending approvals, deliveries, domestic help attendance, active visitors, emergency alerts and recent entry/exit history for the guard\'s society.', response: dashboardItem, handler: async (req: Request, res: Response) => {
     const societyId = sid(req);
     const start = new Date(`${ymd()}T00:00:00.000Z`);
@@ -98,5 +103,9 @@ guardRouter
   .add({ method: 'get', path: '/alerts', summary: 'Active emergency and panic alerts', query: es.alertQuery, response: es.alertItem, paginated: true, handler: async (req: Request, res: Response) => paged(res, await emergencyService.list(sid(req), req.valid.query)) })
   .add({ method: 'patch', path: '/alerts/:id', summary: 'Acknowledge or resolve an alert', params: idParam, body: es.alertUpdateBody, response: es.alertItem, errors: [409], handler: async (req: Request, res: Response) => ok(res, await emergencyService.update(sid(req), req.valid.params.id, req.auth.userId, req.valid.body, { role: 'GUARD' }), 'Alert updated') })
   .add({ method: 'post', path: '/incidents', summary: 'Report a suspicious activity or security incident', body: es.incidentBody, response: es.incidentItem, status: 201, handler: async (req: Request, res: Response) => created(res, await reportIncident(sid(req), req.auth.userId, 'GUARD', req.valid.body), 'Incident recorded') })
+  .add({ method: 'get', path: '/incidents', summary: 'My reported security incidents', query: es.incidentQuery, response: es.incidentItem, paginated: true, handler: async (req: Request, res: Response) => paged(res, await incidentService.list(sid(req), req.valid.query, { reportedBy: req.auth.userId })) })
+  .add({ method: 'get', path: '/lost-found', summary: 'Browse the society lost-and-found register', query: es.lostFoundQuery, response: es.lostFoundItem.pick({ id: true, type: true, title: true, status: true, createdAt: true }).extend({ locationFound: z.string().optional() }), paginated: true, handler: async (req: Request, res: Response) => {
+    paged(res, await listGuardLostFound(sid(req), req.valid.query));
+  } })
   .add({ method: 'post', path: '/lost-found', summary: 'Report a lost or found item', body: es.lostFoundBody, response: es.lostFoundItem, status: 201, handler: async (req: Request, res: Response) => created(res, await lostFoundService.create(sid(req), req.auth.userId, { ...req.valid.body, reportedBy: req.auth.userId }), 'Item recorded') })
   .add({ method: 'get', path: '/emergency-contacts', summary: 'Society emergency contacts and instructions', query: es.contactQuery, response: es.contactItem, paginated: true, handler: async (req: Request, res: Response) => paged(res, await contactService.list(sid(req), req.valid.query, { scope: 'SOCIETY', visibleToGuards: { $ne: false } })) });
