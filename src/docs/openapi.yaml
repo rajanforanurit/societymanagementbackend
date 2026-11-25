@@ -33544,35 +33544,28 @@ paths:
                           properties:
                             id:
                               type: string
-                              pattern: ^[a-f\d]{24}$
+                            kind:
+                              type: string
+                              enum:
+                                - VISITOR
+                                - DELIVERY
+                                - MAID_ATTENDANCE
                             name:
                               type: string
                             flatLabel:
                               type: string
+                            company:
+                              type: string
                             status:
                               type: string
-                              enum:
-                                - EXPECTED
-                                - PENDING_APPROVAL
-                                - APPROVED
-                                - REJECTED
-                                - CHECKED_IN
-                                - CHECKED_OUT
-                                - DENIED
-                                - CANCELLED
-                                - EXPIRED
-                            entryAt:
+                            at:
                               type: string
-                              format: date-time
-                              pattern: ^(?:(?:\d\d[2468][048]|\d\d[13579][26]|\d\d0[48]|[02468][048]00|[13579][26]00)-02-29|\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\d|30)|(?:02)-(?:0[1-9]|1\d|2[0-8])))T(?:(?:[01]\d|2[0-3]):[0-5]\d:[0-5]\d(?:\.\d+)?(?:Z|([+-](?:[01]\d|2[0-3]):[0-5]\d)))$
-                            exitAt:
-                              type: string
-                              format: date-time
-                              pattern: ^(?:(?:\d\d[2468][048]|\d\d[13579][26]|\d\d0[48]|[02468][048]00|[13579][26]00)-02-29|\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\d|30)|(?:02)-(?:0[1-9]|1\d|2[0-8])))T(?:(?:[01]\d|2[0-3]):[0-5]\d:[0-5]\d(?:\.\d+)?(?:Z|([+-](?:[01]\d|2[0-3]):[0-5]\d)))$
                           required:
                             - id
+                            - kind
                             - name
                             - status
+                            - at
                           additionalProperties: false
                     required:
                       - today
@@ -33597,12 +33590,13 @@ paths:
                   activeVisitors: 1
                   activeEmergencyAlerts: 1
                   recentActivity:
-                    - id: 64f1c0a2b3c4d5e6f7a8b9c0
+                    - id: string
+                      kind: VISITOR
                       name: Sample name
                       flatLabel: string
-                      status: EXPECTED
-                      entryAt: 2026-11-02T10:30:00.000Z
-                      exitAt: 2026-11-02T10:30:00.000Z
+                      company: string
+                      status: string
+                      at: string
         "401":
           description: Missing, invalid or expired access token
           content:

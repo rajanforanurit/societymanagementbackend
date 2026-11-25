@@ -6,9 +6,10 @@ import { oid } from '../../common/utils/objectId';
 import { createCrudService } from '../../common/services/crud.service';
 import { normalizeMobile } from '../auth/auth.service';
 import { File } from '../files/files.model';
+import { realtime } from '../../realtime/socket';
 import { notifyAdmins, notifyFlat } from '../notifications/notify.service';
 import { Flat, Society } from '../society/society.model';
-import { attendanceClock, attendanceDateFilter, calendarDays, firstCheckIns, GateEntry, monthContaining } from './attendance-calendar';
+import { attendanceClock, attendanceDateFilter, calendarDays, firstCheckIns, GateEntry, monthContaining, shiftDate } from './attendance-calendar';
 import { DomesticAttendance, DomesticHelp, DomesticPayment, ServiceProvider, ServiceReview } from './domestic.model';
 
 type Res = { flatId: string }[];
@@ -66,6 +67,7 @@ async function appendGateEntry(actor: GateActor, helpId: string, date: string, c
 }
 
 async function notifyGateArrival(societyId: string, help: any) {
+  if (help.helpType === 'MAID') realtime.toGuards(societyId, 'domestic-help:checked-in', { helpId: String(help._id) });
   await Promise.allSettled(guardView(help, true).assignedFlats.map(({ flatId }: { flatId: string }) => notifyFlat(societyId, flatId, {
     type: NotificationType.VISITOR, title: 'Domestic help arrived', body: `${help.name} has checked in at the gate.`,
     data: { helpId: String(help._id) }, event: 'domestic-help:checked-in',
@@ -239,6 +241,28 @@ export const domesticService = {
   async expectedToday(societyId: string) {
     const list: any[] = await DomesticHelp.find({ societyId, status: 'VERIFIED' }).select('name helpType flats.flatLabel').limit(200);
     return list.map((h) => ({ id: String(h._id), name: h.name, helpType: h.helpType, flats: h.flats.map((f: any) => f.flatLabel) }));
+  },
+  async recentMaidActivity(societyId: string) {
+    const { timezone, dateOf } = await societyAttendanceClock(societyId);
+    const since = shiftDate(dateOf(new Date()), -30);
+    const tenant = oid(societyId);
+    const rows = await DomesticAttendance.aggregate([
+      { $match: { societyId: tenant, date: { $gte: shiftDate(since, -1) }, 'entries.checkInAt': { $exists: true } } },
+      { $project: { helpId: 1, checkIn: '$entries.checkInAt' } },
+      { $unwind: '$checkIn' },
+      { $match: { checkIn: { $type: 'date' } } },
+      // Older rows use a UTC date key. Group by the society day of the actual arrival.
+      { $group: { _id: { helpId: '$helpId', date: { $dateToString: { date: '$checkIn', format: '%Y-%m-%d', timezone } } }, at: { $min: '$checkIn' } } },
+      { $match: { '_id.date': { $gte: since } } },
+      { $sort: { at: -1, '_id.helpId': 1 } },
+      { $lookup: {
+        from: DomesticHelp.collection.name, localField: '_id.helpId', foreignField: '_id', as: 'maid',
+        pipeline: [{ $match: { societyId: tenant, helpType: 'MAID', isDeleted: { $ne: true } } }, { $project: { name: 1 } }],
+      } },
+      { $unwind: '$maid' },
+      { $limit: 25 },
+    ]);
+    return rows.map((row) => ({ id: `${row._id.helpId}:${row._id.date}`, kind: 'MAID_ATTENDANCE' as const, name: row.maid.name as string, status: 'PRESENT', at: row.at as Date }));
   },
 };
 

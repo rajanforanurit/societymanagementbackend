@@ -35,7 +35,7 @@ const sid = (r: Request) => r.auth.societyId!;
 // the counterparty rather than a pointer to a record.
 const activityItem = z.object({
   id: z.string(),
-  kind: z.enum(['VISITOR', 'DELIVERY']),
+  kind: z.enum(['VISITOR', 'DELIVERY', 'MAID_ATTENDANCE']),
   name: z.string(),
   flatLabel: z.string().optional(),
   company: z.string().optional(),
@@ -60,7 +60,7 @@ guardRouter
     const societyId = sid(req);
     const start = new Date(`${ymd()}T00:00:00.000Z`);
     const now = new Date();
-    const [visitors, deliveries, present, expected, pv, pd, active, alerts, recentVisitors, recentDeliveries] = await Promise.all([
+    const [visitors, deliveries, present, expected, pv, pd, active, alerts, recentVisitors, recentDeliveries, recentMaidActivity] = await Promise.all([
       Visitor.countDocuments({ societyId, createdAt: { $gte: start } }),
       Delivery.countDocuments({ societyId, createdAt: { $gte: start } }),
       dh.todayPresent(societyId),
@@ -71,19 +71,19 @@ guardRouter
       EmergencyAlert.countDocuments({ societyId, status: { $in: ['ACTIVE', 'ACKNOWLEDGED'] } }),
       Visitor.find({ societyId }).select('name flatLabel status entryAt exitAt updatedAt').sort({ updatedAt: -1 }).limit(25),
       Delivery.find({ societyId }).select('company flatLabel status entryAt exitAt collectedAt updatedAt').sort({ updatedAt: -1 }).limit(25),
+      dh.recentMaidActivity(societyId),
     ]);
 
-    // The gate does not think in tables: a guard wants one readable line about
-    // the last thing that happened. Visitors and deliveries share the feed so
-    // the newest event wins regardless of which desk it came from.
+    // Visitors, deliveries and maid check-ins share the feed in chronological order.
     const activity = [
       ...recentVisitors.map((v) => ({ id: String(v._id), kind: 'VISITOR' as const, name: v.name, flatLabel: v.flatLabel, company: undefined, status: v.status, at: v.exitAt ?? v.entryAt ?? v.updatedAt })),
       ...recentDeliveries.map((d) => ({ id: String(d._id), kind: 'DELIVERY' as const, name: d.agentName, flatLabel: d.flatLabel, company: d.company, status: d.status, at: d.exitAt ?? d.collectedAt ?? d.entryAt ?? d.updatedAt })),
+      ...recentMaidActivity,
     ]
       .filter((a) => a.at instanceof Date)
       .sort((a, b) => (b.at as Date).getTime() - (a.at as Date).getTime())
       .slice(0, 25)
-      .map((a) => ({ id: a.id, kind: a.kind, name: a.name, flatLabel: a.flatLabel || undefined, company: a.company || undefined, status: a.status, at: (a.at as Date).toISOString() }));
+      .map(({ at, ...entry }) => ({ ...entry, at: (at as Date).toISOString() }));
 
     ok(res, { today: { visitors, deliveries, domesticHelpPresent: present }, expectedVisitors: expected, pendingApprovals: { visitors: pv, deliveries: pd }, activeVisitors: active, activeEmergencyAlerts: alerts, recentActivity: activity });
   } })
