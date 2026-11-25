@@ -9,6 +9,7 @@ import { Guard } from '../guard/guard.model';
 import { Flat, Society } from '../society/society.model';
 import { realtime } from '../../realtime/socket';
 import { Visitor, VisitorInvitation } from './visitor.model';
+import { GATE_PASS_DAYS } from './visitor.schema';
 
 const qrFor = (invId: string) => `${invId}.${hmac(`inv:${invId}`).slice(0, 24)}`;
 const policyOf = async (societyId: string) => ((await Society.findById(societyId).select('settings.visitorPolicy')) as any)?.settings?.visitorPolicy ?? {};
@@ -103,10 +104,18 @@ export const visitorService = {
       const [id, sig] = input.qrToken.split('.');
       if (!id || !sig || !/^[a-f\d]{24}$/i.test(id) || !safeEqual(sig, hmac(`inv:${id}`).slice(0, 24))) throw ApiError.badRequest('Invalid QR pass', 'INVALID_PASS');
       inv = await VisitorInvitation.findOne({ _id: id, societyId: a.societyId, status: 'ACTIVE' });
-    } else inv = await VisitorInvitation.findOne({ societyId: a.societyId, code: input.code, status: 'ACTIVE' });
+      if (!inv) await visitorService.explainInactive(a.societyId, { _id: id });
+    } else {
+      inv = await VisitorInvitation.findOne({ societyId: a.societyId, code: input.code, status: 'ACTIVE' });
+      if (!inv) await visitorService.explainInactive(a.societyId, { code: input.code });
+    }
     if (!inv) throw ApiError.badRequest('Pass not found or no longer active', 'INVALID_PASS');
     const now = new Date();
-    if (now < inv.validFrom || now > inv.validTo) throw ApiError.badRequest('Pass is outside its validity window', 'PASS_NOT_VALID_NOW');
+    if (now > inv.validTo) {
+      await VisitorInvitation.updateOne({ _id: inv._id, societyId: a.societyId, status: 'ACTIVE' }, { $set: { status: 'EXPIRED' } });
+      throw ApiError.badRequest(inv.kind === 'GATE_PASS' ? `This gate pass expired on ${inv.validTo.toISOString().slice(0, 10)}` : 'Pass has expired', 'PASS_EXPIRED');
+    }
+    if (now < inv.validFrom) throw ApiError.badRequest('Pass is outside its validity window', 'PASS_NOT_VALID_NOW');
     if (inv.recurring?.enabled) {
       if (!inv.recurring.days.includes(weekdayOf(ymd(now)))) throw ApiError.badRequest('Pass is not valid today', 'PASS_NOT_VALID_TODAY');
       const mins = now.getUTCHours() * 60 + now.getUTCMinutes();
@@ -116,8 +125,10 @@ export const visitorService = {
     const bump = await VisitorInvitation.updateOne({ _id: inv._id, societyId: a.societyId, status: 'ACTIVE', ...(inv.maxEntries > 0 ? { usedEntries: { $lt: inv.maxEntries } } : {}) }, { $inc: { usedEntries: 1 } });
     if (bump.modifiedCount !== 1) throw ApiError.conflict('Pass has no remaining entries', 'PASS_EXHAUSTED');
     if (inv.maxEntries > 0 && inv.usedEntries + 1 >= inv.maxEntries) await VisitorInvitation.updateOne({ _id: inv._id, societyId: a.societyId }, { $set: { status: 'EXHAUSTED' } });
-    const doc: any = await Visitor.create({ societyId: a.societyId, gateId: a.gateId, flatId: inv.flatId, flatLabel: inv.flatLabel, visitorType: inv.visitorType, name: inv.visitorName, mobile: inv.visitorMobile, vehicleNumber: inv.vehicleNumber, purpose: inv.purpose, status: VisitorStatus.APPROVED, approvalMode: ApprovalMode.PRE_APPROVED, invitationId: inv._id, decidedAt: now, createdBy: a.userId });
-    await notifyFlat(a.societyId, String(inv.flatId), { type: NotificationType.VISITOR, title: 'Pre-approved visitor arrived', body: `${inv.visitorName} arrived with a valid pass.`, data: { visitorId: String(doc._id) }, event: 'visitor:arrived' });
+    const isGatePass = inv.kind === 'GATE_PASS';
+    const purpose = isGatePass ? ['Gate pass', inv.relation].filter(Boolean).join(' · ') : inv.purpose;
+    const doc: any = await Visitor.create({ societyId: a.societyId, gateId: a.gateId, flatId: inv.flatId, flatLabel: inv.flatLabel, visitorType: inv.visitorType, name: inv.visitorName, mobile: inv.visitorMobile, vehicleNumber: inv.vehicleNumber, purpose, status: VisitorStatus.APPROVED, approvalMode: ApprovalMode.PRE_APPROVED, invitationId: inv._id, decidedAt: now, createdBy: a.userId });
+    await notifyFlat(a.societyId, String(inv.flatId), { type: NotificationType.VISITOR, title: isGatePass ? 'Gate pass used' : 'Pre-approved visitor arrived', body: `${inv.visitorName}${inv.relation ? ` (${inv.relation})` : ''} arrived with a valid ${isGatePass ? 'gate pass' : 'pass'}.`, data: { visitorId: String(doc._id) }, event: 'visitor:arrived' });
     return doc;
   },
 
@@ -227,11 +238,92 @@ export const visitorService = {
   invitationView(inv: any) {
     const j = inv.toJSON();
     j.qrToken = qrFor(String(inv._id));
+    // Expiry is swept by a job every minute; report it immediately in between.
+    if (j.status === 'ACTIVE' && new Date(j.validTo) < new Date()) j.status = 'EXPIRED';
     return j;
+  },
+
+  /** Why a code / QR is not usable: gives the guard a precise reason instead of "not found". */
+  async explainInactive(societyId: string, match: Record<string, unknown>) {
+    const old: any = await VisitorInvitation.findOne({ societyId, ...match }).sort({ updatedAt: -1 });
+    if (!old) return;
+    if (old.status === 'EXPIRED') throw ApiError.badRequest(old.kind === 'GATE_PASS' ? `This gate pass expired on ${old.validTo.toISOString().slice(0, 10)}` : 'Pass has expired', 'PASS_EXPIRED');
+    if (old.status === 'CANCELLED') throw ApiError.badRequest('This pass was cancelled by the resident', 'PASS_CANCELLED');
+    if (old.status === 'EXHAUSTED') throw ApiError.conflict('Pass has no remaining entries', 'PASS_EXHAUSTED');
+  },
+
+  // ------------------------------------------------------------ gate passes
+
+  /**
+   * Create a 30-day gate pass (unique 6-digit code + signed QR token, both linked to the same pass).
+   * If the flat already has a valid pass for the same person (same mobile, or same name when no
+   * mobile is given), that pass is returned with reused=true instead of creating a duplicate.
+   */
+  async createGatePass(a: { societyId: string; userId: string; residents: { flatId: string }[] }, body: any) {
+    const res = body.flatId ? a.residents.find((r) => r.flatId === body.flatId) : a.residents[0];
+    if (!res) throw ApiError.forbidden('You do not belong to this flat', 'FLAT_FORBIDDEN');
+    const now = new Date();
+    const live = { societyId: a.societyId, flatId: res.flatId, kind: 'GATE_PASS', status: 'ACTIVE', validTo: { $gt: now } };
+    const same = body.visitorMobile
+      ? { visitorMobile: body.visitorMobile }
+      : { visitorName: new RegExp(`^${body.visitorName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}$`, 'i'), $or: [{ visitorMobile: { $exists: false } }, { visitorMobile: null }, { visitorMobile: '' }] };
+    const existing: any = await VisitorInvitation.findOne({ ...live, ...same }).sort({ validTo: -1 });
+    if (existing) return { ...visitorService.invitationView(existing), reused: true };
+    if ((await VisitorInvitation.countDocuments(live)) >= 100) throw ApiError.conflict('This flat already has 100 active gate passes. Revoke some before creating more.', 'TOO_MANY_PASSES');
+    const flat = await flatCtx(a.societyId, res.flatId);
+    const validTo = new Date(now.getTime() + GATE_PASS_DAYS * 24 * 60 * 60 * 1000);
+    for (let i = 0; i < 5; i++) {
+      try {
+        const inv: any = await VisitorInvitation.create({
+          societyId: a.societyId,
+          flatId: res.flatId,
+          flatLabel: flat.label,
+          kind: 'GATE_PASS',
+          visitorType: 'GUEST',
+          visitorName: body.visitorName,
+          visitorMobile: body.visitorMobile,
+          relation: body.relation,
+          vehicleNumber: body.vehicleNumber,
+          purpose: body.relation ? `Gate pass · ${body.relation}` : 'Gate pass',
+          validFrom: now,
+          validTo,
+          maxEntries: 0, // unlimited while valid
+          code: randomDigits(6),
+          createdBy: a.userId,
+        });
+        return { ...visitorService.invitationView(inv), reused: false };
+      } catch (e: any) {
+        if (e?.code !== 11000) throw e;
+      }
+    }
+    throw ApiError.conflict('Could not allocate a unique pass code, retry', 'CODE_COLLISION');
+  },
+
+  async listGatePasses(societyId: string, flatIds: string[], query: any) {
+    const now = new Date();
+    const filter: Record<string, unknown> = { societyId, flatId: { $in: flatIds }, kind: 'GATE_PASS' };
+    if (query.status === 'ACTIVE') Object.assign(filter, { status: 'ACTIVE', validTo: { $gt: now } });
+    else if (query.status === 'EXPIRED') Object.assign(filter, { $or: [{ status: 'EXPIRED' }, { status: 'ACTIVE', validTo: { $lte: now } }] });
+    else filter.status = query.status;
+    const r = await paginate(VisitorInvitation, applyListFilters(filter, query, ['visitorName', 'relation', 'visitorMobile']), query, { sortable: ['createdAt', 'validTo', 'visitorName'], defaultSort: query.status === 'ACTIVE' ? 'validTo' : '-validTo' });
+    return { ...r, items: r.items.map((i: any) => visitorService.invitationView(i)) };
+  },
+
+  /** Any resident of the flat can revoke a gate pass (family members share them). */
+  async revokeGatePass(societyId: string, flatIds: string[], userId: string, id: string) {
+    const r = await VisitorInvitation.findOneAndUpdate({ _id: id, societyId, flatId: { $in: flatIds }, kind: 'GATE_PASS', status: 'ACTIVE' }, { $set: { status: 'CANCELLED', updatedBy: userId } }, { new: true });
+    if (!r) throw ApiError.notFound('Active gate pass not found');
+    return visitorService.invitationView(r);
+  },
+
+  /** Job: mark every pass whose validity has ended as EXPIRED (QR and code stop working together). */
+  async expireInvitations() {
+    const r = await VisitorInvitation.updateMany({ status: 'ACTIVE', validTo: { $lt: new Date() } }, { $set: { status: 'EXPIRED' } }).setOptions({ skipTenantCheck: true });
+    return r.modifiedCount;
   },
   async listInvitations(societyId: string, query: any, scope: Record<string, unknown> = {}) {
     const filter: Record<string, unknown> = { societyId, ...scope };
-    ['status', 'flatId'].forEach((k) => query[k] && (filter[k] = query[k]));
+    ['status', 'flatId', 'kind'].forEach((k) => query[k] && (filter[k] = query[k]));
     const r = await paginate(VisitorInvitation, applyListFilters(filter, query, ['visitorName', 'flatLabel']), query, { sortable: ['createdAt', 'validFrom', 'validTo'] });
     return { ...r, items: r.items.map((i: any) => visitorService.invitationView(i)) };
   },
@@ -243,7 +335,7 @@ export const visitorService = {
 
   async expected(societyId: string) {
     const now = new Date();
-    const list: any[] = await VisitorInvitation.find({ societyId, status: 'ACTIVE', validTo: { $gte: now }, validFrom: { $lte: addMinutes(now, 24 * 60) } }).select('flatLabel visitorName visitorType validFrom validTo').sort({ validFrom: 1 }).limit(100);
+    const list: any[] = await VisitorInvitation.find({ societyId, status: 'ACTIVE', kind: { $ne: 'GATE_PASS' }, validTo: { $gte: now }, validFrom: { $lte: addMinutes(now, 24 * 60) } }).select('flatLabel visitorName visitorType validFrom validTo').sort({ validFrom: 1 }).limit(100);
     return list.map((i) => ({ id: String(i._id), flatLabel: i.flatLabel, visitorName: i.visitorName, visitorType: i.visitorType, validFrom: i.validFrom, validTo: i.validTo }));
   },
 

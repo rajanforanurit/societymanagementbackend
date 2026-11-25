@@ -19,11 +19,12 @@ import { pushTokenRouter } from './modules/notifications/push-token.routes';
 import { financeAdminRouter, paymentResidentRouter, paymentWebhookRouter } from './modules/payments/payment.routes';
 import { propertyAdminRouter, propertyResidentRouter } from './modules/property/property.routes';
 import { reportRouter } from './modules/reports/report.routes';
-import { familyRouter, moveAdminRouter, moveSelfRouter, residentAdminRouter, residentSelfRouter } from './modules/resident/resident.routes';
+import { tenantRouter, familyRouter, moveAdminRouter, moveSelfRouter, residentAdminRouter, residentSelfRouter } from './modules/resident/resident.routes';
 import { rolesRouter, globalRolesRouter } from './modules/roles/roles.routes';
 import { adminStructureRouter, impersonationRouter, propertyInfoGuardRouter, propertyInfoResidentRouter, societyPublicRouter, superSocietyRouter } from './modules/society/society.routes';
 import { staffAdminRouter } from './modules/staff/staff.routes';
 import { superSocietyMgmtRouter } from './modules/society/society.super-mgmt.routes';
+import { societyDirectoryRouter } from './modules/society/society.directory';
 import { adminSupportRouter, announcementReadRouter, superDashboardRouter, superPlatformRouter, superSecurityRouter, superSupportRouter } from './modules/super-admin/super-admin.routes';
 import { callRouter } from './modules/calls/call.routes';
 import { helpdeskAdminRouter, helpdeskGuardRouter, helpdeskResidentRouter } from './modules/helpdesk/helpdesk.routes';
@@ -73,6 +74,8 @@ export const allRouters: ModuleRouter[] = [
   adminSupportRouter,
   guardRouter,
   residentSelfRouter,
+  societyDirectoryRouter,
+  tenantRouter,
   familyRouter,
   moveSelfRouter,
   residentVisitorRouter,

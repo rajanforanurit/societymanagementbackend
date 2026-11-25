@@ -18,7 +18,7 @@ export const invitationBody = z.object({
   recurring: z.object({ enabled: z.boolean().default(true), days: z.array(z.enum(vals(Weekday))).min(1), timeFrom: hhmm.optional(), timeTo: hhmm.optional() }).optional(),
   maxEntries: z.number().int().min(0).max(1000).default(1),
 });
-export const invitationQuery = listQuery.extend({ status: z.enum(vals(InvitationStatus)).optional(), flatId: objectId.optional() });
+export const invitationQuery = listQuery.extend({ status: z.enum(vals(InvitationStatus)).optional(), flatId: objectId.optional(), kind: z.enum(['VISIT', 'GATE_PASS']).optional() });
 export const invitationItem = entity({
   flatId: objectId,
   flatLabel: z.string().optional(),
@@ -33,6 +33,26 @@ export const invitationItem = entity({
   code: z.string(),
   qrToken: z.string().optional(),
   status: z.enum(vals(InvitationStatus)),
+  purpose: z.string().optional(),
+  vehicleNumber: z.string().optional(),
+  kind: z.enum(['VISIT', 'GATE_PASS']).optional(),
+  relation: z.string().optional(),
+  /** True when an existing valid gate pass was returned instead of creating a duplicate. */
+  reused: z.boolean().optional(),
+});
+
+/** Gate pass for family members and frequent visitors: valid for 30 days, unlimited entries. */
+export const GATE_PASS_DAYS = 30;
+export const gatePassBody = z.object({
+  flatId: objectId.optional(),
+  visitorName: z.string().trim().min(2).max(120),
+  visitorMobile: mobile.optional(),
+  relation: z.string().trim().max(40).optional(),
+  vehicleNumber: plate.optional(),
+});
+export const gatePassQuery = listQuery.extend({
+  /** ACTIVE (default): passes that still work. EXPIRED / CANCELLED: past passes. */
+  status: z.enum(['ACTIVE', 'EXPIRED', 'CANCELLED']).default('ACTIVE'),
 });
 
 export const visitorItem = entity({

@@ -38,10 +38,14 @@ residentSelfRouter
   .add({ method: 'get', path: '/profile', summary: 'Get my profile', response: s.profileItem, handler: r.profile })
   .add({ method: 'patch', path: '/profile', summary: 'Update my profile', body: s.profileUpdateBody, response: s.profileItem, errors: [409], handler: r.updateProfile })
   .add({ method: 'put', path: '/notification-preferences', summary: 'Manage notification preferences', body: s.notificationPrefsBody, response: s.profileItem, handler: r.prefs })
-  .add({ method: 'post', path: '/society-requests', summary: 'Request society membership for a flat', description: 'Registers ownership or tenancy and submits verification documents (upload them first through /api/v1/files?societyId=...). The request is PENDING until a society admin approves it.', body: s.societyRequestBody, response: s.residentItem, status: 201, errors: [404, 409], handler: r.requestMembership })
+  .add({ method: 'post', path: '/society-requests', summary: 'Request access to a property (flat / house) as owner or tenant', description: 'Creates a PENDING residency for the chosen flat. Until a society admin approves it the user has no society access (society-scoped endpoints answer 403 NO_RESIDENCY). A flat accepts one registered owner (409 OWNER_EXISTS); a tenant request is linked to the flat\'s registered owner. Duplicate pending / approved requests for the same flat are refused (409). Verification documents can be uploaded first through /api/v1/files?societyId=...', body: s.societyRequestBody, response: s.residentItem, status: 201, errors: [404, 409], handler: r.requestMembership })
   .add({ method: 'get', path: '/society-requests', summary: 'View my membership requests and approval status', response: z.array(s.residentItem), handler: r.mine })
   .add({ method: 'post', path: '/society-requests/:id/documents', summary: 'Attach a verification document to a pending request', params: idParam, body: s.addDocumentBody, response: s.residentItem, status: 200, handler: r.addDocument })
   .add({ method: 'delete', path: '/society-requests/:id', summary: 'Cancel a pending request', params: idParam, response: null, handler: r.cancel });
+
+// Owner's Profile → Tenants: approved tenants of the flats the signed-in resident owns.
+export const tenantRouter = new ModuleRouter('/api/v1/user/tenants', { tag: 'Resident - Profile & Membership', roles: [UserType.RESIDENT], societyScoped: true });
+tenantRouter.add({ method: 'get', path: '/', summary: 'Tenants of the flats I own', description: 'Approved tenants linked to my OWNER residencies in the active society. Empty for tenants and family members.', response: z.array(s.tenantItem), handler: c.residentSelfController.tenants });
 
 export const familyRouter = new ModuleRouter('/api/v1/user/family', { tag: 'Resident - Profile & Membership', roles: [UserType.RESIDENT], societyScoped: true });
 crudRoutes(familyRouter, { path: '/', name: 'Family member', plural: 'Family members', controller: c.familyController, create: s.familyBody, query: s.familyQuery, item: s.familyItem });

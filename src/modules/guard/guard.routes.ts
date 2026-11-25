@@ -46,7 +46,7 @@ guardRouter
       Visitor.countDocuments({ societyId, createdAt: { $gte: start } }),
       Delivery.countDocuments({ societyId, createdAt: { $gte: start } }),
       dh.todayPresent(societyId),
-      VisitorInvitation.countDocuments({ societyId, status: 'ACTIVE', validTo: { $gte: now }, validFrom: { $lte: new Date(now.getTime() + 86400000) } }),
+      VisitorInvitation.countDocuments({ societyId, status: 'ACTIVE', kind: { $ne: 'GATE_PASS' }, validTo: { $gte: now }, validFrom: { $lte: new Date(now.getTime() + 86400000) } }),
       Visitor.countDocuments({ societyId, status: 'PENDING_APPROVAL' }),
       Delivery.countDocuments({ societyId, status: 'PENDING_APPROVAL' }),
       Visitor.countDocuments({ societyId, status: 'CHECKED_IN' }),
@@ -98,5 +98,6 @@ guardRouter
   .add({ method: 'get', path: '/alerts', summary: 'Active emergency and panic alerts', query: es.alertQuery, response: es.alertItem, paginated: true, handler: async (req: Request, res: Response) => paged(res, await emergencyService.list(sid(req), req.valid.query)) })
   .add({ method: 'patch', path: '/alerts/:id', summary: 'Acknowledge or resolve an alert', params: idParam, body: es.alertUpdateBody, response: es.alertItem, errors: [409], handler: async (req: Request, res: Response) => ok(res, await emergencyService.update(sid(req), req.valid.params.id, req.auth.userId, req.valid.body, { role: 'GUARD' }), 'Alert updated') })
   .add({ method: 'post', path: '/incidents', summary: 'Report a suspicious activity or security incident', body: es.incidentBody, response: es.incidentItem, status: 201, handler: async (req: Request, res: Response) => created(res, await reportIncident(sid(req), req.auth.userId, 'GUARD', req.valid.body), 'Incident recorded') })
+  .add({ method: 'get', path: '/lost-found', summary: 'Browse lost & found items of the society', query: es.lostFoundQuery, response: es.lostFoundItem, paginated: true, handler: async (req: Request, res: Response) => paged(res, await lostFoundService.list(sid(req), req.valid.query)) })
   .add({ method: 'post', path: '/lost-found', summary: 'Report a lost or found item', body: es.lostFoundBody, response: es.lostFoundItem, status: 201, handler: async (req: Request, res: Response) => created(res, await lostFoundService.create(sid(req), req.auth.userId, { ...req.valid.body, reportedBy: req.auth.userId }), 'Item recorded') })
   .add({ method: 'get', path: '/emergency-contacts', summary: 'Society emergency contacts and instructions', query: es.contactQuery, response: es.contactItem, paginated: true, handler: async (req: Request, res: Response) => paged(res, await contactService.list(sid(req), req.valid.query, { scope: 'SOCIETY', visibleToGuards: { $ne: false } })) });

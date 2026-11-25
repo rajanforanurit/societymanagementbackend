@@ -28,6 +28,7 @@ export const residentSelfController = {
   prefs: async (req: Request, res: Response) => ok(res, await residentSelf.updatePrefs(req.auth.userId, req.valid.body), 'Preferences updated'),
   requestMembership: async (req: Request, res: Response) => created(res, await residentSelf.requestMembership(req.auth.userId, req.valid.body), 'Request submitted for approval'),
   mine: async (req: Request, res: Response) => ok(res, await residentSelf.mine(req.auth.userId)),
+  tenants: async (req: Request, res: Response) => ok(res, await residentSelf.tenants(sid(req), req.auth.residents as any)),
   addDocument: async (req: Request, res: Response) => ok(res, await residentSelf.addDocument(req.auth.userId, req.valid.params.id, req.valid.body), 'Document attached'),
   cancel: async (req: Request, res: Response) => {
     await residentSelf.cancel(req.auth.userId, req.valid.params.id);
