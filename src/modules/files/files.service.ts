@@ -4,6 +4,7 @@ import multer from 'multer';
 import { ApiError } from '../../common/utils/apiError';
 import { randomToken, sha256 } from '../../common/utils/crypto';
 import { env } from '../../config/env';
+import { DomesticHelp } from '../domestic-help/domestic.model';
 import { File } from './files.model';
 
 const dir = path.resolve(env.UPLOAD_DIR);
@@ -26,6 +27,9 @@ export const uploadMiddleware = multer({
 
 export async function saveFile(societyId: string, userId: string, file: Express.Multer.File | undefined, opts: { purpose: string; visibility: string }) {
   if (!file) throw ApiError.badRequest('A "file" field is required', 'FILE_REQUIRED');
+  if (opts.purpose === 'DOMESTIC_HELP' && (opts.visibility !== 'PRIVATE' || !file.mimetype.startsWith('image/'))) {
+    throw ApiError.badRequest('A maid photo must be a private image', 'MAID_PHOTO_REQUIRED');
+  }
   if (!signatures[file.mimetype]?.(file.buffer)) throw ApiError.badRequest('File content does not match its declared type', 'FILE_SIGNATURE_MISMATCH');
   const storageName = `${randomToken(16)}${ALLOWED[file.mimetype]}`;
   await fs.promises.writeFile(path.join(dir, storageName), file.buffer, { mode: 0o640 });
@@ -34,10 +38,15 @@ export async function saveFile(societyId: string, userId: string, file: Express.
   return doc;
 }
 
-export async function resolveFile(societyId: string, userId: string, id: string, isAdmin: boolean) {
+export async function resolveFile(societyId: string, userId: string, id: string, isAdmin: boolean, residentFlatIds: string[] = []) {
   const file: any = await File.findOne({ _id: id, societyId }).select('+storageName');
   if (!file) throw ApiError.notFound('File not found');
-  if (file.visibility === 'PRIVATE' && !isAdmin && String(file.uploadedBy) !== userId) throw ApiError.forbidden('You cannot access this file', 'FILE_FORBIDDEN');
+  if (file.visibility === 'PRIVATE' && !isAdmin && String(file.uploadedBy) !== userId) {
+    const assignedPhoto = file.purpose === 'DOMESTIC_HELP' && residentFlatIds.length > 0 && await DomesticHelp.exists({
+      societyId, helpType: 'MAID', registeredBy: file.uploadedBy, photoFileId: id, 'flats.flatId': { $in: residentFlatIds },
+    });
+    if (!assignedPhoto) throw ApiError.forbidden('You cannot access this file', 'FILE_FORBIDDEN');
+  }
   return { file, fullPath: path.join(dir, file.storageName) };
 }
 

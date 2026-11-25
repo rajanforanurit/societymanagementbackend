@@ -24211,6 +24211,9 @@ paths:
                           - SUSPENDED
                       code:
                         type: string
+                      photoFileId:
+                        type: string
+                        pattern: ^[a-f\d]{24}$
                       flats:
                         type: array
                         items:
@@ -24425,6 +24428,9 @@ paths:
                             - SUSPENDED
                         code:
                           type: string
+                        photoFileId:
+                          type: string
+                          pattern: ^[a-f\d]{24}$
                         flats:
                           type: array
                           items:
@@ -24600,6 +24606,210 @@ paths:
               - GARDENER
               - OTHER
           example: MAID
+  /api/v1/user/domestic-help/maids:
+    post:
+      tags:
+        - Resident - Domestic Help & Services
+      summary: Register a maid with a photo and generate her attendance code
+      description: "Required role: RESIDENT. Requires society feature: domesticHelp."
+      operationId: post_api_v1_user_domestic_help_maids
+      security:
+        - bearerAuth: []
+      x-required-role:
+        - RESIDENT
+      x-required-permissions: []
+      responses:
+        "201":
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - success
+                  - data
+                properties:
+                  success:
+                    type: boolean
+                    const: true
+                  message:
+                    type: string
+                  data:
+                    type: object
+                    properties:
+                      id:
+                        type: string
+                        pattern: ^[a-f\d]{24}$
+                      societyId:
+                        type: string
+                        pattern: ^[a-f\d]{24}$
+                      createdBy:
+                        type: string
+                        pattern: ^[a-f\d]{24}$
+                      updatedBy:
+                        type: string
+                        pattern: ^[a-f\d]{24}$
+                      createdAt:
+                        type: string
+                        format: date-time
+                        pattern: ^(?:(?:\d\d[2468][048]|\d\d[13579][26]|\d\d0[48]|[02468][048]00|[13579][26]00)-02-29|\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\d|30)|(?:02)-(?:0[1-9]|1\d|2[0-8])))T(?:(?:[01]\d|2[0-3]):[0-5]\d:[0-5]\d(?:\.\d+)?(?:Z|([+-](?:[01]\d|2[0-3]):[0-5]\d)))$
+                      updatedAt:
+                        type: string
+                        format: date-time
+                        pattern: ^(?:(?:\d\d[2468][048]|\d\d[13579][26]|\d\d0[48]|[02468][048]00|[13579][26]00)-02-29|\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\d|30)|(?:02)-(?:0[1-9]|1\d|2[0-8])))T(?:(?:[01]\d|2[0-3]):[0-5]\d:[0-5]\d(?:\.\d+)?(?:Z|([+-](?:[01]\d|2[0-3]):[0-5]\d)))$
+                      name:
+                        type: string
+                      mobile:
+                        type: string
+                      helpType:
+                        type: string
+                        enum:
+                          - MAID
+                          - COOK
+                          - DRIVER
+                          - CLEANER
+                          - NANNY
+                          - GARDENER
+                          - OTHER
+                      status:
+                        type: string
+                        enum:
+                          - PENDING_VERIFICATION
+                          - VERIFIED
+                          - REJECTED
+                          - SUSPENDED
+                      code:
+                        type: string
+                      photoFileId:
+                        type: string
+                        pattern: ^[a-f\d]{24}$
+                      flats:
+                        type: array
+                        items:
+                          type: object
+                          properties:
+                            flatId:
+                              type: string
+                              pattern: ^[a-f\d]{24}$
+                            flatLabel:
+                              type: string
+                            salaryMonthly:
+                              type: number
+                          required:
+                            - flatId
+                          additionalProperties: false
+                      ratingAvg:
+                        type: number
+                      ratingCount:
+                        type: integer
+                        minimum: -9007199254740991
+                        maximum: 9007199254740991
+                    required:
+                      - id
+                      - societyId
+                      - createdAt
+                      - updatedAt
+                      - name
+                      - mobile
+                      - helpType
+                      - status
+                      - flats
+                      - ratingAvg
+                      - ratingCount
+                    additionalProperties: false
+              example:
+                success: true
+                message: Success
+                data:
+                  id: 64f1c0a2b3c4d5e6f7a8b9c0
+                  societyId: 64f1c0a2b3c4d5e6f7a8b9c0
+                  createdBy: 64f1c0a2b3c4d5e6f7a8b9c0
+                  updatedBy: 64f1c0a2b3c4d5e6f7a8b9c0
+                  createdAt: 2026-11-02T10:30:00.000Z
+                  updatedAt: 2026-11-02T10:30:00.000Z
+                  name: Sample name
+                  mobile: "+919876543210"
+                  helpType: MAID
+                  status: PENDING_VERIFICATION
+                  code: string
+                  photoFileId: 64f1c0a2b3c4d5e6f7a8b9c0
+                  flats:
+                    - flatId: 64f1c0a2b3c4d5e6f7a8b9c0
+                      flatLabel: string
+                      salaryMonthly: 100
+                  ratingAvg: 100
+                  ratingCount: 1
+        "400":
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          description: Missing, invalid or expired access token
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "403":
+          description: Authenticated but not permitted (role, permission, feature flag or tenant)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "409":
+          description: Conflict with current resource state
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "422":
+          description: Request validation failed
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "429":
+          description: Rate limit exceeded
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "500":
+          description: Unexpected server error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+                  minLength: 2
+                  maxLength: 120
+                mobile:
+                  type: string
+                  pattern: ^\+?[1-9][\d\s-]{8,16}$
+                flatId:
+                  type: string
+                  pattern: ^[a-f\d]{24}$
+                photoFileId:
+                  type: string
+                  pattern: ^[a-f\d]{24}$
+              required:
+                - name
+                - mobile
+                - photoFileId
+            example:
+              name: Sample name
+              mobile: "+919876543210"
+              flatId: 64f1c0a2b3c4d5e6f7a8b9c0
+              photoFileId: 64f1c0a2b3c4d5e6f7a8b9c0
   /api/v1/user/domestic-help/directory:
     get:
       tags:
@@ -25557,6 +25767,168 @@ paths:
             minimum: 1
             maximum: 100
           example: 31
+  /api/v1/user/domestic-help/{id}/attendance/calendar:
+    get:
+      tags:
+        - Resident - Domestic Help & Services
+      summary: Daily maid gate attendance for a date range or the current month
+      description: |-
+        Provide both from and to for an inclusive range of up to 366 days. When omitted, the range covers the current month in the society timezone.
+
+        Required role: RESIDENT. Requires society feature: domesticHelp.
+      operationId: get_api_v1_user_domestic_help_id_attendance_calendar
+      security:
+        - bearerAuth: []
+      x-required-role:
+        - RESIDENT
+      x-required-permissions: []
+      responses:
+        "200":
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - success
+                  - data
+                properties:
+                  success:
+                    type: boolean
+                    const: true
+                  message:
+                    type: string
+                  data:
+                    type: object
+                    properties:
+                      helpId:
+                        type: string
+                        pattern: ^[a-f\d]{24}$
+                      flatId:
+                        type: string
+                        pattern: ^[a-f\d]{24}$
+                      timezone:
+                        type: string
+                      today:
+                        type: string
+                        format: date
+                        pattern: ^(?:(?:\d\d[2468][048]|\d\d[13579][26]|\d\d0[48]|[02468][048]00|[13579][26]00)-02-29|\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\d|30)|(?:02)-(?:0[1-9]|1\d|2[0-8])))$
+                      days:
+                        type: array
+                        items:
+                          type: object
+                          properties:
+                            date:
+                              type: string
+                              format: date
+                              pattern: ^(?:(?:\d\d[2468][048]|\d\d[13579][26]|\d\d0[48]|[02468][048]00|[13579][26]00)-02-29|\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\d|30)|(?:02)-(?:0[1-9]|1\d|2[0-8])))$
+                            status:
+                              type: string
+                              enum:
+                                - PRESENT
+                                - ABSENT
+                                - PENDING
+                                - NOT_APPLICABLE
+                            firstCheckInAt:
+                              type: string
+                              format: date-time
+                              pattern: ^(?:(?:\d\d[2468][048]|\d\d[13579][26]|\d\d0[48]|[02468][048]00|[13579][26]00)-02-29|\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\d|30)|(?:02)-(?:0[1-9]|1\d|2[0-8])))T(?:(?:[01]\d|2[0-3]):[0-5]\d:[0-5]\d(?:\.\d+)?(?:Z|([+-](?:[01]\d|2[0-3]):[0-5]\d)))$
+                          required:
+                            - date
+                            - status
+                          additionalProperties: false
+                    required:
+                      - helpId
+                      - flatId
+                      - timezone
+                      - today
+                      - days
+                    additionalProperties: false
+              example:
+                success: true
+                message: Success
+                data:
+                  helpId: 64f1c0a2b3c4d5e6f7a8b9c0
+                  flatId: 64f1c0a2b3c4d5e6f7a8b9c0
+                  timezone: string
+                  today: 2026-11-02
+                  days:
+                    - date: 2026-11-02
+                      status: PRESENT
+                      firstCheckInAt: 2026-11-02T10:30:00.000Z
+        "400":
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          description: Missing, invalid or expired access token
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "403":
+          description: Authenticated but not permitted (role, permission, feature flag or tenant)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: Resource not found in the caller's society
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "422":
+          description: Request validation failed
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "429":
+          description: Rate limit exceeded
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "500":
+          description: Unexpected server error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            pattern: ^[a-f\d]{24}$
+          example: 64f1c0a2b3c4d5e6f7a8b9c0
+        - name: flatId
+          in: query
+          required: true
+          schema:
+            type: string
+            pattern: ^[a-f\d]{24}$
+          example: 64f1c0a2b3c4d5e6f7a8b9c0
+        - name: from
+          in: query
+          required: false
+          schema:
+            type: string
+            format: date
+            pattern: ^(?:(?:\d\d[2468][048]|\d\d[13579][26]|\d\d0[48]|[02468][048]00|[13579][26]00)-02-29|\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\d|30)|(?:02)-(?:0[1-9]|1\d|2[0-8])))$
+          example: 2026-11-02
+        - name: to
+          in: query
+          required: false
+          schema:
+            type: string
+            format: date
+            pattern: ^(?:(?:\d\d[2468][048]|\d\d[13579][26]|\d\d0[48]|[02468][048]00|[13579][26]00)-02-29|\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\d|30)|(?:02)-(?:0[1-9]|1\d|2[0-8])))$
+          example: 2026-11-02
   /api/v1/user/domestic-help/{id}/payments:
     post:
       tags:
@@ -31992,6 +32364,7 @@ paths:
                           - VISITOR
                           - STAFF
                           - INVOICE
+                          - DOMESTIC_HELP
                           - OTHER
                       visibility:
                         type: string
@@ -32087,6 +32460,7 @@ paths:
               - VISITOR
               - STAFF
               - INVOICE
+              - DOMESTIC_HELP
               - OTHER
           example: PROFILE
         - name: visibility
@@ -32112,7 +32486,7 @@ paths:
         - Files
       summary: Download a file
       description: |-
-        Streams the binary file. PRIVATE files are visible to the uploader and society admins only; SOCIETY files to all members.
+        Streams the binary file. PRIVATE files are visible to the uploader and society admins. Residents can also view maid photos assigned to their flat. SOCIETY files are visible to all members.
 
         Required role: SOCIETY_ADMIN | GUARD | RESIDENT.
       operationId: get_api_v1_files_id
@@ -37565,6 +37939,127 @@ paths:
                 - code
             example:
               code: string
+  /api/v1/guard/domestic-help/attendance:
+    post:
+      tags:
+        - Guard
+      summary: Mark a maid present for the society day using her six-digit code
+      description: |-
+        Repeating a successful submission for the same maid and society day returns her first check-in.
+
+        Required role: GUARD. Requires society feature: domesticHelp.
+      operationId: post_api_v1_guard_domestic_help_attendance
+      security:
+        - bearerAuth: []
+      x-required-role:
+        - GUARD
+      x-required-permissions: []
+      responses:
+        "200":
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - success
+                  - data
+                properties:
+                  success:
+                    type: boolean
+                    const: true
+                  message:
+                    type: string
+                  data:
+                    type: object
+                    properties:
+                      helpId:
+                        type: string
+                        pattern: ^[a-f\d]{24}$
+                      name:
+                        type: string
+                      date:
+                        type: string
+                        format: date
+                        pattern: ^(?:(?:\d\d[2468][048]|\d\d[13579][26]|\d\d0[48]|[02468][048]00|[13579][26]00)-02-29|\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\d|30)|(?:02)-(?:0[1-9]|1\d|2[0-8])))$
+                      firstCheckInAt:
+                        type: string
+                        format: date-time
+                        pattern: ^(?:(?:\d\d[2468][048]|\d\d[13579][26]|\d\d0[48]|[02468][048]00|[13579][26]00)-02-29|\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\d|30)|(?:02)-(?:0[1-9]|1\d|2[0-8])))T(?:(?:[01]\d|2[0-3]):[0-5]\d:[0-5]\d(?:\.\d+)?(?:Z|([+-](?:[01]\d|2[0-3]):[0-5]\d)))$
+                      alreadyMarked:
+                        type: boolean
+                    required:
+                      - helpId
+                      - name
+                      - date
+                      - firstCheckInAt
+                      - alreadyMarked
+                    additionalProperties: false
+              example:
+                success: true
+                message: Success
+                data:
+                  helpId: 64f1c0a2b3c4d5e6f7a8b9c0
+                  name: Sample name
+                  date: 2026-11-02
+                  firstCheckInAt: 2026-11-02T10:30:00.000Z
+                  alreadyMarked: true
+        "401":
+          description: Missing, invalid or expired access token
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "403":
+          description: Authenticated but not permitted (role, permission, feature flag or tenant)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: Resource not found in the caller's society
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "409":
+          description: Conflict with current resource state
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "422":
+          description: Request validation failed
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "429":
+          description: Rate limit exceeded
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "500":
+          description: Unexpected server error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                code:
+                  type: string
+                  pattern: ^\d{6}$
+              required:
+                - code
+            example:
+              code: "001234"
   /api/v1/guard/domestic-help/check-out:
     post:
       tags:

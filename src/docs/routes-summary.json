@@ -2,7 +2,7 @@
   "title": "Society Management Platform API",
   "version": "1.0.0",
   "generatedFrom": "src/docs/openapi.yaml",
-  "totalRoutes": 462,
+  "totalRoutes": 465,
   "sections": {
     "Approvals": {
       "description": "Reusable approval workflow: DRAFT → SUBMITTED → UNDER_REVIEW → APPROVED/REJECTED → PUBLISHED → EXPIRED/REMOVED. Used by marketplace listings, property listings, community posts and move-in/out requests.",
@@ -48,7 +48,7 @@
     },
     "Guard": {
       "description": "Simplified security interface. Guards only see minimal data (flat label, visitor details) for their own society and gate; residents' personal and financial data is never exposed.",
-      "count": 39,
+      "count": 40,
       "routes": [
         "GET /api/v1/guard/dashboard - Guard dashboard",
         "GET /api/v1/guard/gate - My assigned gate",
@@ -73,6 +73,7 @@
         "POST /api/v1/guard/deliveries/{id}/handover - Hand over a parcel after verifying the resident's OTP",
         "POST /api/v1/guard/domestic-help/lookup - Verify a domestic worker by entry code",
         "POST /api/v1/guard/domestic-help/check-in - Check in a domestic worker and notify assigned flats",
+        "POST /api/v1/guard/domestic-help/attendance - Mark a maid present for the society day using her six-digit code",
         "POST /api/v1/guard/domestic-help/check-out - Check out a domestic worker",
         "GET /api/v1/guard/domestic-help/expected - Verified domestic workers for today's roster",
         "POST /api/v1/guard/domestic-help/unauthorized-report - Report an unauthorized domestic-help visit",
@@ -157,14 +158,16 @@
     },
     "Resident - Domestic Help & Services": {
       "description": "Register and manage domestic help, attendance, payments, and find verified local service providers",
-      "count": 13,
+      "count": 15,
       "routes": [
         "GET /api/v1/user/domestic-help - My domestic help",
         "POST /api/v1/user/domestic-help - Register a domestic worker",
+        "POST /api/v1/user/domestic-help/maids - Register a maid with a photo and generate her attendance code",
         "GET /api/v1/user/domestic-help/directory - Search verified maids, drivers, cooks and cleaners",
         "POST /api/v1/user/domestic-help/{id}/hire - Add a verified helper to my flat",
         "POST /api/v1/user/domestic-help/{id}/release - Remove a helper from my flat",
         "GET /api/v1/user/domestic-help/{id}/attendance - Attendance history (gate entries and my flat marks)",
+        "GET /api/v1/user/domestic-help/{id}/attendance/calendar - Daily maid gate attendance for a date range or the current month",
         "PUT /api/v1/user/domestic-help/{id}/attendance - Mark daily attendance for my flat",
         "GET /api/v1/user/domestic-help/{id}/payments - Payment and advance history",
         "POST /api/v1/user/domestic-help/{id}/payments - Record a salary, advance or bonus payment",

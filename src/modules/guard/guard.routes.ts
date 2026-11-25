@@ -30,13 +30,26 @@ export const guardRouter = new ModuleRouter('/api/v1/guard', {
 const ctx = (r: Request) => ({ societyId: r.auth.societyId!, userId: r.auth.userId, gateId: r.auth.gateId });
 const sid = (r: Request) => r.auth.societyId!;
 
+// One row of the gate's activity feed. Guards read this as a sentence
+// ("Delivery approved from A-101 for Zepto"), so the row carries the flat and
+// the counterparty rather than a pointer to a record.
+const activityItem = z.object({
+  id: z.string(),
+  kind: z.enum(['VISITOR', 'DELIVERY']),
+  name: z.string(),
+  flatLabel: z.string().optional(),
+  company: z.string().optional(),
+  status: z.string(),
+  at: z.string(),
+});
+
 const dashboardItem = z.object({
   today: z.object({ visitors: z.number().int(), deliveries: z.number().int(), domesticHelpPresent: z.number().int() }),
   expectedVisitors: z.number().int(),
   pendingApprovals: z.object({ visitors: z.number().int(), deliveries: z.number().int() }),
   activeVisitors: z.number().int(),
   activeEmergencyAlerts: z.number().int(),
-  recentActivity: z.array(vs.visitorItem.pick({ id: true, name: true, flatLabel: true, status: true, entryAt: true, exitAt: true })),
+  recentActivity: z.array(activityItem),
 });
 
 guardRouter
@@ -47,7 +60,7 @@ guardRouter
     const societyId = sid(req);
     const start = new Date(`${ymd()}T00:00:00.000Z`);
     const now = new Date();
-    const [visitors, deliveries, present, expected, pv, pd, active, alerts, recent] = await Promise.all([
+    const [visitors, deliveries, present, expected, pv, pd, active, alerts, recentVisitors, recentDeliveries] = await Promise.all([
       Visitor.countDocuments({ societyId, createdAt: { $gte: start } }),
       Delivery.countDocuments({ societyId, createdAt: { $gte: start } }),
       dh.todayPresent(societyId),
@@ -56,9 +69,23 @@ guardRouter
       Delivery.countDocuments({ societyId, status: 'PENDING_APPROVAL' }),
       Visitor.countDocuments({ societyId, status: 'CHECKED_IN' }),
       EmergencyAlert.countDocuments({ societyId, status: { $in: ['ACTIVE', 'ACKNOWLEDGED'] } }),
-      Visitor.find({ societyId }).select('name flatLabel status entryAt exitAt').sort({ createdAt: -1 }).limit(10),
+      Visitor.find({ societyId }).select('name flatLabel status entryAt exitAt updatedAt').sort({ updatedAt: -1 }).limit(25),
+      Delivery.find({ societyId }).select('company flatLabel status entryAt exitAt collectedAt updatedAt').sort({ updatedAt: -1 }).limit(25),
     ]);
-    ok(res, { today: { visitors, deliveries, domesticHelpPresent: present }, expectedVisitors: expected, pendingApprovals: { visitors: pv, deliveries: pd }, activeVisitors: active, activeEmergencyAlerts: alerts, recentActivity: recent });
+
+    // The gate does not think in tables: a guard wants one readable line about
+    // the last thing that happened. Visitors and deliveries share the feed so
+    // the newest event wins regardless of which desk it came from.
+    const activity = [
+      ...recentVisitors.map((v) => ({ id: String(v._id), kind: 'VISITOR' as const, name: v.name, flatLabel: v.flatLabel, company: undefined, status: v.status, at: v.exitAt ?? v.entryAt ?? v.updatedAt })),
+      ...recentDeliveries.map((d) => ({ id: String(d._id), kind: 'DELIVERY' as const, name: d.agentName, flatLabel: d.flatLabel, company: d.company, status: d.status, at: d.exitAt ?? d.collectedAt ?? d.entryAt ?? d.updatedAt })),
+    ]
+      .filter((a) => a.at instanceof Date)
+      .sort((a, b) => (b.at as Date).getTime() - (a.at as Date).getTime())
+      .slice(0, 25)
+      .map((a) => ({ id: a.id, kind: a.kind, name: a.name, flatLabel: a.flatLabel || undefined, company: a.company || undefined, status: a.status, at: (a.at as Date).toISOString() }));
+
+    ok(res, { today: { visitors, deliveries, domesticHelpPresent: present }, expectedVisitors: expected, pendingApprovals: { visitors: pv, deliveries: pd }, activeVisitors: active, activeEmergencyAlerts: alerts, recentActivity: activity });
   } })
   .add({ method: 'get', path: '/gate', summary: 'My assigned gate', response: z.object({ id: z.string(), name: z.string(), type: z.string(), location: z.string().optional() }), handler: async (req: Request, res: Response) => {
     const g: any = req.auth.gateId ? await Gate.findOne({ _id: req.auth.gateId, societyId: sid(req) }) : null;
@@ -95,6 +122,7 @@ guardRouter
     ok(res, view);
   } })
   .add({ method: 'post', path: '/domestic-help/check-in', summary: 'Check in a domestic worker and notify assigned flats', body: dhs.guardHelpGateBody, response: dhs.guardHelpView, status: 200, errors: [403, 404, 409], feature: 'domesticHelp', handler: async (req: Request, res: Response) => ok(res, await dh.checkIn(ctx(req), req.valid.body.code), 'Checked in') })
+  .add({ method: 'post', path: '/domestic-help/attendance', summary: 'Mark a maid present for the society day using her six-digit code', description: 'Repeating a successful submission for the same maid and society day returns her first check-in.', body: dhs.guardHelpGateBody, bodyExample: { code: '001234' }, response: dhs.guardMaidAttendanceItem, errors: [403, 404, 409], feature: 'domesticHelp', handler: async (req: Request, res: Response) => ok(res, await dh.markMaidAttendance(ctx(req), req.valid.body.code), 'Attendance recorded') })
   .add({ method: 'post', path: '/domestic-help/check-out', summary: 'Check out a domestic worker', body: dhs.guardHelpGateBody, response: dhs.guardHelpView, status: 200, errors: [403, 404, 409], feature: 'domesticHelp', handler: async (req: Request, res: Response) => ok(res, await dh.checkOut(ctx(req), req.valid.body.code), 'Checked out') })
   .add({ method: 'get', path: '/domestic-help/expected', summary: 'Verified domestic workers for today\'s roster', response: z.array(z.object({ id: z.string(), name: z.string(), helpType: z.string(), flats: z.array(z.string().optional()) })), feature: 'domesticHelp', handler: async (req: Request, res: Response) => ok(res, await dh.expectedToday(sid(req))) })
   .add({ method: 'post', path: '/domestic-help/unauthorized-report', summary: 'Report an unauthorized domestic-help visit', body: dhs.unauthorizedReportBody, response: es.incidentItem, status: 201, feature: 'domesticHelp', handler: async (req: Request, res: Response) => created(res, await reportIncident(sid(req), req.auth.userId, 'GUARD', { type: 'TRESPASS', description: `Unauthorized domestic help visit: ${req.valid.body.name ?? req.valid.body.helpId ?? 'unknown'}. ${req.valid.body.description}`, flatId: req.valid.body.flatId, attachments: [] }), 'Report recorded') })
