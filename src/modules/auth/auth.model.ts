@@ -22,6 +22,8 @@ export const User = defineModel(
       avatarFileId: ref('File'),
       blockedReason: String,
       tokenVersion: { type: Number, default: 0, select: false },
+      // The society the user last worked in. Sign-in returns to it when the user belongs to several.
+      lastSocietyId: { type: Schema.Types.ObjectId, ref: 'Society' },
       failedLoginCount: { type: Number, default: 0, select: false },
       lockedUntil: { type: Date, select: false },
       lastLoginAt: Date,

@@ -138,6 +138,9 @@ export const postService = {
     return p;
   },
   async submit(societyId: string, userId: string, id: string) {
+    // Idempotent: creating a post already submits it, and older apps call /submit straight after.
+    const existing: any = await CommunityPost.findOne({ _id: id, societyId, authorId: userId });
+    if (existing && ['SUBMITTED', 'UNDER_REVIEW', 'APPROVED', 'PUBLISHED'].includes(existing.status)) return existing;
     const p = await applyTransition('COMMUNITY_POST', id, 'SUBMITTED', { userId, role: 'RESIDENT', societyId }, { ownerOnly: true });
     await notifyAdmins(societyId, 'approval:review', { type: NotificationType.APPROVAL, title: 'Community post awaiting approval', body: p.title, data: { entityType: 'COMMUNITY_POST', entityId: id } });
     realtime.toAdmins(societyId, 'approval:new', { entityType: 'COMMUNITY_POST', entityId: id, title: p.title });
@@ -147,8 +150,13 @@ export const postService = {
   async mine(societyId: string, userId: string, q: any) {
     return paginate(CommunityPost, applyListFilters({ societyId, authorId: userId, ...(q.status ? { status: q.status } : {}) }, q, ['title']), q, { sortable: ['createdAt'] });
   },
-  async feed(societyId: string, q: any) {
-    return paginate(CommunityPost, applyListFilters({ societyId, status: { $in: VISIBLE_STATUSES } }, q, ['title', 'body']), q, { sortable: ['publishedAt', 'likeCount', 'createdAt'], defaultSort: '-publishedAt' });
+  async feed(societyId: string, q: any, userId?: string) {
+    // Everyone sees approved posts; the author also sees their own posts still awaiting the admin,
+    // so a freshly submitted post doesn't seem to vanish (each item carries its status).
+    const visible: any = userId
+      ? { $or: [{ status: { $in: VISIBLE_STATUSES } }, { authorId: userId, status: { $in: ['SUBMITTED', 'UNDER_REVIEW', 'CHANGES_REQUESTED'] } }] }
+      : { status: { $in: VISIBLE_STATUSES } };
+    return paginate(CommunityPost, applyListFilters({ societyId, ...visible }, q, ['title', 'body']), q, { sortable: ['publishedAt', 'likeCount', 'createdAt'], defaultSort: '-createdAt' });
   },
   async visible(societyId: string, id: string) {
     const p = await CommunityPost.findOne({ _id: id, societyId, status: { $in: VISIBLE_STATUSES } });
