@@ -9,6 +9,7 @@ import { schedulerState } from './state';
 
 const minuteJobs: [string, () => Promise<unknown>][] = [
   ['visitor_timeouts', () => visitorService.processTimeouts()],
+  ['expire_visitor_passes', () => visitorService.expireInvitations()],
   ['expire_marketplace', () => marketplaceService.expireDue()],
   ['expire_property', () => propertyService.expireDue()],
   ['escalate_complaints', () => complaintService.escalateOverdue()],

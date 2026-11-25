@@ -106,6 +106,7 @@ async function issueSession(user: any, societyId: string | undefined, meta: Clie
   const refreshToken = signRefreshToken({ sub: String(user._id), jti, fam, sid: societyId });
   await RefreshToken.create({ userId: user._id, jti, familyId: fam, sid: societyId, expiresAt: addDays(new Date(), env.REFRESH_TOKEN_TTL_DAYS), ip: meta.ip, userAgent: meta.userAgent });
   const accessToken = signAccessToken({ sub: String(user._id), ut: user.userType, tv, sid: societyId });
+  if (societyId && String(fresh.lastSocietyId ?? '') !== societyId) await User.updateOne({ _id: user._id }, { $set: { lastSocietyId: societyId } });
   return { tokenType: 'Bearer' as const, accessToken, refreshToken, expiresIn: env.ACCESS_TOKEN_TTL_SECONDS, societyId, passwordChangeRequired: Boolean(user.mustChangePassword), user: user.toJSON(), societies: await memberships(user) };
 }
 
@@ -138,6 +139,13 @@ async function pickSociety(user: any, requested?: string) {
   }
   if (active.length === 1) return active[0].societyId;
   if (active.length === 0 && user.userType !== UserType.RESIDENT) throw await explainNoAccess(list);
+  // Several active societies (an admin of two societies, a resident approved in a second property):
+  // sign in to the one used last, else the first. A token without a society would make every
+  // society screen (residents, requests, notices, community posts ...) come back empty.
+  if (active.length > 1) {
+    const last = user.lastSocietyId ? String(user.lastSocietyId) : undefined;
+    return active.find((m) => m.societyId === last)?.societyId ?? active[0].societyId;
+  }
   return undefined;
 }
 

@@ -52,7 +52,11 @@ export const VisitorInvitation = defineModel(
       usedEntries: { type: Number, default: 0 },
       code: { type: String, required: true },
       status: { type: String, enum: vals(InvitationStatus), default: 'ACTIVE', index: true },
+      // VISIT: a one-off / scheduled invitation. GATE_PASS: a standing 30-day pass for family and
+      // frequent visitors (father, mother, siblings ...), unlimited entries while valid.
+      kind: { type: String, enum: ['VISIT', 'GATE_PASS'], default: 'VISIT', index: true },
+      relation: { type: String, trim: true, maxlength: 40 },
     },
-    { indexes: [[{ societyId: 1, code: 1 }, { unique: true, partialFilterExpression: { status: 'ACTIVE' } }], [{ societyId: 1, flatId: 1, status: 1, validTo: 1 }]] },
+    { indexes: [[{ societyId: 1, code: 1 }, { unique: true, partialFilterExpression: { status: 'ACTIVE' } }], [{ societyId: 1, flatId: 1, status: 1, validTo: 1 }], [{ societyId: 1, flatId: 1, kind: 1, status: 1 }], [{ status: 1, validTo: 1 }]] },
   ),
 );

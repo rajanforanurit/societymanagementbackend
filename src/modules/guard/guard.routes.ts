@@ -51,7 +51,7 @@ guardRouter
       Visitor.countDocuments({ societyId, createdAt: { $gte: start } }),
       Delivery.countDocuments({ societyId, createdAt: { $gte: start } }),
       dh.todayPresent(societyId),
-      VisitorInvitation.countDocuments({ societyId, status: 'ACTIVE', validTo: { $gte: now }, validFrom: { $lte: new Date(now.getTime() + 86400000) } }),
+      VisitorInvitation.countDocuments({ societyId, status: 'ACTIVE', kind: { $ne: 'GATE_PASS' }, validTo: { $gte: now }, validFrom: { $lte: new Date(now.getTime() + 86400000) } }),
       Visitor.countDocuments({ societyId, status: 'PENDING_APPROVAL' }),
       Delivery.countDocuments({ societyId, status: 'PENDING_APPROVAL' }),
       Visitor.countDocuments({ societyId, status: 'CHECKED_IN' }),
