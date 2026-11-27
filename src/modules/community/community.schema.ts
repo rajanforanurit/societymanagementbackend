@@ -40,9 +40,12 @@ export const pollResults = z.object({ pollId: objectId, totalVotes: z.number().i
 
 export const postBody = z.object({ title: z.string().trim().min(3).max(150), body: z.string().trim().min(5).max(5000), images: z.array(objectId).max(5).default([]), saveAsDraft: z.boolean().default(false) });
 export const postUpdateBody = z.object({ title: z.string().trim().min(3).max(150).optional(), body: z.string().trim().min(5).max(5000).optional(), images: z.array(objectId).max(5).optional() });
-export const postItem = entity({ authorId: objectId, authorName: z.string().optional(), flatLabel: z.string().optional(), title: z.string(), body: z.string(), images: z.array(objectId), status: z.enum(vals(ApprovalStatus)), rejectionReason: z.string().optional(), authorMobile: z.string().optional(), publishedAt: dateTime.optional(), likeCount: z.number().int(), commentCount: z.number().int() });
+const postAuthor = z.object({ id: objectId, name: z.string(), avatarFileId: objectId.optional(), flatLabel: z.string().optional() });
+export const postItem = entity({ authorId: objectId, authorName: z.string().optional(), flatLabel: z.string().optional(), author: postAuthor.optional(), title: z.string(), body: z.string(), images: z.array(objectId), status: z.enum(vals(ApprovalStatus)), rejectionReason: z.string().optional(), authorMobile: z.string().optional(), publishedAt: dateTime.optional(), likeCount: z.number().int(), commentCount: z.number().int(), viewCount: z.number().int(), liked: z.boolean().optional(), viewed: z.boolean().optional() });
+export const postViewItem = z.object({ viewCount: z.number().int(), viewed: z.boolean() });
 export const postQuery = listQuery.extend({ status: z.enum(vals(ApprovalStatus)).optional() });
-export const commentBody = z.object({ text: z.string().trim().min(1).max(1000) });
-export const commentItem = entity({ postId: objectId, userId: objectId, userName: z.string().optional(), text: z.string() });
+export const commentBody = z.object({ text: z.string().trim().min(1).max(1000), parentId: objectId.optional() });
+const commentShape = { postId: objectId, userId: objectId, userName: z.string().optional(), userAvatarFileId: objectId.optional(), text: z.string(), parentId: objectId.optional(), replyCount: z.number().int().optional() };
+export const commentItem = entity({ ...commentShape, replies: z.array(entity(commentShape)).optional() });
 export const directoryItem = z.object({ userId: objectId, name: z.string(), flatLabel: z.string().optional(), residentType: z.string() });
 export const directoryQuery = listQuery;

@@ -15,11 +15,6 @@ export interface AdminInput {
   designation?: string;
 }
 
-/**
- * An administrator can only hand out permissions they hold, so a delegated admin can never
- * promote someone (or themselves) above their own level. actorPermissions is undefined for
- * platform-level callers (Super Admin).
- */
 export function assertCanGrant(actorPermissions: Set<string> | undefined, grants: { rolePermissions?: string[]; extra?: string[] }) {
   if (!actorPermissions) return;
   const over = [...new Set([...(grants.rolePermissions ?? []), ...(grants.extra ?? [])])].filter((p) => !actorPermissions.has(p));

@@ -1,9 +1,5 @@
 import { defineModel, makeSchema } from '../../common/models/makeSchema';
 
-/**
- * Outside service providers a society publishes to residents (plumber, electrician, mechanic,
- * doctor, ...). They never sign in; residents just call the number shown in the app.
- */
 export const HelpdeskContact = defineModel(
   'HelpdeskContact',
   makeSchema(

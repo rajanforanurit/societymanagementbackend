@@ -89,7 +89,6 @@ export async function buildAuthContext(token: string): Promise<AuthContext> {
   return ctx;
 }
 
-// A new / reset society admin must pick their own password before using the Admin app.
 const PASSWORD_CHANGE_ALLOWED = /^\/api\/v1\/auth\/(password\/change|me|logout)\/?$/;
 
 export const authenticate = async (req: Request, _res: Response, next: NextFunction) => {

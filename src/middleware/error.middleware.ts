@@ -11,8 +11,8 @@ export const requestContext: RequestHandler = (req, res, next) => {
   next();
 };
 
-export const notFoundHandler: RequestHandler = (req, _res, next) => {
-  next(new ApiError(404, 'ROUTE_NOT_FOUND', `Route ${req.method} ${req.path} not found`));
+export const notFoundHandler: RequestHandler = (_req, _res, next) => {
+  next(new ApiError(404, 'ROUTE_NOT_FOUND', 'The requested resource was not found'));
 };
 
 const normalize = (err: any): ApiError => {

@@ -2,7 +2,6 @@ import { Schema } from 'mongoose';
 import { AttendanceStatus, DomesticHelpStatus, DomesticHelpType, HelpPaymentType, ServiceCategory, vals } from '../../common/constants/enums';
 import { defineModel, makeSchema, ref, refReq } from '../../common/models/makeSchema';
 
-// `type` field caveat — see payment.model.ts invoiceLineItemSchema.
 const documentRefSchema = new Schema(
   {
     type: { $type: String },

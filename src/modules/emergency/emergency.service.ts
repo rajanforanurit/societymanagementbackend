@@ -19,8 +19,6 @@ export const emergencyService = {
     const raiser: any = await User.findById(a.userId).select('name');
     const { confirm: _confirm, flat: _flat, ...fields } = body;
     const alert: any = await EmergencyAlert.create({ ...fields, societyId: a.societyId, source: a.source, raisedBy: a.userId, raisedByName: raiser?.name, createdBy: a.userId, gateId: a.gateId, flatLabel, notifiedContacts: personal.map((c: any) => ({ name: c.name, phone: c.phone })) });
-    // `id/scope/societyId/flat/raisedById/raisedByName` follow the agreed socket contract; the older
-    // keys (alertId, flatLabel) stay so existing app builds keep working.
     const payload = { id: String(alert._id), alertId: String(alert._id), scope: 'SOCIETY', societyId: a.societyId, type: alert.type, flat: flatLabel, flatLabel, location: body.location, message: body.message, source: a.source, raisedById: a.userId, raisedByName: raiser?.name, raisedAt: alert.createdAt };
     realtime.toGuards(a.societyId, 'emergency:alert', payload);
     realtime.toAdmins(a.societyId, 'emergency:alert', payload);
@@ -36,7 +34,6 @@ export const emergencyService = {
     ['status', 'type'].forEach((k) => q[k] && (f[k] = q[k]));
     return paginate(EmergencyAlert, applyListFilters(f, q, ['message', 'flatLabel']), q, { sortable: ['createdAt', 'status'] });
   },
-  /** Admin view: adds the raiser's contact number (guards and residents never get it). */
   async listForAdmin(societyId: string, q: any) {
     const r = await emergencyService.list(societyId, q);
     const ids = [...new Set(r.items.map((x: any) => String(x.raisedBy)))];
@@ -44,7 +41,6 @@ export const emergencyService = {
     const byId = new Map(users.map((u) => [String(u._id), u]));
     return { ...r, items: r.items.map((x: any) => ({ ...x.toJSON(), raisedByName: x.raisedByName ?? byId.get(String(x.raisedBy))?.name, raisedByMobile: byId.get(String(x.raisedBy))?.mobile })) };
   },
-  /** Resident -> guards or admins message. Max 5 per minute per resident. */
   async staffMessage(a: { societyId: string; userId: string; flatIds: string[] }, body: { audience: 'GUARDS' | 'ADMIN'; message: string; subject?: string }) {
     if ((await EmergencyStaffMessage.countDocuments({ societyId: a.societyId, fromUserId: a.userId, createdAt: { $gte: new Date(Date.now() - 60000) } })) >= 5) throw ApiError.tooMany('Too many messages, please wait a minute', 'MESSAGE_RATE_LIMITED');
     const [user, flat]: any[] = await Promise.all([User.findById(a.userId).select('name'), a.flatIds[0] ? Flat.findOne({ _id: a.flatIds[0], societyId: a.societyId }).select('label') : null]);
@@ -66,10 +62,6 @@ export const emergencyService = {
     if (q.audience) f.audience = q.audience;
     return paginate(EmergencyStaffMessage, applyListFilters(f, q, ['message', 'subject', 'fromName']), q, { sortable: ['createdAt'] });
   },
-  /**
-   * One-tap resident alarm. The resident is already authenticated and belongs to this society (auth
-   * context). Only the resident's own flats are accepted. A short atomic lock stops duplicate alarms.
-   */
   async raiseAlarm(a: { societyId: string; userId: string; flatIds: string[] }, body: any) {
     let flatId: string | undefined = body.flatId;
     if (!flatId && body.flat) {
@@ -91,7 +83,7 @@ export const emergencyService = {
       ).setOptions({ skipTenantCheck: true });
       claimed = Boolean(lock);
     } catch (err: any) {
-      if (err?.code !== 11000) throw err; // lock exists and is still fresh => duplicate tap
+      if (err?.code !== 11000) throw err;
       claimed = false;
     }
     if (!claimed) {

@@ -20,7 +20,6 @@ const schema = z
     OTP_TTL_MINUTES: z.coerce.number().int().default(5),
     OTP_MAX_ATTEMPTS: z.coerce.number().int().default(5),
     OTP_RESEND_SECONDS: z.coerce.number().int().default(30),
-    // Safe default: OTPs are never exposed unless explicitly enabled
     EXPOSE_DEV_OTP: bool.default(false),
     BCRYPT_ROUNDS: z.coerce.number().int().min(4).max(15).default(12),
     CORS_ORIGINS: z.string().default('*'),
@@ -36,38 +35,22 @@ const schema = z
     SUPER_ADMIN_EMAIL: z.string().default('superadmin@example.com'),
     SUPER_ADMIN_MOBILE: z.string().default('+919999999999'),
     SUPER_ADMIN_PASSWORD: z.string().default('ChangeMe@123'),
-    // ---- Admin onboarding ----
-    // When true, a SOCIETY_ADMIN with mustChangePassword set can only call /auth/password/change,
-    // /auth/me and /auth/logout until the password is changed. Enable once the Admin app ships the
-    // forced change-password screen.
     ENFORCE_ADMIN_PASSWORD_CHANGE: bool.default(false),
-    // ---- Emergency alarm ----
-    // A resident cannot raise a second alarm inside this window (accidental double taps).
     EMERGENCY_DEDUPE_SECONDS: z.coerce.number().int().min(10).max(3600).default(60),
-    // ---- In-app calling (WebRTC signaling) ----
     CALL_RING_SECONDS: z.coerce.number().int().min(15).max(120).default(45),
     STUN_URLS: z.string().default('stun:stun.l.google.com:19302'),
-    // Comma separated, e.g. turn:turn.example.com:3478?transport=udp,turns:turn.example.com:5349
     TURN_URLS: z.string().default(''),
-    // coturn `static-auth-secret` (time-limited REST credentials).
     TURN_SECRET: z.string().default(''),
     TURN_TTL_SECONDS: z.coerce.number().int().min(60).max(86400).default(3600),
-    // ---- Push notifications (optional; push is disabled when absent) ----
-    // Firebase Cloud Messaging — service account credentials.
-    // Either the three discrete values, or FCM_SERVICE_ACCOUNT_JSON with the
-    // whole downloaded JSON (it is parsed and overrides the discrete values).
     FCM_PROJECT_ID: z.string().default(''),
     FCM_CLIENT_EMAIL: z.string().default(''),
     FCM_PRIVATE_KEY: z.string().default(''),
     FCM_SERVICE_ACCOUNT_JSON: z.string().default(''),
-    // Apple Push Notification service — team key (.p8).
     APNS_TEAM_ID: z.string().default(''),
     APNS_KEY_ID: z.string().default(''),
     APNS_PRIVATE_KEY: z.string().default(''),
     APNS_BUNDLE_ID: z.string().default('com.habitoliving.habito'),
-    // Sandbox (development builds) vs production (App Store / TestFlight).
     APNS_USE_SANDBOX: bool.default(true),
-    // Fail loudly if configured credentials are present but unusable.
     PUSH_STRICT: bool.default(false),
   })
   .superRefine((v, ctx) => {
@@ -139,8 +122,6 @@ export const pushConfig = {
   apns,
   fcmEnabled: Boolean(fcm.projectId && fcm.clientEmail && fcm.privateKey),
   apnsEnabled: Boolean(apns.teamId && apns.keyId && apns.privateKey),
-  // iOS can go either through APNs directly (preferred when APNS_* is set) or
-  // through FCM (APNs key uploaded to Firebase). See docs/PUSH_NOTIFICATIONS.md.
   iosVia: (apns.teamId && apns.keyId && apns.privateKey ? 'apns' : 'fcm') as 'apns' | 'fcm',
   strict: parsed.data.PUSH_STRICT,
 };

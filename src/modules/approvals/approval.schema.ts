@@ -13,6 +13,7 @@ export const approvalItem = entity({
   summary: z.string().optional(),
   status: z.enum(vals(ApprovalStatus)),
   submittedBy: objectId,
+  submittedByName: z.string().optional(),
   reviewerId: objectId.optional(),
   submittedAt: dateTime.optional(),
   decidedAt: dateTime.optional(),

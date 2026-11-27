@@ -36,12 +36,7 @@ export const impersonationRouter = new ModuleRouter('/api/v1/super-admin/imperso
 impersonationRouter.add({ method: 'post', path: '/:id/end', summary: 'End an impersonation session', params: idParam, response: null, status: 200, handler: c.superSocietyController.endImpersonation });
 
 export const societyPublicRouter = new ModuleRouter('/api/v1/auth/societies', { tag: 'Authentication', roles: [UserType.RESIDENT] });
-// Flats of an ACTIVE society, so a resident can pick the right unit when
-// applying. Any signed-in role may read this before joining (the membership
-// request needs a real flatId). The tenant middleware is bypassed via
-// skipTenantCheck: the societyId comes from the URL, not the auth context.
 societyPublicRouter.add({ method: 'get', path: '/:id/flats', summary: "List an active society's flats (for the join flow)", description: 'Returns the flats of an ACTIVE society so a resident can select their unit when applying. Any authenticated role can read this before joining.', params: idParam, response: z.array(s.flatItem), handler: async (req: Request, res: Response) => {
-  // Only ACTIVE societies are joinable; never reveal another society's structure.
   if (!(await Society.exists({ _id: req.valid.params.id, status: 'ACTIVE' }))) throw ApiError.notFound('Society not found');
   const flats = await Flat.find({ societyId: req.valid.params.id, isDeleted: { $ne: true } }, undefined, { skipTenantCheck: true } as any).select('label unitNumber floorNumber status').sort({ label: 1 }).limit(200);
   ok(res, flats);
@@ -58,13 +53,11 @@ adminStructureRouter
   .add({ method: 'get', path: '/society', summary: 'Get my society configuration', permissions: [P.SOCIETY_READ], response: s.societyItem, handler: c.adminSocietyController.get })
   .add({ method: 'patch', path: '/society', summary: 'Update operating settings: rules, hours, holidays, visitor policy, finance and module toggles', description: 'Name, address, contact and property structure belong to the Super Admin and are not accepted here. Module toggles can only turn off modules; modules not entitled by the platform stay disabled.', permissions: [P.SOCIETY_UPDATE], body: s.adminSocietyUpdateBody, response: s.societyItem, handler: c.adminSocietyController.update });
 
-// Blocks, towers, floors and flats are generated from the layout the Super Admin configures: read-only here.
 crudRoutes(adminStructureRouter, { path: '/blocks', name: 'Block', controller: c.blockController, query: s.blockQuery, item: s.blockItem, read: [P.SOCIETY_READ] });
 crudRoutes(adminStructureRouter, { path: '/towers', name: 'Tower', controller: c.towerController, query: s.towerQuery, item: s.towerItem, read: [P.SOCIETY_READ] });
 crudRoutes(adminStructureRouter, { path: '/floors', name: 'Floor', controller: c.floorController, query: s.floorQuery, item: s.floorItem, read: [P.SOCIETY_READ] });
 crudRoutes(adminStructureRouter, { path: '/flats', name: 'Flat', controller: c.flatController, query: s.flatQuery, item: s.flatItem, read: [P.SOCIETY_READ] });
 crudRoutes(adminStructureRouter, { path: '/gates', name: 'Gate', controller: c.gateController, create: s.gateBody, query: s.gateQuery, item: s.gateItem, read: [P.SOCIETY_READ], write: [P.STRUCTURE_MANAGE] });
-
 
 const infoRoute = { summary: 'Floor plan / property details and hospitals of my society', description: 'Configured by the platform team (Super Admin). Read-only.', response: s.propertyInfoItem, handler: c.propertyInfoController.mine };
 export const propertyInfoResidentRouter = new ModuleRouter('/api/v1/user/society-info', { tag: 'Resident - Society Info', roles: [UserType.RESIDENT], societyScoped: true });

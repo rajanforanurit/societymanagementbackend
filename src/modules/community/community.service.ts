@@ -9,7 +9,9 @@ import { User } from '../auth/auth.model';
 import { notifyAdmins, notifyAllResidents, notifyUsers } from '../notifications/notify.service';
 import { Resident } from '../resident/resident.model';
 import { Flat } from '../society/society.model';
-import { CommunityPost, Notice, Poll, PostComment, PostLike, Vote } from './community.model';
+import { ApprovalRequest } from '../approvals/approval.model';
+import { File } from '../files/files.model';
+import { CommunityPost, Notice, Poll, PostComment, PostLike, PostView, Vote } from './community.model';
 
 export const noticeService = createCrudService({ model: Notice, name: 'Notice', searchFields: ['title', 'body'], filterable: ['type', 'status'], sortable: ['createdAt', 'publishAt', 'pinned'] });
 export const pollService = createCrudService({ model: Poll, name: 'Poll', searchFields: ['title'], filterable: ['kind', 'status'], sortable: ['createdAt', 'endsAt'] });
@@ -122,57 +124,152 @@ export const pollExtra = {
 
 registerWorkflowEntity(ApprovalEntityType.COMMUNITY_POST, { model: CommunityPost, ownerField: 'authorId', label: (d) => d.title, summary: (d) => String(d.body).slice(0, 200), autoPublish: listingAutoPublish });
 
+const PENDING_OWN = ['DRAFT', 'SUBMITTED', 'UNDER_REVIEW', 'CHANGES_REQUESTED', 'REJECTED'];
+const toPlain = (d: any) => (d?.toJSON ? d.toJSON() : { ...d });
+const idOf = (d: any) => String(d?.id ?? d?._id);
+
+async function claimImages(societyId: string, userId: string, images?: string[]) {
+  const ids = [...new Set((images ?? []).map(String))];
+  if (!ids.length) return;
+  const found = await File.countDocuments({ _id: { $in: ids }, societyId, uploadedBy: userId });
+  if (found !== ids.length) throw ApiError.badRequest('One or more photos could not be found. Please upload them again.', 'FILE_NOT_FOUND');
+  await File.updateMany({ _id: { $in: ids }, societyId, uploadedBy: userId }, { $set: { visibility: 'SOCIETY' } });
+}
+
+async function usersById(ids: unknown[]) {
+  const unique = [...new Set(ids.filter(Boolean).map(String))];
+  const users: any[] = unique.length ? await User.find({ _id: { $in: unique } }).select('name avatarFileId') : [];
+  return new Map(users.map((u) => [String(u._id), u]));
+}
+
+async function decoratePosts(societyId: string, docs: any[], viewerId?: string) {
+  const items = docs.map(toPlain);
+  if (!items.length) return items;
+  const postIds = items.map(idOf);
+  const users = await usersById(items.map((i) => i.authorId));
+  const liked: any[] = viewerId ? await PostLike.find({ societyId, userId: viewerId, postId: { $in: postIds } }).select('postId') : [];
+  const viewed: any[] = viewerId ? await PostView.find({ societyId, userId: viewerId, postId: { $in: postIds } }).select('postId') : [];
+  const likedSet = new Set(liked.map((l) => String(l.postId)));
+  const viewedSet = new Set(viewed.map((v) => String(v.postId)));
+  return items.map((i) => {
+    const u = users.get(String(i.authorId));
+    const name = u?.name ?? i.authorName ?? 'Resident';
+    return {
+      ...i,
+      authorId: String(i.authorId),
+      authorName: name,
+      images: (i.images ?? []).map(String),
+      likeCount: Math.max(0, Number(i.likeCount ?? 0)),
+      commentCount: Math.max(0, Number(i.commentCount ?? 0)),
+      viewCount: Math.max(0, Number(i.viewCount ?? 0)),
+      author: { id: String(i.authorId), name, avatarFileId: u?.avatarFileId ? String(u.avatarFileId) : undefined, flatLabel: i.flatLabel },
+      liked: likedSet.has(idOf(i)),
+      viewed: viewedSet.has(idOf(i)),
+    };
+  });
+}
+
+function shapeComment(c: any, users: Map<string, any>) {
+  const j = toPlain(c);
+  const u = users.get(String(j.userId));
+  return {
+    ...j,
+    userId: String(j.userId),
+    postId: String(j.postId),
+    parentId: j.parentId ? String(j.parentId) : undefined,
+    userName: u?.name ?? j.userName ?? 'Resident',
+    userAvatarFileId: u?.avatarFileId ? String(u.avatarFileId) : undefined,
+    replyCount: Math.max(0, Number(j.replyCount ?? 0)),
+  };
+}
+
 export const postService = {
   async create(societyId: string, userId: string, flatIds: string[], body: any) {
     const user: any = await User.findById(userId).select('name');
     const flat: any = flatIds[0] ? await Flat.findOne({ _id: flatIds[0], societyId }) : null;
     const { saveAsDraft, ...data } = body;
+    await claimImages(societyId, userId, data.images);
     const post: any = await CommunityPost.create({ ...data, societyId, authorId: userId, authorName: user?.name, flatLabel: flat?.label, createdBy: userId });
-    // Posts go straight to the admin moderation queue unless the resident explicitly keeps a draft
-    // (previously every post stayed DRAFT until a separate /submit call, so admins never saw them).
     return saveAsDraft ? post : postService.submit(societyId, userId, String(post._id));
   },
   async update(societyId: string, userId: string, id: string, body: any) {
+    if (body.images) await claimImages(societyId, userId, body.images);
     const p = await CommunityPost.findOneAndUpdate({ _id: id, societyId, authorId: userId, status: { $in: ['DRAFT', 'CHANGES_REQUESTED', 'REJECTED'] } }, { $set: { ...body, updatedBy: userId } }, { new: true });
     if (!p) throw ApiError.conflict('Post not found or not editable in its current state', 'NOT_EDITABLE');
     return p;
   },
   async submit(societyId: string, userId: string, id: string) {
-    // Idempotent: creating a post already submits it, and older apps call /submit straight after.
     const existing: any = await CommunityPost.findOne({ _id: id, societyId, authorId: userId });
-    if (existing && ['SUBMITTED', 'UNDER_REVIEW', 'APPROVED', 'PUBLISHED'].includes(existing.status)) return existing;
+    if (!existing) throw ApiError.notFound('Post not found');
+    if (['SUBMITTED', 'UNDER_REVIEW', 'APPROVED', 'PUBLISHED'].includes(existing.status)) return existing;
+    if (existing.status === 'REJECTED') await applyTransition('COMMUNITY_POST', id, 'DRAFT', { userId, role: 'RESIDENT', societyId }, { ownerOnly: true });
     const p = await applyTransition('COMMUNITY_POST', id, 'SUBMITTED', { userId, role: 'RESIDENT', societyId }, { ownerOnly: true });
-    await notifyAdmins(societyId, 'approval:review', { type: NotificationType.APPROVAL, title: 'Community post awaiting approval', body: p.title, data: { entityType: 'COMMUNITY_POST', entityId: id } });
-    realtime.toAdmins(societyId, 'approval:new', { entityType: 'COMMUNITY_POST', entityId: id, title: p.title });
+    const approval: any = await ApprovalRequest.findOne({ societyId, entityType: 'COMMUNITY_POST', entityId: id }).select('_id');
+    const payload = { entityType: 'COMMUNITY_POST', entityId: id, approvalId: approval ? String(approval._id) : undefined, title: p.title };
+    await notifyAdmins(societyId, 'approval:review', { type: NotificationType.APPROVAL, title: 'Community post awaiting approval', body: p.title, data: { ...payload, route: 'approvals' } });
+    realtime.toAdmins(societyId, 'approval:new', payload);
     return p;
   },
   withdraw: (societyId: string, userId: string, id: string) => applyTransition('COMMUNITY_POST', id, 'DRAFT', { userId, role: 'RESIDENT', societyId }, { ownerOnly: true }),
   async mine(societyId: string, userId: string, q: any) {
-    return paginate(CommunityPost, applyListFilters({ societyId, authorId: userId, ...(q.status ? { status: q.status } : {}) }, q, ['title']), q, { sortable: ['createdAt'] });
+    const r = await paginate(CommunityPost, applyListFilters({ societyId, authorId: userId, ...(q.status ? { status: q.status } : {}) }, q, ['title', 'body']), q, { sortable: ['createdAt', 'publishedAt'], defaultSort: '-createdAt' });
+    return { ...r, items: await decoratePosts(societyId, r.items, userId) };
   },
   async feed(societyId: string, q: any, userId?: string) {
-    // Everyone sees approved posts; the author also sees their own posts still awaiting the admin,
-    // so a freshly submitted post doesn't seem to vanish (each item carries its status).
-    const visible: any = userId
-      ? { $or: [{ status: { $in: VISIBLE_STATUSES } }, { authorId: userId, status: { $in: ['SUBMITTED', 'UNDER_REVIEW', 'CHANGES_REQUESTED'] } }] }
-      : { status: { $in: VISIBLE_STATUSES } };
-    return paginate(CommunityPost, applyListFilters({ societyId, ...visible }, q, ['title', 'body']), q, { sortable: ['publishedAt', 'likeCount', 'createdAt'], defaultSort: '-createdAt' });
+    const r = await paginate(CommunityPost, applyListFilters({ societyId, status: { $in: VISIBLE_STATUSES } }, q, ['title', 'body']), q, { sortable: ['publishedAt', 'likeCount', 'viewCount', 'createdAt'], defaultSort: '-publishedAt,-createdAt' });
+    return { ...r, items: await decoratePosts(societyId, r.items, userId) };
+  },
+  async get(societyId: string, userId: string, id: string) {
+    const p = await CommunityPost.findOne({ _id: id, societyId, $or: [{ status: { $in: VISIBLE_STATUSES } }, { authorId: userId, status: { $in: PENDING_OWN } }] });
+    if (!p) throw ApiError.notFound('Post not found');
+    const [one] = await decoratePosts(societyId, [p], userId);
+    return one;
   },
   async visible(societyId: string, id: string) {
     const p = await CommunityPost.findOne({ _id: id, societyId, status: { $in: VISIBLE_STATUSES } });
     if (!p) throw ApiError.notFound('Post not found');
     return p;
   },
-  async comment(societyId: string, userId: string, id: string, text: string) {
+  async view(societyId: string, userId: string, id: string) {
+    const p: any = await postService.visible(societyId, id);
+    if (String(p.authorId) === userId) return { viewCount: Math.max(0, Number(p.viewCount ?? 0)), viewed: true };
+    let inserted = false;
+    try {
+      const r = await PostView.updateOne({ societyId, postId: id, userId }, { $setOnInsert: { userId } }, { upsert: true });
+      inserted = r.upsertedCount > 0;
+    } catch (e: any) {
+      if (e?.code !== 11000) throw e;
+    }
+    if (inserted) await CommunityPost.updateOne({ _id: id, societyId }, { $inc: { viewCount: 1 } });
+    const fresh: any = await CommunityPost.findOne({ _id: id, societyId }).select('viewCount');
+    return { viewCount: Math.max(0, Number(fresh?.viewCount ?? 0)), viewed: true };
+  },
+  async comment(societyId: string, userId: string, id: string, text: string, parentId?: string) {
     await postService.visible(societyId, id);
-    const u: any = await User.findById(userId).select('name');
-    const c = await PostComment.create({ societyId, postId: id, userId, userName: u?.name, text, createdBy: userId });
+    let rootId: any;
+    if (parentId) {
+      const parent: any = await PostComment.findOne({ _id: parentId, societyId, postId: id });
+      if (!parent) throw ApiError.notFound('The comment you are replying to no longer exists');
+      rootId = parent.parentId ?? parent._id;
+    }
+    const u: any = await User.findById(userId).select('name avatarFileId');
+    const c = await PostComment.create({ societyId, postId: id, userId, userName: u?.name, text, ...(rootId ? { parentId: rootId } : {}) });
     await CommunityPost.updateOne({ _id: id, societyId }, { $inc: { commentCount: 1 } });
-    return c;
+    if (rootId) await PostComment.updateOne({ _id: rootId, societyId }, { $inc: { replyCount: 1 } });
+    return { ...shapeComment(c, new Map([[userId, u]])), replies: [] };
   },
   async comments(societyId: string, id: string, q: any) {
     await postService.visible(societyId, id);
-    return paginate(PostComment, { societyId, postId: id }, q, { sortable: ['createdAt'], defaultSort: 'createdAt' });
+    const r = await paginate(PostComment, { societyId, postId: id, parentId: null }, q, { sortable: ['createdAt'], defaultSort: 'createdAt' });
+    const topIds = r.items.map((c: any) => c._id);
+    const replies: any[] = topIds.length ? await PostComment.find({ societyId, postId: id, parentId: { $in: topIds } }).sort({ createdAt: 1 }).limit(1000) : [];
+    const users = await usersById([...r.items.map((c: any) => c.userId), ...replies.map((c) => c.userId)]);
+    const byParent = new Map<string, any[]>();
+    replies.forEach((c) => {
+      const k = String(c.parentId);
+      byParent.set(k, [...(byParent.get(k) ?? []), shapeComment(c, users)]);
+    });
+    return { ...r, items: r.items.map((c: any) => ({ ...shapeComment(c, users), replies: byParent.get(String(c._id)) ?? [] })) };
   },
   async like(societyId: string, userId: string, id: string, on: boolean) {
     await postService.visible(societyId, id);
@@ -181,12 +278,22 @@ export const postService = {
       if (r.upsertedCount) await CommunityPost.updateOne({ _id: id, societyId }, { $inc: { likeCount: 1 } });
     } else {
       const r = await PostLike.deleteOne({ societyId, postId: id, userId });
-      if (r.deletedCount) await CommunityPost.updateOne({ _id: id, societyId }, { $inc: { likeCount: -1 } });
+      if (r.deletedCount) await CommunityPost.updateOne({ _id: id, societyId, likeCount: { $gt: 0 } }, { $inc: { likeCount: -1 } });
     }
+    const fresh: any = await CommunityPost.findOne({ _id: id, societyId }).select('likeCount');
+    return { liked: on, likeCount: Math.max(0, Number(fresh?.likeCount ?? 0)) };
   },
   async adminList(societyId: string, q: any) {
     const r: any = await paginate(CommunityPost, applyListFilters({ societyId, ...(q.status ? { status: q.status } : {}) }, q, ['title', 'body']), q, { sortable: ['createdAt'] });
     return postService.withAuthors(societyId, r);
+  },
+  async adminRemove(societyId: string, actorId: string, id: string, reason?: string) {
+    const p: any = await CommunityPost.findOne({ _id: id, societyId });
+    if (!p) throw ApiError.notFound('Post not found');
+    const actor = { userId: actorId, role: 'SOCIETY_ADMIN', societyId };
+    if (['SUBMITTED', 'UNDER_REVIEW'].includes(p.status)) await applyTransition('COMMUNITY_POST', id, 'REJECTED', actor, { reason: reason ?? 'Removed by the society admin.' });
+    else await applyTransition('COMMUNITY_POST', id, 'REMOVED', actor, { reason });
+    return postService.adminGet(societyId, id);
   },
   async adminGet(societyId: string, id: string) {
     const p: any = await CommunityPost.findOne({ _id: id, societyId });
@@ -194,12 +301,14 @@ export const postService = {
     const [one] = (await postService.withAuthors(societyId, { items: [p.toJSON ? p.toJSON() : p] })).items;
     return one;
   },
-  /** Adds the author's mobile (admins only) so the moderator can contact them. */
   async withAuthors(societyId: string, r: any) {
     const items: any[] = (r.items ?? r.data ?? []).map((i: any) => (i?.toJSON ? i.toJSON() : i));
-    const users: any[] = await User.find({ _id: { $in: items.map((i) => i.authorId) } }).select('mobile');
-    const m = new Map(users.map((u) => [String(u._id), u.mobile]));
-    const mapped = items.map((i) => ({ ...i, authorMobile: m.get(String(i.authorId)) }));
+    const users: any[] = await User.find({ _id: { $in: items.map((i) => i.authorId) } }).select('name mobile avatarFileId');
+    const m = new Map(users.map((u) => [String(u._id), u]));
+    const mapped = items.map((i) => {
+      const u = m.get(String(i.authorId));
+      return { ...i, authorName: u?.name ?? i.authorName, authorMobile: u?.mobile, images: (i.images ?? []).map(String), author: { id: String(i.authorId), name: u?.name ?? i.authorName ?? 'Resident', avatarFileId: u?.avatarFileId ? String(u.avatarFileId) : undefined, flatLabel: i.flatLabel } };
+    });
     return r.items ? { ...r, items: mapped } : { ...r, data: mapped };
   },
 };

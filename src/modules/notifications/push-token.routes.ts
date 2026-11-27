@@ -26,7 +26,6 @@ export const pushTokenRouter = new ModuleRouter('/api/v1/user/push-tokens', {
   roles: [UserType.SOCIETY_ADMIN, UserType.GUARD, UserType.RESIDENT, UserType.SUPER_ADMIN],
 });
 
-// Body-validated by zod; unknown fields are stripped (zod v4 default).
 pushTokenRouter
   .add({
     method: 'post',

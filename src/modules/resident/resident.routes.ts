@@ -43,7 +43,6 @@ residentSelfRouter
   .add({ method: 'post', path: '/society-requests/:id/documents', summary: 'Attach a verification document to a pending request', params: idParam, body: s.addDocumentBody, response: s.residentItem, status: 200, handler: r.addDocument })
   .add({ method: 'delete', path: '/society-requests/:id', summary: 'Cancel a pending request', params: idParam, response: null, handler: r.cancel });
 
-// Owner's Profile → Tenants: approved tenants of the flats the signed-in resident owns.
 export const tenantRouter = new ModuleRouter('/api/v1/user/tenants', { tag: 'Resident - Profile & Membership', roles: [UserType.RESIDENT], societyScoped: true });
 tenantRouter.add({ method: 'get', path: '/', summary: 'Tenants of the flats I own', description: 'Approved tenants linked to my OWNER residencies in the active society. Empty for tenants and family members.', response: z.array(s.tenantItem), handler: c.residentSelfController.tenants });
 

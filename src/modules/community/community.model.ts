@@ -2,7 +2,6 @@ import { Schema } from 'mongoose';
 import { ApprovalStatus, NoticeType, PollKind, PollStatus, PublishStatus, QuestionType, vals } from '../../common/constants/enums';
 import { defineModel, makeSchema, ref, refReq } from '../../common/models/makeSchema';
 
-// Same `type` field caveat as Invoice.lineItems — see payment.model.ts.
 const pollQuestionSchema = new Schema(
   {
     text: { $type: String, required: true },
@@ -87,10 +86,25 @@ export const CommunityPost = defineModel(
       publishedAt: Date,
       likeCount: { type: Number, default: 0 },
       commentCount: { type: Number, default: 0 },
+      viewCount: { type: Number, default: 0 },
     },
-    { indexes: [[{ societyId: 1, status: 1, publishedAt: -1 }]] },
+    { indexes: [[{ societyId: 1, status: 1, publishedAt: -1 }], [{ societyId: 1, authorId: 1, createdAt: -1 }]] },
   ),
 );
 
-export const PostComment = defineModel('PostComment', makeSchema({ postId: refReq('CommunityPost', { index: true }), userId: refReq('User'), userName: String, text: { type: String, required: true, maxlength: 1000 } }, { audited: false, indexes: [[{ societyId: 1, postId: 1, createdAt: 1 }]] }));
+export const PostComment = defineModel(
+  'PostComment',
+  makeSchema(
+    {
+      postId: refReq('CommunityPost', { index: true }),
+      userId: refReq('User'),
+      userName: String,
+      text: { type: String, required: true, maxlength: 1000 },
+      parentId: ref('PostComment', { index: true }),
+      replyCount: { type: Number, default: 0 },
+    },
+    { audited: false, indexes: [[{ societyId: 1, postId: 1, createdAt: 1 }], [{ societyId: 1, postId: 1, parentId: 1, createdAt: 1 }]] },
+  ),
+);
+export const PostView = defineModel('PostView', makeSchema({ postId: refReq('CommunityPost'), userId: refReq('User') }, { audited: false, softDelete: false, indexes: [[{ societyId: 1, postId: 1, userId: 1 }, { unique: true }]] }));
 export const PostLike = defineModel('PostLike', makeSchema({ postId: refReq('CommunityPost'), userId: refReq('User') }, { audited: false, indexes: [[{ societyId: 1, postId: 1, userId: 1 }, { unique: true }]] }));

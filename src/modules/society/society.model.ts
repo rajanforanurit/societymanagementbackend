@@ -21,7 +21,6 @@ export const Society = defineModel(
       contact: { email: String, phone: String, emergencyPhone: String, website: String },
       registrationNumber: String,
       totalUnits: Number,
-      // Owned by the platform (Super Admin) so a departing society admin cannot wipe them.
       propertyDetails: {
         propertyName: String,
         description: String,
@@ -31,11 +30,7 @@ export const Society = defineModel(
         parkingInfo: String,
         notes: String,
         floorPlans: [{ title: { type: String, required: true }, description: String, fileId: ref('File') }],
-        // MULTIFAMILY: every tower with its flat names (the floor is part of the flat name).
-        // `code` / `floors` are kept only so towers saved in the older format can still be read.
         towers: [{ name: { type: String, required: true }, flats: { type: [String], default: undefined }, code: String, floors: [{ number: { type: Number, required: true }, units: { type: Number, required: true } }] }],
-        // SINGLE_FAMILY: named houses / villas instead of towers.
-        // totalHouses / labelPrefix / startNumber are kept only so older societies can still be read.
         singleFamily: { houses: { type: [String], default: undefined }, totalHouses: Number, labelPrefix: String, startNumber: Number },
       },
       hospitals: [{ name: { type: String, required: true }, phone: { type: String, required: true }, address: String, distanceKm: Number, open24x7: { type: Boolean, default: true } }],

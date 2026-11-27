@@ -9,15 +9,6 @@ import { objectId } from '../../common/validators/common';
 import { Resident } from '../resident/resident.model';
 import { Flat, Society, Tower } from './society.model';
 
-/**
- * Property directory for the resident's "Add property" flow:
- * Country → City → Society (searchable) → Tower (if any) → Flat → Owner / Tenant → request.
- *
- * Any signed-in resident can browse it — including one with no approved property yet — but it only
- * exposes ACTIVE societies and structural data (names, labels). It never reveals who lives where:
- * a flat only says whether it already has a registered owner, so an owner request can be refused
- * up front instead of after submission.
- */
 export const societyDirectoryRouter = new ModuleRouter('/api/v1/auth/societies/directory', {
   tag: 'Resident - Property directory',
   tagDescription: 'Browse countries, cities, societies, towers and flats to request access to a property',
@@ -43,7 +34,6 @@ const flatItem = z.object({ id: objectId, label: z.string(), unitNumber: z.strin
 
 const societyParam = z.object({ id: objectId });
 
-/** The society must be ACTIVE; never reveal the structure of any other society. */
 async function activeSocietyOr404(id: string) {
   const soc: any = await Society.findOne({ _id: id, status: 'ACTIVE' }).select('name propertyType').lean();
   if (!soc) throw ApiError.notFound('Society not found');

@@ -75,7 +75,6 @@ export const EmergencyContact = defineModel(
       phone: { type: String, required: true },
       notes: String,
       order: { type: Number, default: 0 },
-      // The society admin chooses who sees each number (older documents without flags stay visible).
       visibleToResidents: { type: Boolean, default: true },
       visibleToGuards: { type: Boolean, default: true },
     },
@@ -83,17 +82,11 @@ export const EmergencyContact = defineModel(
   ),
 );
 
-/**
- * One document per (society, resident), `_id = "<societyId>:<userId>"`. `lastAlarmAt` is claimed
- * atomically so accidental double taps cannot raise duplicate alarms. Keying by _id needs no extra
- * index (autoIndex is off in production).
- */
 export const EmergencyAlarmLock = defineModel(
   'EmergencyAlarmLock',
   makeSchema({ _id: { type: String }, userId: ref('User'), lastAlarmAt: Date }, { softDelete: false, audited: false }),
 );
 
-/** Free-text emergency messages from residents to the guards or the society admins. */
 export const EmergencyStaffMessage = defineModel(
   'EmergencyStaffMessage',
   makeSchema(

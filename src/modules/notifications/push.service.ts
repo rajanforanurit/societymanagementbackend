@@ -1,21 +1,3 @@
-/**
- * Push delivery for Habito Living.
- *
- * Two transports, no third-party SDK:
- *
- *  - **FCM HTTP v1** for Android (and iOS when APNs is not configured, in
- *    which case the APNs key is uploaded to Firebase — see
- *    docs/PUSH_NOTIFICATIONS.md).
- *  - **APNs HTTP/2** direct for iOS when `APNS_*` is configured.
- *
- * Both are fire-and-forget with a hard per-token timeout. Failures never
- * reject `notifyUsers`; a token that the provider reports as unregistered is
- * deleted so dead devices stop receiving retries.
- *
- * When credentials are absent this module is a no-op that logs once. The API
- * surface is identical either way, so shipping to production never depends on
- * the environment happening to be configured first.
- */
 import { createPrivateKey, createSign, createHash } from 'node:crypto';
 import https from 'node:https';
 import http2 from 'node:http2';
@@ -27,17 +9,11 @@ import { PushToken } from './push-token.model';
 export interface PushMessage {
   title: string;
   body: string;
-  /** String-map payload the app routes on (e.g. `route`, `entityId`). */
   data?: Record<string, unknown>;
-  /** Android notification channel; defaults to habito_general. Emergencies use habito_emergency. */
   channelId?: string;
-  /** Time-critical (visitor at the gate): max Android priority, public on the lock screen, iOS time-sensitive, short TTL. */
   urgent?: boolean;
-  /** Data-only: no system notification; the app's background handler renders it (needed for a full-screen call-style card). */
   dataOnly?: boolean;
-  /** Silent update (e.g. visitor decided elsewhere) so the app can dismiss a stale card. Implies dataOnly. */
   silent?: boolean;
-  /** Seconds the push stays deliverable. Defaults to 60 for urgent, otherwise provider default. */
   ttlSeconds?: number;
 }
 
@@ -45,7 +21,6 @@ export interface PushResult {
   attempted: number;
   delivered: number;
   failed: number;
-  /** Tokens dropped because the provider says the device is gone. */
   purged: number;
   skipped: boolean;
 }
@@ -67,11 +42,9 @@ function warnOnce() {
   });
 }
 
-// --------------------------------------------------------------- FCM auth
-
 interface FcmTokenCache {
   accessToken: string;
-  expiresAt: number; // epoch seconds
+  expiresAt: number;
 }
 let fcmCache: FcmTokenCache | null = null;
 
@@ -83,7 +56,6 @@ function base64url(input: string | Buffer): string {
     .replace(/\//g, '_');
 }
 
-/** Mint (and cache) an OAuth access token for FCM from the service account. */
 async function fcmAccessToken(): Promise<string> {
   const { clientEmail, privateKey } = pushConfig.fcm;
   const now = Math.floor(Date.now() / 1000);
@@ -122,11 +94,8 @@ async function fcmAccessToken(): Promise<string> {
   return fcmCache.accessToken;
 }
 
-// ------------------------------------------------------------- transports
-
 interface SendOutcome {
   ok: boolean;
-  /** Provider says the token is permanently gone; drop it. */
   unregistered?: boolean;
   provider?: string;
   status?: number;
@@ -138,7 +107,6 @@ function buildFcmMessage(token: string, msg: PushMessage, data: Record<string, s
   const dataOnly = silent || !!msg.dataOnly;
   const ttl = msg.ttlSeconds ?? (msg.urgent ? 60 : undefined);
   const channel = msg.channelId ?? (msg.urgent ? 'habito_visitor' : 'habito_general');
-  // Always carry title/body in data so a data-only handler can draw the card.
   const payloadData = dataOnly ? { ...data, title: msg.title, body: msg.body } : data;
   const android: Record<string, unknown> = { priority: 'high' };
   if (ttl) android.ttl = `${ttl}s`;
@@ -196,8 +164,6 @@ async function sendFcm(token: string, msg: PushMessage): Promise<SendOutcome> {
   }
 }
 
-/** Apple .p8 is a PKCS#8 EC key on P-256; jsonwebtoken signs ES256 fine but we
- *  do it manually so this file has no extra dependency semantics. */
 let apnsJwtCache: { jwt: string; iat: number } | null = null;
 function apnsJwt(): string {
   const { teamId, keyId, privateKey } = pushConfig.apns;
@@ -269,7 +235,6 @@ function sendApns(token: string, msg: PushMessage): Promise<SendOutcome> {
           try {
             reason = (JSON.parse(body) as { reason?: string }).reason;
           } catch {
-            /* keep undefined */
           }
           if (status === 410 || status === 400 || reason === 'Unregistered' || reason === 'BadDeviceToken' || reason === 'DeviceTokenNotForTopic') {
             resolve({ ok: false, unregistered: true, provider: 'apns', status, error: reason });
@@ -293,15 +258,6 @@ function sendApns(token: string, msg: PushMessage): Promise<SendOutcome> {
   });
 }
 
-// ------------------------------------------------------------- dispatch
-
-/**
- * Sends a push to every device registered for [userIds].
- *
- * Never throws. Returns counters; callers log and move on. When no transport
- * is configured the call is a logged no-op so behaviour is identical across
- * environments.
- */
 export async function sendPushToUsers(
   userIds: string[],
   msg: PushMessage,
@@ -344,8 +300,6 @@ export async function sendPushToUsers(
     else failed++;
   }
 
-  // Delete the dead tokens so future registrations stay healthy. Match by the
-  // offending token, not by provider — a token is globally unique.
   const deadTokens: string[] = [];
   results.forEach((r, i) => {
     if (r.status === 'fulfilled' && r.value.unregistered) {
@@ -374,14 +328,12 @@ export async function sendPushToUsers(
   };
 }
 
-/** Test helper — not wired to any route. */
 export function pushHealth() {
   return {
     fcmEnabled: pushConfig.fcmEnabled,
     apnsEnabled: pushConfig.apnsEnabled,
     iosVia: pushConfig.iosVia,
     strict: pushConfig.strict,
-    // Never leak key material; only shape info.
     fcmProjectId: pushConfig.fcm.projectId ? createHash('sha256').update(pushConfig.fcm.projectId).digest('hex').slice(0, 8) : null,
   };
 }

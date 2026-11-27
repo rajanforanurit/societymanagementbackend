@@ -52,8 +52,6 @@ export const VisitorInvitation = defineModel(
       usedEntries: { type: Number, default: 0 },
       code: { type: String, required: true },
       status: { type: String, enum: vals(InvitationStatus), default: 'ACTIVE', index: true },
-      // VISIT: a one-off / scheduled invitation. GATE_PASS: a standing 30-day pass for family and
-      // frequent visitors (father, mother, siblings ...), unlimited entries while valid.
       kind: { type: String, enum: ['VISIT', 'GATE_PASS'], default: 'VISIT', index: true },
       relation: { type: String, trim: true, maxlength: 40 },
     },

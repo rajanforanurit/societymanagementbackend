@@ -14,13 +14,11 @@ import { GATE_PASS_DAYS } from './visitor.schema';
 const qrFor = (invId: string) => `${invId}.${hmac(`inv:${invId}`).slice(0, 24)}`;
 const policyOf = async (societyId: string) => ((await Society.findById(societyId).select('settings.visitorPolicy')) as any)?.settings?.visitorPolicy ?? {};
 
-/** Set VISITOR_PUSH_DATA_ONLY=true once the resident app renders its own full-screen card from a data message. */
 const DATA_ONLY = process.env.VISITOR_PUSH_DATA_ONLY === 'true';
 
 const guardUserIds = async (societyId: string): Promise<string[]> =>
   ((await Guard.find({ societyId, status: 'ACTIVE' }).select('userId')) as any[]).map((g) => String(g.userId));
 
-/** Payload the resident app uses to draw the approval card (lock screen, sleeping, or in-app). */
 const approvalData = (v: any, requiresApproval: boolean) => ({
   kind: 'VISITOR_APPROVAL',
   visitorId: String(v._id),
@@ -33,13 +31,11 @@ const approvalData = (v: any, requiresApproval: boolean) => ({
   requestedAt: (v.requestedAt ?? new Date()).toISOString?.() ?? String(v.requestedAt),
 });
 
-/** Tell every other device of the flat that the card is no longer actionable. */
 const dismissApproval = async (societyId: string, v: any, decision: string) => {
   const userIds = await residentUserIdsOfFlat(societyId, String(v.flatId));
   await notifyUsers({ societyId, userIds, type: NotificationType.VISITOR, title: 'Visitor resolved', body: decision, data: { kind: 'VISITOR_RESOLVED', visitorId: String(v._id), decision }, skipInbox: true, push: { silent: true } });
 };
 
-/** Push + socket to every on-duty guard (the decision came back from the flat). */
 const tellGuards = async (societyId: string, v: any, title: string, body: string, event: string, extra: Record<string, unknown> = {}) => {
   const userIds = await guardUserIds(societyId);
   await notifyUsers({ societyId, userIds, type: NotificationType.VISITOR, title, body, data: { visitorId: String(v._id), flatLabel: v.flatLabel, ...extra }, event, push: { urgent: true } });
@@ -238,12 +234,10 @@ export const visitorService = {
   invitationView(inv: any) {
     const j = inv.toJSON();
     j.qrToken = qrFor(String(inv._id));
-    // Expiry is swept by a job every minute; report it immediately in between.
     if (j.status === 'ACTIVE' && new Date(j.validTo) < new Date()) j.status = 'EXPIRED';
     return j;
   },
 
-  /** Why a code / QR is not usable: gives the guard a precise reason instead of "not found". */
   async explainInactive(societyId: string, match: Record<string, unknown>) {
     const old: any = await VisitorInvitation.findOne({ societyId, ...match }).sort({ updatedAt: -1 });
     if (!old) return;
@@ -252,13 +246,6 @@ export const visitorService = {
     if (old.status === 'EXHAUSTED') throw ApiError.conflict('Pass has no remaining entries', 'PASS_EXHAUSTED');
   },
 
-  // ------------------------------------------------------------ gate passes
-
-  /**
-   * Create a 30-day gate pass (unique 6-digit code + signed QR token, both linked to the same pass).
-   * If the flat already has a valid pass for the same person (same mobile, or same name when no
-   * mobile is given), that pass is returned with reused=true instead of creating a duplicate.
-   */
   async createGatePass(a: { societyId: string; userId: string; residents: { flatId: string }[] }, body: any) {
     const res = body.flatId ? a.residents.find((r) => r.flatId === body.flatId) : a.residents[0];
     if (!res) throw ApiError.forbidden('You do not belong to this flat', 'FLAT_FORBIDDEN');
@@ -287,7 +274,7 @@ export const visitorService = {
           purpose: body.relation ? `Gate pass · ${body.relation}` : 'Gate pass',
           validFrom: now,
           validTo,
-          maxEntries: 0, // unlimited while valid
+          maxEntries: 0,
           code: randomDigits(6),
           createdBy: a.userId,
         });
@@ -309,14 +296,12 @@ export const visitorService = {
     return { ...r, items: r.items.map((i: any) => visitorService.invitationView(i)) };
   },
 
-  /** Any resident of the flat can revoke a gate pass (family members share them). */
   async revokeGatePass(societyId: string, flatIds: string[], userId: string, id: string) {
     const r = await VisitorInvitation.findOneAndUpdate({ _id: id, societyId, flatId: { $in: flatIds }, kind: 'GATE_PASS', status: 'ACTIVE' }, { $set: { status: 'CANCELLED', updatedBy: userId } }, { new: true });
     if (!r) throw ApiError.notFound('Active gate pass not found');
     return visitorService.invitationView(r);
   },
 
-  /** Job: mark every pass whose validity has ended as EXPIRED (QR and code stop working together). */
   async expireInvitations() {
     const r = await VisitorInvitation.updateMany({ status: 'ACTIVE', validTo: { $lt: new Date() } }, { $set: { status: 'EXPIRED' } }).setOptions({ skipTenantCheck: true });
     return r.modifiedCount;

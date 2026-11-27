@@ -11,6 +11,7 @@ import * as s from './community.schema';
 import { directory, noticeExtra, noticeService, pollExtra, pollService, postService, shapePoll } from './community.service';
 
 const sid = (r: Request) => r.auth.societyId!;
+const likeItem = z.object({ liked: z.boolean(), likeCount: z.number().int() });
 
 export const communityAdminRouter = new ModuleRouter('/api/v1/admin', {
   tag: 'Society Admin - Communication',
@@ -29,6 +30,7 @@ communityAdminRouter
   .add({ method: 'post', path: '/polls/:id/close', summary: 'Close voting', permissions: [P.POLL_MANAGE], params: idParam, response: s.pollItem, status: 200, errors: [409], handler: async (req: Request, res: Response) => ok(res, shapePoll(await pollExtra.setStatus(sid(req), req.auth.userId, req.valid.params.id, 'CLOSED')), 'Poll closed') })
   .add({ method: 'get', path: '/polls/:id/results', summary: 'Aggregated poll / election results', permissions: [P.POLL_MANAGE], params: idParam, response: s.pollResults, handler: async (req: Request, res: Response) => ok(res, await pollExtra.results(sid(req), req.valid.params.id)) })
   .add({ method: 'get', path: '/community-posts/:id', summary: 'Full community post with author details (for review)', permissions: [P.APPROVAL_REVIEW], params: idParam, response: s.postItem, handler: async (req: Request, res: Response) => ok(res, await postService.adminGet(sid(req), req.valid.params.id)) })
+  .add({ method: 'post', path: '/community-posts/:id/remove', summary: 'Take a community post out of the feed', description: 'A post still awaiting review is rejected; a published post is removed. Both go through the approval workflow and notify the author.', permissions: [P.APPROVAL_REVIEW], params: idParam, body: z.object({ reason: z.string().trim().min(3).max(1000).optional() }), response: s.postItem, status: 200, errors: [404, 409], handler: async (req: Request, res: Response) => ok(res, await postService.adminRemove(sid(req), req.auth.userId, req.valid.params.id, req.valid.body?.reason), 'Post removed') })
   .add({ method: 'get', path: '/community-posts', summary: 'Community posts in every status (moderation view)', description: 'Approve/reject via /api/v1/admin/approvals.', permissions: [P.APPROVAL_REVIEW], query: s.postQuery, response: s.postItem, paginated: true, handler: async (req: Request, res: Response) => paged(res, await postService.adminList(sid(req), req.valid.query)) });
 
 export const communityResidentRouter = new ModuleRouter('/api/v1/user', {
@@ -42,21 +44,17 @@ communityResidentRouter
   .add({ method: 'get', path: '/notices/:id', summary: 'Get notice', params: idParam, response: s.noticeItem, handler: async (req: Request, res: Response) => ok(res, await noticeExtra.getForResident(sid(req), req.auth.flatIds, req.valid.params.id)) })
   .add({ method: 'get', path: '/directory', summary: 'Resident directory (name and flat only)', description: 'Phone numbers and other personal data are not exposed; use in-app chat.', query: s.directoryQuery, response: s.directoryItem, paginated: true, handler: async (req: Request, res: Response) => paged(res, await directory(sid(req), req.valid.query)) })
   .add({ method: 'post', path: '/community/posts', summary: 'Create a community post draft', body: s.postBody, response: s.postItem, status: 201, handler: async (req: Request, res: Response) => created(res, await postService.create(sid(req), req.auth.userId, req.auth.flatIds, req.valid.body), 'Draft created') })
-  .add({ method: 'get', path: '/community/posts', summary: 'Community feed (approved posts only)', query: listQuery, response: s.postItem, paginated: true, handler: async (req: Request, res: Response) => paged(res, await postService.feed(sid(req), req.valid.query, req.auth.userId)) })
-  .add({ method: 'get', path: '/community/posts/mine', summary: 'My posts in every status', query: s.postQuery, response: s.postItem, paginated: true, handler: async (req: Request, res: Response) => paged(res, await postService.mine(sid(req), req.auth.userId, req.valid.query)) })
+  .add({ method: 'get', path: '/community/posts', summary: 'Community feed: approved posts from every resident of my society', description: 'Only APPROVED / PUBLISHED posts of the active society. Pending, rejected and draft posts never appear here; the author sees them in /community/posts/mine.', query: listQuery, response: s.postItem, paginated: true, handler: async (req: Request, res: Response) => paged(res, await postService.feed(sid(req), req.valid.query, req.auth.userId)) })
+  .add({ method: 'get', path: '/community/posts/mine', summary: 'My post history in every status', query: s.postQuery, response: s.postItem, paginated: true, handler: async (req: Request, res: Response) => paged(res, await postService.mine(sid(req), req.auth.userId, req.valid.query)) })
+  .add({ method: 'get', path: '/community/posts/:id', summary: 'One community post (approved, or my own)', params: idParam, response: s.postItem, errors: [404], handler: async (req: Request, res: Response) => ok(res, await postService.get(sid(req), req.auth.userId, req.valid.params.id)) })
+  .add({ method: 'post', path: '/community/posts/:id/view', summary: 'Record that I viewed a post', description: 'Counted once per resident; the author\'s own views are not counted.', params: idParam, response: s.postViewItem, status: 200, errors: [404], handler: async (req: Request, res: Response) => ok(res, await postService.view(sid(req), req.auth.userId, req.valid.params.id)) })
   .add({ method: 'patch', path: '/community/posts/:id', summary: 'Edit my draft post', params: idParam, body: s.postUpdateBody, response: s.postItem, errors: [409], handler: async (req: Request, res: Response) => ok(res, await postService.update(sid(req), req.auth.userId, req.valid.params.id, req.valid.body), 'Updated') })
   .add({ method: 'post', path: '/community/posts/:id/submit', summary: 'Submit post for approval', params: idParam, response: s.postItem, status: 200, errors: [409], handler: async (req: Request, res: Response) => ok(res, await postService.submit(sid(req), req.auth.userId, req.valid.params.id), 'Submitted') })
   .add({ method: 'post', path: '/community/posts/:id/withdraw', summary: 'Withdraw post to draft', params: idParam, response: s.postItem, status: 200, errors: [409], handler: async (req: Request, res: Response) => ok(res, await postService.withdraw(sid(req), req.auth.userId, req.valid.params.id), 'Withdrawn') })
   .add({ method: 'get', path: '/community/posts/:id/comments', summary: 'Comments on a post', params: idParam, query: listQuery, response: s.commentItem, paginated: true, handler: async (req: Request, res: Response) => paged(res, await postService.comments(sid(req), req.valid.params.id, req.valid.query)) })
-  .add({ method: 'post', path: '/community/posts/:id/comments', summary: 'Comment on a post', params: idParam, body: s.commentBody, response: s.commentItem, status: 201, handler: async (req: Request, res: Response) => created(res, await postService.comment(sid(req), req.auth.userId, req.valid.params.id, req.valid.body.text), 'Comment added') })
-  .add({ method: 'put', path: '/community/posts/:id/like', summary: 'Like a post', params: idParam, response: null, handler: async (req: Request, res: Response) => {
-    await postService.like(sid(req), req.auth.userId, req.valid.params.id, true);
-    ok(res, null, 'Liked');
-  } })
-  .add({ method: 'delete', path: '/community/posts/:id/like', summary: 'Remove like', params: idParam, response: null, handler: async (req: Request, res: Response) => {
-    await postService.like(sid(req), req.auth.userId, req.valid.params.id, false);
-    ok(res, null, 'Like removed');
-  } });
+  .add({ method: 'post', path: '/community/posts/:id/comments', summary: 'Comment on a post, or reply to a comment (parentId)', params: idParam, body: s.commentBody, response: s.commentItem, status: 201, errors: [404], handler: async (req: Request, res: Response) => created(res, await postService.comment(sid(req), req.auth.userId, req.valid.params.id, req.valid.body.text, req.valid.body.parentId), req.valid.body.parentId ? 'Reply added' : 'Comment added') })
+  .add({ method: 'put', path: '/community/posts/:id/like', summary: 'Like a post', params: idParam, response: likeItem, handler: async (req: Request, res: Response) => ok(res, await postService.like(sid(req), req.auth.userId, req.valid.params.id, true), 'Liked') })
+  .add({ method: 'delete', path: '/community/posts/:id/like', summary: 'Remove like', params: idParam, response: likeItem, handler: async (req: Request, res: Response) => ok(res, await postService.like(sid(req), req.auth.userId, req.valid.params.id, false), 'Like removed') });
 
 export const pollResidentRouter = new ModuleRouter('/api/v1/user/polls', { tag: 'Resident - Community', roles: [UserType.RESIDENT], societyScoped: true, feature: 'polls' });
 pollResidentRouter

@@ -3,11 +3,6 @@ import { oid } from '../../common/utils/objectId';
 import { LoginHistory } from '../auth/auth.model';
 import { ErrorLog } from '../super-admin/super-admin.model';
 
-/**
- * Society-scoped platform monitoring. Every query is pinned to the authenticated admin's
- * societyId on the server. Only authentication data is exposed (login history, 401/403/429).
- * Server errors (5xx), stack traces and infrastructure health stay in the Super Admin portal.
- */
 const populateUser = { path: 'userId', select: 'name userType' };
 const AUTH_STATUSES = [401, 403, 429];
 

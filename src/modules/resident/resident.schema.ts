@@ -9,7 +9,6 @@ export const verificationDoc = z.object({ type: z.string().trim().min(2).max(50)
 export const societyRequestBody = z.object({
   societyId: objectId,
   flatId: objectId,
-  /** The resident app asks for OWNER or TENANT; FAMILY_MEMBER / AUTHORIZED_OCCUPANT remain accepted for existing clients. */
   residentType: z.enum(vals(ResidentType)),
   relationToPrimary: z.string().max(50).optional(),
   documents: z.array(verificationDoc).max(10).default([]),
@@ -31,14 +30,12 @@ export const residentItem = entity({
   flat: z.object({ id: objectId, label: z.string() }).optional(),
   tower: z.object({ id: objectId, name: z.string() }).optional(),
   society: z.object({ id: objectId, name: z.string(), city: z.string().optional(), address: z.object({ line1: z.string().optional(), line2: z.string().optional(), city: z.string().optional(), state: z.string().optional(), pincode: z.string().optional(), country: z.string().optional() }).optional() }).optional(),
-  /** Tenants / family members: the flat's registered owner. */
   ownerResidentId: objectId.optional(),
   owner: z.object({ residentId: objectId, name: z.string(), mobile: z.string().optional() }).optional(),
   createdAt: dateTime.optional(),
   approvedAt: dateTime.optional(),
 });
 
-/** An approved tenant of a flat the signed-in resident owns (owner's Profile → Tenants). */
 export const tenantItem = z.object({
   residentId: objectId,
   userId: objectId,

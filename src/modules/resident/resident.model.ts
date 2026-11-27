@@ -3,7 +3,6 @@ import { Schema } from 'mongoose';
 import { ResidentStatus, ResidentType, vals } from '../../common/constants/enums';
 import { defineModel, makeSchema, ref, refReq } from '../../common/models/makeSchema';
 
-// `type` field caveat — see payment.model.ts invoiceLineItemSchema.
 const verificationDocSchema = new Schema(
   {
     type: { $type: String, required: true },
@@ -22,8 +21,6 @@ export const Resident = defineModel(
       residentType: { type: String, enum: vals(ResidentType), required: true },
       status: { type: String, enum: vals(ResidentStatus), default: 'PENDING', index: true },
       isPrimary: { type: Boolean, default: false },
-      // For TENANT / FAMILY_MEMBER: the approved OWNER residency of the same flat. Kept in sync by
-      // syncOwnerLinks() whenever an owner or tenant of the flat is approved, deactivated or moves out.
       ownerResidentId: ref('Resident', { index: true }),
       relationToPrimary: String,
       verificationDocs: { type: [verificationDocSchema], default: [] },

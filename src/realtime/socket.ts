@@ -54,7 +54,6 @@ export const initSocket = (server: HttpServer) => {
 
 type SignalHandler = (c: { societyId: string; userId: string }, i: { callId: string; type: string; data: unknown }) => Promise<boolean>;
 let signalHandler: SignalHandler | undefined;
-/** The calls module registers its WebRTC signaling relay here (avoids a circular import). */
 export const registerCallSignalHandler = (h: SignalHandler) => {
   signalHandler = h;
 };

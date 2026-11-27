@@ -2,6 +2,7 @@ import { Request, Response } from 'express';
 import { ApprovalStatus } from '../../common/constants/enums';
 import { ok, paged } from '../../common/responses/respond';
 import { createCrudService } from '../../common/services/crud.service';
+import { User } from '../auth/auth.model';
 import { ApprovalRequest } from './approval.model';
 import { applyTransition, getApproval } from './approval.service';
 
@@ -14,7 +15,13 @@ const act = (to: ApprovalStatus, message: string) => async (req: Request, res: R
 };
 
 export const approvalController = {
-  list: async (req: Request, res: Response) => paged(res, await svc.list(req.auth.societyId!, req.valid.query)),
+  list: async (req: Request, res: Response) => {
+    const r = await svc.list(req.auth.societyId!, req.valid.query);
+    const items = r.items.map((i: any) => i.toJSON());
+    const users: any[] = items.length ? await User.find({ _id: { $in: [...new Set(items.map((i: any) => String(i.submittedBy)))] } }).select('name') : [];
+    const names = new Map(users.map((u) => [String(u._id), u.name]));
+    paged(res, { ...r, items: items.map((i: any) => ({ ...i, submittedByName: names.get(String(i.submittedBy)) })) });
+  },
   get: async (req: Request, res: Response) => ok(res, await getApproval(req.auth.societyId!, req.valid.params.id)),
   startReview: act('UNDER_REVIEW', 'Review started'),
   approve: act('APPROVED', 'Approved'),

@@ -21,7 +21,6 @@ export interface Caller {
   gateId?: string;
 }
 
-/** Who may call whom (all inside one society). */
 const ALLOWED: Record<Role, Role[]> = {
   RESIDENT: ['GUARD', 'SOCIETY_ADMIN'],
   GUARD: ['SOCIETY_ADMIN', 'RESIDENT'],
@@ -31,7 +30,6 @@ const MAX_CALL_MS = 2 * 3600 * 1000;
 const ringMs = () => env.CALL_RING_SECONDS * 1000;
 const ids = (c: any) => [String(c.callerId), String(c.calleeId)];
 
-/** STUN + (optional) TURN with coturn-style time-limited credentials. */
 export function iceServers(userId: string) {
   const split = (v: string) => v.split(',').map((s) => s.trim()).filter(Boolean);
   const servers: { urls: string[]; username?: string; credential?: string }[] = [];
@@ -45,7 +43,6 @@ export function iceServers(userId: string) {
   return { iceServers: servers, ringSeconds: env.CALL_RING_SECONDS, expiresInSeconds: env.TURN_TTL_SECONDS };
 }
 
-/** Is `userId` an active member of the society with this role? Returns a display label, or null. */
 async function membership(societyId: string, userId: string, role: Role): Promise<{ label?: string } | null> {
   if (role === 'GUARD') {
     const g: any = await Guard.findOne({ societyId, userId, status: ProfileStatus.ACTIVE });
@@ -64,7 +61,6 @@ async function membership(societyId: string, userId: string, role: Role): Promis
 }
 
 export const callService = {
-  /** Directory of people this user may call. Residents and guards only ever see name + flat/gate/designation, never phone numbers. */
   async contacts(c: Caller, q: { role?: Role; search?: string; limit: number }) {
     const want = ALLOWED[c.role].filter((r) => !q.role || r === q.role);
     const out: { userId: string; name: string; role: Role; label?: string }[] = [];
@@ -102,7 +98,6 @@ export const callService = {
   async start(c: Caller, calleeId: string) {
     if (calleeId === c.userId) throw ApiError.badRequest('You cannot call yourself', 'CALL_SELF');
     const callee: any = await User.findById(calleeId).select('name userType isActive');
-    // Same answer for "no such user" and "other society": never reveal who exists elsewhere.
     if (!callee || !callee.isActive || !ALLOWED[c.role].includes(callee.userType)) throw ApiError.forbidden('You cannot call this person', 'CALL_NOT_ALLOWED');
     const calleeMember = await membership(c.societyId, calleeId, callee.userType);
     if (!calleeMember) throw ApiError.forbidden('You cannot call this person', 'CALL_NOT_ALLOWED');
@@ -122,7 +117,6 @@ export const callService = {
     const call: any = await Call.create({ societyId: c.societyId, callerId: c.userId, calleeId, callerRole: c.role, calleeRole: callee.userType, callerName: me?.name, callerLabel: callerMember?.label, calleeName: callee.name, calleeLabel: calleeMember.label });
     const payload = { callId: String(call._id), callerId: c.userId, callerName: me?.name, callerRole: c.role, callerLabel: callerMember?.label, societyId: c.societyId, ringSeconds: env.CALL_RING_SECONDS };
     realtime.toUser(calleeId, 'call:incoming', payload);
-    // Push so a closed / background app can ring (the app turns this into a full-screen call UI).
     await notifyUsers({ societyId: c.societyId, userIds: [calleeId], type: NotificationType.CALL, title: `Incoming call from ${me?.name ?? 'someone'}`, body: callerMember?.label ? `${c.role === 'RESIDENT' ? 'Flat' : c.role === 'GUARD' ? 'Gate' : ''} ${callerMember.label}`.trim() : 'Tap to answer', data: { ...payload, kind: 'incoming_call' } });
     setTimeout(() => void callService.expireOne(String(call._id)), ringMs() + 1000).unref();
     return call;
@@ -144,15 +138,14 @@ export const callService = {
     }
     if (to === 'CANCELLED' && (!isCaller || from !== 'RINGING')) throw ApiError.conflict('Only the caller can cancel a ringing call', 'CALL_NOT_RINGING');
     if (to === 'ENDED' && from !== 'ACCEPTED') {
-      // "End" on a ringing call means cancel (caller) or reject (callee).
       if (from === 'RINGING') return callService.transition(c, id, isCaller ? 'CANCELLED' : 'REJECTED');
-      return call; // already finished: ending twice is harmless
+      return call;
     }
     const set: Record<string, unknown> = { status: to };
     if (to === 'ACCEPTED') set.answeredAt = new Date();
     else Object.assign(set, { endedAt: new Date(), endedBy: c.userId, endReason: to.toLowerCase() });
     const updated: any = await Call.findOneAndUpdate({ _id: id, societyId: c.societyId, status: from }, { $set: set }, { new: true });
-    if (!updated) return callService.load(c, id); // lost a race; return current state
+    if (!updated) return callService.load(c, id);
     const evt = { ACCEPTED: 'call:accepted', REJECTED: 'call:rejected', CANCELLED: 'call:cancelled', ENDED: 'call:ended' }[to];
     ids(updated).forEach((uid) => realtime.toUser(uid, evt, { callId: id, status: to, byUserId: c.userId }));
     return updated;
@@ -165,7 +158,6 @@ export const callService = {
     await notifyUsers({ societyId: String(call.societyId), userIds: [call.calleeId], type: NotificationType.CALL, title: 'Missed call', body: `${call.callerName ?? 'Someone'} called you`, data: { callId: id, kind: 'missed_call' } });
   },
 
-  /** Safety net for ring timers lost on a restart, and calls whose app crashed before ending them. */
   async sweep() {
     const ringing: any[] = await Call.find({ status: 'RINGING', createdAt: { $lt: new Date(Date.now() - ringMs()) } }).setOptions({ skipTenantCheck: true }).select('_id').limit(200);
     for (const r of ringing) await callService.expireOne(String(r._id));
@@ -178,7 +170,6 @@ export const callService = {
     return paginate(Call, applyListFilters(f, q), q, { sortable: ['createdAt'] });
   },
 
-  /** Relay a WebRTC offer / answer / ICE candidate to the other participant of an active call. */
   async relaySignal(c: { societyId: string; userId: string }, input: { callId: string; type: string; data: unknown }) {
     const call: any = await Call.findOne({ _id: input.callId, societyId: c.societyId, status: { $in: ['RINGING', 'ACCEPTED'] }, $or: [{ callerId: c.userId }, { calleeId: c.userId }] }).select('callerId calleeId');
     if (!call) return false;
@@ -188,6 +179,5 @@ export const callService = {
     return true;
   },
 };
-
 
 registerCallSignalHandler((c, i) => callService.relaySignal(c, i));

@@ -8,9 +8,6 @@ const contactCategory = z.string().trim().min(2).max(40).transform((v) => v.toUp
 
 const eType = z.enum(vals(EmergencyType));
 export const panicBody = z.object({ type: eType.default('PANIC'), flatId: objectId.optional(), message: z.string().max(300).optional(), location: z.string().max(200).optional() });
-// One-tap alarm. The app shows a single "Are you sure?" dialog and sends confirm=true on Yes.
-// No PIN / digits: residents use this in a panic. The resident must still be signed in, and the
-// backend ignores any flat that is not theirs and blocks accidental duplicates.
 export const alarmBody = z.object({
   flat: z.string().trim().min(1).max(40).optional(),
   flatId: objectId.optional(),
@@ -65,8 +62,6 @@ export const contactBody = z.object({
   visibleToResidents: z.boolean().default(true),
   visibleToGuards: z.boolean().default(true),
 });
-// Explicit update schema: .partial() of contactBody would re-apply defaults and reset category /
-// order / visibility whenever only the phone number is edited.
 export const contactUpdate = z.object({ name: contactBody.shape.name, category: contactCategory, phone: contactBody.shape.phone, notes: z.string().max(300), order: z.number().int(), visibleToResidents: z.boolean(), visibleToGuards: z.boolean() }).partial();
 export const contactCategoryItem = z.object({ category: z.string(), count: z.number().int() });
 export const contactItem = entity({ scope: z.enum(['SOCIETY', 'PERSONAL']), name: z.string(), category: z.string(), phone: z.string(), notes: z.string().optional(), order: z.number().int(), visibleToResidents: z.boolean().optional(), visibleToGuards: z.boolean().optional() });

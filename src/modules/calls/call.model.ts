@@ -2,10 +2,6 @@ import { defineModel, makeSchema, ref, refReq } from '../../common/models/makeSc
 
 export const CALL_STATUSES = ['RINGING', 'ACCEPTED', 'REJECTED', 'CANCELLED', 'MISSED', 'ENDED'] as const;
 
-/**
- * One document per call attempt. Audio itself travels peer-to-peer over WebRTC (via STUN/TURN);
- * this record only tracks who called whom and the call state. Signaling goes over Socket.IO.
- */
 export const Call = defineModel(
   'Call',
   makeSchema(
@@ -15,7 +11,7 @@ export const Call = defineModel(
       callerRole: { type: String, required: true },
       calleeRole: { type: String, required: true },
       callerName: String,
-      callerLabel: String, // flat for residents, gate for guards, designation for admins
+      callerLabel: String,
       calleeName: String,
       calleeLabel: String,
       status: { type: String, enum: CALL_STATUSES, default: 'RINGING', index: true },

@@ -2,9 +2,6 @@ import { Schema } from 'mongoose';
 import { CalcMethod, ChargeType, ExpenseCategory, Frequency, InvoiceStatus, PaymentMethod, PaymentStatus, vals } from '../../common/constants/enums';
 import { defineModel, makeSchema, ref, refReq } from '../../common/models/makeSchema';
 
-// A path literally named `type` inside an inline object literal is parsed by
-// Mongoose as a schema-type declaration (silently casting lineItems to [String]).
-// Declare the subdocument with typeKey: '$type' so `type` stays a real field.
 const invoiceLineItemSchema = new Schema(
   {
     chargeId: { $type: Schema.Types.ObjectId, ref: 'Charge' },

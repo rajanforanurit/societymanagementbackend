@@ -80,7 +80,7 @@ export async function applyTransition(type: ApprovalEntityType, entityId: string
   const result = outer ? await run(outer) : await withTransaction(run);
   const ownerId = String(result.doc[def.ownerField]);
   if (ownerId !== actor.userId && ['APPROVED', 'REJECTED', 'CHANGES_REQUESTED', 'SUSPENDED', 'REMOVED', 'PUBLISHED'].includes(to)) {
-    await notifyUsers({ societyId: actor.societyId, userIds: [ownerId], type: NotificationType.APPROVAL, title: `${def.label(result.doc)}: ${to.replace('_', ' ').toLowerCase()}`, body: opts.reason ?? `Your submission is now ${to.toLowerCase().replace('_', ' ')}.`, data: { entityType: type, entityId, status: to }, event: 'approval:updated' });
+    await notifyUsers({ societyId: actor.societyId, userIds: [ownerId], type: NotificationType.APPROVAL, title: `${def.label(result.doc)}: ${to.replace('_', ' ').toLowerCase()}`, body: opts.reason ?? `Your submission is now ${to.toLowerCase().replace('_', ' ')}.`, data: { entityType: type, entityId, status: to, ...(type === 'COMMUNITY_POST' ? { route: 'post-history' } : {}) }, event: 'approval:updated' });
   }
   if (result.chain) return applyTransition(type, entityId, 'PUBLISHED', actor, {}, outer);
   return (await def.model.findOne({ _id: entityId, societyId: actor.societyId })) as any;

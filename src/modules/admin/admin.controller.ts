@@ -23,7 +23,6 @@ const assertRoleGrantable = async (req: Request, roleId?: string, extra?: string
   assertCanGrant(req.auth.permissions, { rolePermissions: role?.permissions, extra });
 };
 
-/** A Super Admin can only give an administrator a role from that administrator's own society. */
 const assertRoleInAdminsSociety = async (adminProfileId: string, roleId?: string) => {
   if (!roleId) return;
   const p: any = await AdminProfile.findOne({ _id: adminProfileId }, null, { skipTenantCheck: true });
@@ -34,8 +33,6 @@ const assertRoleInAdminsSociety = async (adminProfileId: string, roleId?: string
 const populateUser = { path: 'userId', select: 'name mobile email lastLoginAt' };
 const populateRole = { path: 'roleId', select: 'name key' };
 const populateSociety = { path: 'societyId', select: 'name code status' };
-// userId / roleId / societyId come back as populated objects; expose them as user / role / society
-// next to the plain ids so every client can show names without a second request.
 const shape = (p: any) => {
   const j = p.toJSON();
   const lift = (key: string, as: string) => {

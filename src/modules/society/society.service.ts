@@ -18,7 +18,6 @@ import { Block, Flat, Floor, Gate, Society, Tower } from './society.model';
 import { applyLayout, assertLayoutNotShrinking, generateSocietyCode, houseNames, societyTypeFor, summarize } from './society.layout';
 import { AdminProfile } from '../admin/admin.model';
 
-/** Societies registered through the public form are PENDING and have no roles yet; make sure the role set exists. */
 async function ensureSocietyRoles(societyId: string, actorId: string, session?: any) {
   const existing: any = await Role.findOne({ societyId, key: 'COMMUNITY_ADMIN' }).session(session ?? null);
   if (existing) return existing;
@@ -38,16 +37,12 @@ async function welcomeAdmin(society: any, userId: string) {
   });
 }
 
-
-/** Property details with the derived totals filled in, so the stored summary always matches the layout. */
 const withTotals = (details: any, type: 'MULTIFAMILY' | 'SINGLE_FAMILY') => ({ ...details, ...summarize(details, type) });
 
 const isDuplicateCode = (e: any) => e?.code === 11000 && JSON.stringify(e.keyPattern ?? e.keyValue ?? {}).includes('code');
 
 export const societyAdminService = {
   async create(input: any, actorId: string) {
-    // The code embeds the creation date and the society's initials; a rare collision (two
-    // societies with the same initials on the same day) gets a numeric suffix, retried on a race.
     for (let attempt = 0; attempt < 5; attempt++) {
       try {
         const { society, adminUserId } = await withTransaction(async (session) => {
@@ -70,7 +65,6 @@ export const societyAdminService = {
     }
     throw ApiError.conflict('Could not generate a unique society code', 'CODE_EXISTS');
   },
-  /** Property details / layout and hospitals. Super Admin only; replaces the supplied part(s). */
   async setPropertyInfo(id: string, input: any, actorId: string) {
     const existing: any = await Society.findById(id);
     if (!existing) throw ApiError.notFound('Society not found');
@@ -80,7 +74,6 @@ export const societyAdminService = {
       const type = input.propertyType ?? existing.propertyType;
       const hasLayout = !!(input.propertyDetails.towers?.length || input.propertyDetails.singleFamily);
       if (!hasLayout) {
-        // Floor plans / description only: keep the stored layout and totals.
         const keep = existing.propertyDetails?.toObject?.() ?? existing.propertyDetails ?? {};
         set.propertyDetails = { ...keep, ...input.propertyDetails, towers: keep.towers, singleFamily: keep.singleFamily, totalTowers: keep.totalTowers, totalFloors: keep.totalFloors, totalUnits: keep.totalUnits };
       } else {
@@ -103,7 +96,6 @@ export const societyAdminService = {
     realtime.toSociety(id, 'society:property-info-changed', { societyId: id });
     return s;
   },
-  /** Everything the Super Admin needs on the "Administration" card of a society, from the saved records. */
   async administration(id: string) {
     const s: any = await Society.findById(id).select('name code status approvedAt approvedBy createdAt createdBy statusReason applicant');
     if (!s) throw ApiError.notFound('Society not found');
@@ -120,8 +112,6 @@ export const societyAdminService = {
   async list(query: any) {
     const filter: Record<string, any> = {};
     ['organizationId', 'type'].forEach((k) => query[k] && (filter[k] = query[k]));
-    // A society is Active or Inactive. INACTIVE covers every non-active society, including records
-    // left over from the retired registration workflow (PENDING / REJECTED) and SUSPENDED ones.
     if (query.status === SocietyStatus.ACTIVE) filter.status = SocietyStatus.ACTIVE;
     else if (query.status === SocietyStatus.INACTIVE) filter.status = { $ne: SocietyStatus.ACTIVE };
     return paginate(Society, applyListFilters(filter, query, ['name', 'code', 'address.city']), query, { sortable: ['name', 'createdAt', 'status'] });
@@ -204,7 +194,6 @@ export const societyMineService = {
     realtime.toSociety(societyId, 'society:updated', { societyId });
     return s;
   },
-  /** Read-only view of what the platform configured (floor plan + hospitals), for residents, guards and admins. */
   async propertyInfo(societyId: string) {
     const s: any = await Society.findById(societyId).select('name address contact propertyDetails hospitals');
     if (!s) throw ApiError.notFound('Society not found');

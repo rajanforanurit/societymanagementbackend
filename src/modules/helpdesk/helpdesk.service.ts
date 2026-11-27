@@ -37,7 +37,6 @@ export const helpdeskService = {
     changed(societyId, 'deleted', id);
     return doc;
   },
-  /** Contacts residents and guards may see (hidden entries stay admin-only). */
   async listVisible(societyId: string, query: Record<string, any>) {
     const r = await base.list(societyId, query, { isVisible: true });
     return { ...r, items: r.items.map((c: any) => ({ id: String(c._id), name: c.name, mobile: c.mobile, alternateMobile: c.alternateMobile, category: c.category, designation: c.designation, description: c.description, availability: c.availability })) };

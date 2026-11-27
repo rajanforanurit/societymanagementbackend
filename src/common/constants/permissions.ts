@@ -97,11 +97,6 @@ export const computePermissions = (rolePerms: string[] = [], extra: string[] = [
   return set;
 };
 
-/**
- * Permissions introduced after the first release. System roles already seeded into
- * existing societies carry a frozen copy of the template permissions, so
- * syncSystemRoles() (roles.sync.ts) grants these once. It only adds, never removes.
- */
 export const PERMISSION_GRANTS_V2: Record<string, PermissionKey[]> = {
   COMMUNITY_ADMIN: [P.HELPDESK_MANAGE, P.PLATFORM_READ],
   SOCIETY_MANAGER: [P.GUARD_MANAGE, P.SECURITY_MANAGE, P.EMERGENCY_MANAGE, P.HELPDESK_MANAGE],

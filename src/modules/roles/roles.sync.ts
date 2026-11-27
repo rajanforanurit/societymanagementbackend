@@ -6,12 +6,6 @@ import { ensureRoleTemplates } from './roles.service';
 
 const MARKER = 'migration:role-permissions-v2';
 
-/**
- * One-time, idempotent startup migration. Grants the V2 permissions (helpdesk, platform
- * monitoring, and security/guard/emergency for the Society Manager) to system roles that
- * already exist. Only ever ADDS permissions and records a marker, so later restarts never
- * re-grant something an admin removed.
- */
 export async function syncSystemRoles() {
   try {
     await ensureRoleTemplates();

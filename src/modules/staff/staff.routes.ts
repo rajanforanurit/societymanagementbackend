@@ -21,8 +21,6 @@ staffAdminRouter
   .add({ method: 'get', path: '/staff/:id/attendance', summary: 'Staff attendance history', permissions: sm, feature: 'staff', params: idParam, query: s.attendanceQuery, response: s.attendanceItem, paginated: true, handler: async (req: Request, res: Response) => paged(res, await x.attendance(sid(req), req.valid.params.id, req.valid.query)) })
   .add({ method: 'get', path: '/staff/:id/performance', summary: 'Staff performance: attendance, tasks and complaint resolution', permissions: sm, feature: 'staff', params: idParam, query: z.object({ from: dateOnly.optional(), to: dateOnly.optional() }), response: s.performanceItem, handler: async (req: Request, res: Response) => ok(res, await x.performance(sid(req), req.valid.params.id, req.valid.query)) });
 
-// Vendors are read-only for society admins: only the Super Admin adds or changes them
-// (see /api/v1/super-admin/societies/:societyId/vendors).
 crudRoutes(staffAdminRouter, { path: '/vendors', name: 'Vendor', controller: crudController(vendorService, { label: 'Vendor' }), query: s.vendorQuery, item: s.vendorItem, read: [P.VENDOR_MANAGE], feature: 'staff' });
 
 crudRoutes(staffAdminRouter, { path: '/tasks', name: 'Task', controller: { ...crudController(taskService, { label: 'Task' }), update: async (req: Request, res: Response) => ok(res, await x.updateTask(sid(req), req.auth.userId, req.valid.params.id, req.valid.body), 'Task updated') }, create: s.taskBody, update: s.taskUpdate, query: s.taskQuery, item: s.taskItem, read: [P.TASK_MANAGE], write: [P.TASK_MANAGE] });

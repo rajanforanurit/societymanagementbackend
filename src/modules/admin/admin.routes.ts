@@ -13,8 +13,6 @@ export const adminMgmtRouter = new ModuleRouter('/api/v1/admin/admins', {
   societyScoped: true,
 });
 const perm = [P.ADMIN_MANAGE];
-// Read-only for society admins: only the Super Admin adds, changes or removes administrators
-// (see /api/v1/super-admin/admins).
 adminMgmtRouter
   .add({ method: 'get', path: '/', summary: 'List administrators', permissions: perm, query: adminQuery, response: adminItem, paginated: true, handler: a.list })
   .add({ method: 'get', path: '/:id', summary: 'Get administrator', permissions: perm, params: idParam, response: adminItem, handler: a.get });

@@ -23,7 +23,6 @@ export const superAdminService = {
     const [total, active, inactive, builders, admins, residents, guards, reqs, logins, failed, newRes, serverErr, authFail, tickets] = await Promise.all([
       Society.countDocuments({}),
       Society.countDocuments({ status: 'ACTIVE' }),
-      // Anything that is not active counts as inactive (there is no approval workflow any more).
       Society.countDocuments({ status: { $ne: 'ACTIVE' } }),
       Organization.countDocuments({}),
       User.countDocuments({ userType: 'SOCIETY_ADMIN' }),

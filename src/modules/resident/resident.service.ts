@@ -11,8 +11,6 @@ import { notifyAdmins, notifyUsers } from '../notifications/notify.service';
 import { Flat, Society } from '../society/society.model';
 import { FamilyMember, MoveRequest, Resident } from './resident.model';
 
-// Every read of a residency carries who (user), where (flat + tower) and, for tenants, the flat's owner,
-// so the admin's request queue and the resident's own status screen show the same data.
 const populate = [
   { path: 'userId', select: 'name mobile email' },
   { path: 'flatId', select: 'label towerId', populate: { path: 'towerId', select: 'name', options: { skipTenantCheck: true } }, options: { skipTenantCheck: true } },
@@ -35,10 +33,6 @@ const shape = (r: any) => {
   return j;
 };
 
-/**
- * Adds { society: { id, name, city, address } } to residencies that span societies (the resident's own
- * list). The full postal address lets the app build the resident's address from the flat they added.
- */
 async function withSociety(list: any[]) {
   const ids = [...new Set(list.map((j) => String(j.societyId)))];
   const socs: any[] = ids.length ? await Society.find({ _id: { $in: ids } }).select('name address') : [];
@@ -54,11 +48,6 @@ async function withSociety(list: any[]) {
 const OWNER_TYPES = new Set<string>([ResidentType.OWNER]);
 const LINKED_TYPES = [ResidentType.TENANT, ResidentType.FAMILY_MEMBER, ResidentType.AUTHORIZED_OCCUPANT];
 
-/**
- * Keeps owner ↔ tenant ↔ flat in sync: the flat's owner is its approved OWNER residency (the earliest
- * approved one); Flat.ownerResidentId points at it and every tenant / family member / occupant
- * residency of the flat links to it through ownerResidentId (or has no link when the flat has no owner).
- */
 export async function syncOwnerLinks(societyId: string, flatId: string, session?: any) {
   const owner: any = await Resident.findOne({ societyId, flatId, residentType: ResidentType.OWNER, status: ResidentStatus.APPROVED }).sort({ approvedAt: 1, createdAt: 1 }).session(session ?? null);
   if (owner) {
@@ -71,7 +60,6 @@ export async function syncOwnerLinks(societyId: string, flatId: string, session?
   return owner ? String(owner._id) : undefined;
 }
 
-/** A flat has one registered owner account; a second owner is refused (co-owners are added by the society office). */
 async function assertNoOtherOwner(societyId: string, flatId: string, userId: string, session?: any) {
   const other = await Resident.exists({ societyId, flatId, residentType: ResidentType.OWNER, status: ResidentStatus.APPROVED, userId: { $ne: userId } }).session(session ?? null);
   if (other) throw ApiError.conflict('This flat already has a registered owner. If you are a co-owner, please contact the society office.', 'OWNER_EXISTS');
@@ -98,7 +86,6 @@ export const residentAdmin = {
     const r = await withTransaction(async (session) => {
       const pending: any = await Resident.findOne({ _id: id, societyId, status: ResidentStatus.PENDING }).session(session ?? null);
       if (!pending) throw ApiError.conflict('Only PENDING registrations can be approved', 'INVALID_STATE');
-      // Re-checked at approval time: two owner requests for one flat can be pending at once.
       if (OWNER_TYPES.has(pending.residentType)) await assertNoOtherOwner(societyId, String(pending.flatId), String(pending.userId), session);
       if (await Resident.exists({ societyId, userId: pending.userId, flatId: pending.flatId, status: ResidentStatus.APPROVED, _id: { $ne: pending._id } }).session(session ?? null)) throw ApiError.conflict('This person is already an approved resident of this flat', 'ALREADY_RESIDENT');
       const doc: any = await Resident.findOneAndUpdate({ _id: id, societyId, status: ResidentStatus.PENDING }, { $set: { status: ResidentStatus.APPROVED, approvedBy: actorId, approvedAt: new Date(), moveInDate: new Date(), updatedBy: actorId }, $unset: { rejectionReason: 1 } }, { new: true, session });
@@ -113,7 +100,6 @@ export const residentAdmin = {
     const doc: any = r.doc;
     const flat: any = await Flat.findOne({ _id: doc.flatId, societyId }).select('label');
     await notifyUsers({ societyId, userIds: [doc.userId], type: NotificationType.APPROVAL, title: 'Property access approved', body: `You are now a registered ${String(doc.residentType).toLowerCase().replace('_', ' ')} of ${flat?.label ?? 'your flat'}. All society features are now available.`, data: { residentId: id, route: 'society-requests' }, event: 'resident:approved' });
-    // Tell the owner a tenant was registered for their flat.
     if (doc.residentType === ResidentType.TENANT && r.ownerId) {
       const owner: any = await Resident.findOne({ _id: r.ownerId, societyId }).select('userId');
       const tenant: any = await User.findById(doc.userId).select('name');
@@ -193,20 +179,17 @@ export const residentSelf = {
         : ApiError.conflict('You already have a pending request for this flat. Wait for the society admin, or cancel it to change the details.', 'REQUEST_EXISTS');
     }
     if (OWNER_TYPES.has(input.residentType)) await assertNoOtherOwner(input.societyId, input.flatId, userId);
-    // Tenants (and family / occupants) are linked to the flat's registered owner from the start.
     const ownerResidentId = OWNER_TYPES.has(input.residentType) ? undefined : (flat as any).ownerResidentId;
     const r: any = await Resident.create({ societyId: input.societyId, userId, flatId: input.flatId, residentType: input.residentType, relationToPrimary: input.relationToPrimary, verificationDocs: input.documents, tenancy: input.tenancy, ownerResidentId, createdBy: userId });
     await notifyAdmins(input.societyId, 'resident:approve', { type: NotificationType.APPROVAL, title: 'New property access request', body: `${user.name} requested access to ${flat.label} as ${input.residentType === 'OWNER' ? 'owner' : input.residentType === 'TENANT' ? 'tenant' : input.residentType.toLowerCase().replace('_', ' ')}.`, data: { residentId: String(r._id), route: 'residents' }, event: 'resident:requested' });
     const [out] = await withSociety([shape(await Resident.findOne({ _id: r._id, societyId: input.societyId }).populate(populate))]);
     return out;
   },
-  /** Every property request / residency of the signed-in user, newest first, with society, tower and flat. */
   async mine(userId: string) {
     const list: any[] = await Resident.find({ userId, status: { $ne: ResidentStatus.MOVED_OUT } }, null, { skipTenantCheck: true }).sort({ createdAt: -1 }).populate(populate);
     return withSociety(list.map(shape));
   },
 
-  /** Approved tenants of the flats the signed-in resident owns (owner's Profile → Tenants). */
   async tenants(societyId: string, ctxResidents: { id: string; flatId: string; residentType: string }[]) {
     const owned = ctxResidents.filter((r) => r.residentType === ResidentType.OWNER);
     if (!owned.length) return [];

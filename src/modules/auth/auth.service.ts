@@ -110,7 +110,6 @@ async function issueSession(user: any, societyId: string | undefined, meta: Clie
   return { tokenType: 'Bearer' as const, accessToken, refreshToken, expiresIn: env.ACCESS_TOKEN_TTL_SECONDS, societyId, passwordChangeRequired: Boolean(user.mustChangePassword), user: user.toJSON(), societies: await memberships(user) };
 }
 
-/** Society a login attempt belongs to (for the society admin's own platform monitor), only when unambiguous. */
 async function attributeSociety(user: any, requested?: string): Promise<string | undefined> {
   try {
     const ids = [...new Set((await memberships(user)).map((m) => m.societyId))];
@@ -121,7 +120,6 @@ async function attributeSociety(user: any, requested?: string): Promise<string |
   }
 }
 
-/** Why a society-bound account (admin / guard) has no active society, in words the app can show. */
 async function explainNoAccess(list: { societyId: string }[]): Promise<ApiError> {
   const societies: any[] = list.length ? await Society.find({ _id: { $in: list.map((m) => m.societyId) } }).select('status statusReason') : [];
   if (societies.some((x) => x.status !== 'ACTIVE')) return ApiError.forbidden('This society is currently deactivated. Contact the platform team.', 'SOCIETY_INACTIVE');
@@ -139,9 +137,6 @@ async function pickSociety(user: any, requested?: string) {
   }
   if (active.length === 1) return active[0].societyId;
   if (active.length === 0 && user.userType !== UserType.RESIDENT) throw await explainNoAccess(list);
-  // Several active societies (an admin of two societies, a resident approved in a second property):
-  // sign in to the one used last, else the first. A token without a society would make every
-  // society screen (residents, requests, notices, community posts ...) come back empty.
   if (active.length > 1) {
     const last = user.lastSocietyId ? String(user.lastSocietyId) : undefined;
     return active.find((m) => m.societyId === last)?.societyId ?? active[0].societyId;
