@@ -31,6 +31,7 @@ export const superSocietyController = {
 
 export const propertyInfoController = {
   mine: async (req: Request, res: Response) => ok(res, await svc.societyMineService.propertyInfo(req.auth.societyId!)),
+  guard: async (req: Request, res: Response) => ok(res, await svc.societyMineService.guardPropertyInfo(req.auth.societyId!)),
 };
 
 export const adminSocietyController = {

@@ -24211,6 +24211,9 @@ paths:
                           - SUSPENDED
                       code:
                         type: string
+                      photoFileId:
+                        type: string
+                        pattern: ^[a-f\d]{24}$
                       flats:
                         type: array
                         items:
@@ -24425,6 +24428,9 @@ paths:
                             - SUSPENDED
                         code:
                           type: string
+                        photoFileId:
+                          type: string
+                          pattern: ^[a-f\d]{24}$
                         flats:
                           type: array
                           items:
@@ -24600,6 +24606,210 @@ paths:
               - GARDENER
               - OTHER
           example: MAID
+  /api/v1/user/domestic-help/maids:
+    post:
+      tags:
+        - Resident - Domestic Help & Services
+      summary: Register a maid with a photo and generate her attendance code
+      description: "Required role: RESIDENT. Requires society feature: domesticHelp."
+      operationId: post_api_v1_user_domestic_help_maids
+      security:
+        - bearerAuth: []
+      x-required-role:
+        - RESIDENT
+      x-required-permissions: []
+      responses:
+        "201":
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - success
+                  - data
+                properties:
+                  success:
+                    type: boolean
+                    const: true
+                  message:
+                    type: string
+                  data:
+                    type: object
+                    properties:
+                      id:
+                        type: string
+                        pattern: ^[a-f\d]{24}$
+                      societyId:
+                        type: string
+                        pattern: ^[a-f\d]{24}$
+                      createdBy:
+                        type: string
+                        pattern: ^[a-f\d]{24}$
+                      updatedBy:
+                        type: string
+                        pattern: ^[a-f\d]{24}$
+                      createdAt:
+                        type: string
+                        format: date-time
+                        pattern: ^(?:(?:\d\d[2468][048]|\d\d[13579][26]|\d\d0[48]|[02468][048]00|[13579][26]00)-02-29|\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\d|30)|(?:02)-(?:0[1-9]|1\d|2[0-8])))T(?:(?:[01]\d|2[0-3]):[0-5]\d:[0-5]\d(?:\.\d+)?(?:Z|([+-](?:[01]\d|2[0-3]):[0-5]\d)))$
+                      updatedAt:
+                        type: string
+                        format: date-time
+                        pattern: ^(?:(?:\d\d[2468][048]|\d\d[13579][26]|\d\d0[48]|[02468][048]00|[13579][26]00)-02-29|\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\d|30)|(?:02)-(?:0[1-9]|1\d|2[0-8])))T(?:(?:[01]\d|2[0-3]):[0-5]\d:[0-5]\d(?:\.\d+)?(?:Z|([+-](?:[01]\d|2[0-3]):[0-5]\d)))$
+                      name:
+                        type: string
+                      mobile:
+                        type: string
+                      helpType:
+                        type: string
+                        enum:
+                          - MAID
+                          - COOK
+                          - DRIVER
+                          - CLEANER
+                          - NANNY
+                          - GARDENER
+                          - OTHER
+                      status:
+                        type: string
+                        enum:
+                          - PENDING_VERIFICATION
+                          - VERIFIED
+                          - REJECTED
+                          - SUSPENDED
+                      code:
+                        type: string
+                      photoFileId:
+                        type: string
+                        pattern: ^[a-f\d]{24}$
+                      flats:
+                        type: array
+                        items:
+                          type: object
+                          properties:
+                            flatId:
+                              type: string
+                              pattern: ^[a-f\d]{24}$
+                            flatLabel:
+                              type: string
+                            salaryMonthly:
+                              type: number
+                          required:
+                            - flatId
+                          additionalProperties: false
+                      ratingAvg:
+                        type: number
+                      ratingCount:
+                        type: integer
+                        minimum: -9007199254740991
+                        maximum: 9007199254740991
+                    required:
+                      - id
+                      - societyId
+                      - createdAt
+                      - updatedAt
+                      - name
+                      - mobile
+                      - helpType
+                      - status
+                      - flats
+                      - ratingAvg
+                      - ratingCount
+                    additionalProperties: false
+              example:
+                success: true
+                message: Success
+                data:
+                  id: 64f1c0a2b3c4d5e6f7a8b9c0
+                  societyId: 64f1c0a2b3c4d5e6f7a8b9c0
+                  createdBy: 64f1c0a2b3c4d5e6f7a8b9c0
+                  updatedBy: 64f1c0a2b3c4d5e6f7a8b9c0
+                  createdAt: 2026-11-02T10:30:00.000Z
+                  updatedAt: 2026-11-02T10:30:00.000Z
+                  name: Sample name
+                  mobile: "+919876543210"
+                  helpType: MAID
+                  status: PENDING_VERIFICATION
+                  code: string
+                  photoFileId: 64f1c0a2b3c4d5e6f7a8b9c0
+                  flats:
+                    - flatId: 64f1c0a2b3c4d5e6f7a8b9c0
+                      flatLabel: string
+                      salaryMonthly: 100
+                  ratingAvg: 100
+                  ratingCount: 1
+        "400":
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          description: Missing, invalid or expired access token
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "403":
+          description: Authenticated but not permitted (role, permission, feature flag or tenant)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "409":
+          description: Conflict with current resource state
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "422":
+          description: Request validation failed
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "429":
+          description: Rate limit exceeded
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "500":
+          description: Unexpected server error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+                  minLength: 2
+                  maxLength: 120
+                mobile:
+                  type: string
+                  pattern: ^\+?[1-9][\d\s-]{8,16}$
+                flatId:
+                  type: string
+                  pattern: ^[a-f\d]{24}$
+                photoFileId:
+                  type: string
+                  pattern: ^[a-f\d]{24}$
+              required:
+                - name
+                - mobile
+                - photoFileId
+            example:
+              name: Sample name
+              mobile: "+919876543210"
+              flatId: 64f1c0a2b3c4d5e6f7a8b9c0
+              photoFileId: 64f1c0a2b3c4d5e6f7a8b9c0
   /api/v1/user/domestic-help/directory:
     get:
       tags:
@@ -25557,6 +25767,168 @@ paths:
             minimum: 1
             maximum: 100
           example: 31
+  /api/v1/user/domestic-help/{id}/attendance/calendar:
+    get:
+      tags:
+        - Resident - Domestic Help & Services
+      summary: Daily maid gate attendance for a date range or the current month
+      description: |-
+        Provide both from and to for an inclusive range of up to 366 days. When omitted, the range covers the current month in the society timezone.
+
+        Required role: RESIDENT. Requires society feature: domesticHelp.
+      operationId: get_api_v1_user_domestic_help_id_attendance_calendar
+      security:
+        - bearerAuth: []
+      x-required-role:
+        - RESIDENT
+      x-required-permissions: []
+      responses:
+        "200":
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - success
+                  - data
+                properties:
+                  success:
+                    type: boolean
+                    const: true
+                  message:
+                    type: string
+                  data:
+                    type: object
+                    properties:
+                      helpId:
+                        type: string
+                        pattern: ^[a-f\d]{24}$
+                      flatId:
+                        type: string
+                        pattern: ^[a-f\d]{24}$
+                      timezone:
+                        type: string
+                      today:
+                        type: string
+                        format: date
+                        pattern: ^(?:(?:\d\d[2468][048]|\d\d[13579][26]|\d\d0[48]|[02468][048]00|[13579][26]00)-02-29|\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\d|30)|(?:02)-(?:0[1-9]|1\d|2[0-8])))$
+                      days:
+                        type: array
+                        items:
+                          type: object
+                          properties:
+                            date:
+                              type: string
+                              format: date
+                              pattern: ^(?:(?:\d\d[2468][048]|\d\d[13579][26]|\d\d0[48]|[02468][048]00|[13579][26]00)-02-29|\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\d|30)|(?:02)-(?:0[1-9]|1\d|2[0-8])))$
+                            status:
+                              type: string
+                              enum:
+                                - PRESENT
+                                - ABSENT
+                                - PENDING
+                                - NOT_APPLICABLE
+                            firstCheckInAt:
+                              type: string
+                              format: date-time
+                              pattern: ^(?:(?:\d\d[2468][048]|\d\d[13579][26]|\d\d0[48]|[02468][048]00|[13579][26]00)-02-29|\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\d|30)|(?:02)-(?:0[1-9]|1\d|2[0-8])))T(?:(?:[01]\d|2[0-3]):[0-5]\d:[0-5]\d(?:\.\d+)?(?:Z|([+-](?:[01]\d|2[0-3]):[0-5]\d)))$
+                          required:
+                            - date
+                            - status
+                          additionalProperties: false
+                    required:
+                      - helpId
+                      - flatId
+                      - timezone
+                      - today
+                      - days
+                    additionalProperties: false
+              example:
+                success: true
+                message: Success
+                data:
+                  helpId: 64f1c0a2b3c4d5e6f7a8b9c0
+                  flatId: 64f1c0a2b3c4d5e6f7a8b9c0
+                  timezone: string
+                  today: 2026-11-02
+                  days:
+                    - date: 2026-11-02
+                      status: PRESENT
+                      firstCheckInAt: 2026-11-02T10:30:00.000Z
+        "400":
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          description: Missing, invalid or expired access token
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "403":
+          description: Authenticated but not permitted (role, permission, feature flag or tenant)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: Resource not found in the caller's society
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "422":
+          description: Request validation failed
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "429":
+          description: Rate limit exceeded
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "500":
+          description: Unexpected server error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            pattern: ^[a-f\d]{24}$
+          example: 64f1c0a2b3c4d5e6f7a8b9c0
+        - name: flatId
+          in: query
+          required: true
+          schema:
+            type: string
+            pattern: ^[a-f\d]{24}$
+          example: 64f1c0a2b3c4d5e6f7a8b9c0
+        - name: from
+          in: query
+          required: false
+          schema:
+            type: string
+            format: date
+            pattern: ^(?:(?:\d\d[2468][048]|\d\d[13579][26]|\d\d0[48]|[02468][048]00|[13579][26]00)-02-29|\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\d|30)|(?:02)-(?:0[1-9]|1\d|2[0-8])))$
+          example: 2026-11-02
+        - name: to
+          in: query
+          required: false
+          schema:
+            type: string
+            format: date
+            pattern: ^(?:(?:\d\d[2468][048]|\d\d[13579][26]|\d\d0[48]|[02468][048]00|[13579][26]00)-02-29|\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\d|30)|(?:02)-(?:0[1-9]|1\d|2[0-8])))$
+          example: 2026-11-02
   /api/v1/user/domestic-help/{id}/payments:
     post:
       tags:
@@ -31992,6 +32364,7 @@ paths:
                           - VISITOR
                           - STAFF
                           - INVOICE
+                          - DOMESTIC_HELP
                           - OTHER
                       visibility:
                         type: string
@@ -32087,6 +32460,7 @@ paths:
               - VISITOR
               - STAFF
               - INVOICE
+              - DOMESTIC_HELP
               - OTHER
           example: PROFILE
         - name: visibility
@@ -32112,7 +32486,7 @@ paths:
         - Files
       summary: Download a file
       description: |-
-        Streams the binary file. PRIVATE files are visible to the uploader and society admins only; SOCIETY files to all members.
+        Streams the binary file. PRIVATE files are visible to the uploader and society admins. Residents can also view maid photos assigned to their flat. SOCIETY files are visible to all members.
 
         Required role: SOCIETY_ADMIN | GUARD | RESIDENT.
       operationId: get_api_v1_files_id
@@ -33095,8 +33469,7 @@ paths:
       operationId: get_api_v1_guard_dashboard
       security:
         - bearerAuth: []
-      x-required-role: &a81
-        - GUARD
+      x-required-role: *a80
       x-required-permissions: []
       responses:
         "200":
@@ -33171,35 +33544,28 @@ paths:
                           properties:
                             id:
                               type: string
-                              pattern: ^[a-f\d]{24}$
+                            kind:
+                              type: string
+                              enum:
+                                - VISITOR
+                                - DELIVERY
+                                - MAID_ATTENDANCE
                             name:
                               type: string
                             flatLabel:
                               type: string
+                            company:
+                              type: string
                             status:
                               type: string
-                              enum:
-                                - EXPECTED
-                                - PENDING_APPROVAL
-                                - APPROVED
-                                - REJECTED
-                                - CHECKED_IN
-                                - CHECKED_OUT
-                                - DENIED
-                                - CANCELLED
-                                - EXPIRED
-                            entryAt:
+                            at:
                               type: string
-                              format: date-time
-                              pattern: ^(?:(?:\d\d[2468][048]|\d\d[13579][26]|\d\d0[48]|[02468][048]00|[13579][26]00)-02-29|\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\d|30)|(?:02)-(?:0[1-9]|1\d|2[0-8])))T(?:(?:[01]\d|2[0-3]):[0-5]\d:[0-5]\d(?:\.\d+)?(?:Z|([+-](?:[01]\d|2[0-3]):[0-5]\d)))$
-                            exitAt:
-                              type: string
-                              format: date-time
-                              pattern: ^(?:(?:\d\d[2468][048]|\d\d[13579][26]|\d\d0[48]|[02468][048]00|[13579][26]00)-02-29|\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\d|30)|(?:02)-(?:0[1-9]|1\d|2[0-8])))T(?:(?:[01]\d|2[0-3]):[0-5]\d:[0-5]\d(?:\.\d+)?(?:Z|([+-](?:[01]\d|2[0-3]):[0-5]\d)))$
                           required:
                             - id
+                            - kind
                             - name
                             - status
+                            - at
                           additionalProperties: false
                     required:
                       - today
@@ -33224,12 +33590,13 @@ paths:
                   activeVisitors: 1
                   activeEmergencyAlerts: 1
                   recentActivity:
-                    - id: 64f1c0a2b3c4d5e6f7a8b9c0
+                    - id: string
+                      kind: VISITOR
                       name: Sample name
                       flatLabel: string
-                      status: EXPECTED
-                      entryAt: 2026-11-02T10:30:00.000Z
-                      exitAt: 2026-11-02T10:30:00.000Z
+                      company: string
+                      status: string
+                      at: string
         "401":
           description: Missing, invalid or expired access token
           content:
@@ -33263,7 +33630,7 @@ paths:
       operationId: get_api_v1_guard_gate
       security:
         - bearerAuth: []
-      x-required-role: *a81
+      x-required-role: *a80
       x-required-permissions: []
       responses:
         "200":
@@ -33341,7 +33708,7 @@ paths:
       operationId: get_api_v1_guard_flats_lookup
       security:
         - bearerAuth: []
-      x-required-role: *a81
+      x-required-role: *a80
       x-required-permissions: []
       responses:
         "200":
@@ -33446,7 +33813,7 @@ paths:
       operationId: post_api_v1_guard_visitors
       security:
         - bearerAuth: []
-      x-required-role: *a81
+      x-required-role: *a80
       x-required-permissions: []
       responses:
         "201":
@@ -33513,6 +33880,9 @@ paths:
                         type: string
                       company:
                         type: string
+                      photoFileId:
+                        type: string
+                        pattern: ^[a-f\d]{24}$
                       status:
                         type: string
                         enum:
@@ -33583,6 +33953,7 @@ paths:
                   vehicleNumber: string
                   purpose: string
                   company: string
+                  photoFileId: 64f1c0a2b3c4d5e6f7a8b9c0
                   status: EXPECTED
                   approvalMode: RESIDENT
                   requestedAt: 2026-11-02T10:30:00.000Z
@@ -33679,7 +34050,7 @@ paths:
       operationId: get_api_v1_guard_visitors
       security:
         - bearerAuth: []
-      x-required-role: *a81
+      x-required-role: *a80
       x-required-permissions: []
       responses:
         "200":
@@ -33748,6 +34119,9 @@ paths:
                           type: string
                         company:
                           type: string
+                        photoFileId:
+                          type: string
+                          pattern: ^[a-f\d]{24}$
                         status:
                           type: string
                           enum:
@@ -33820,6 +34194,7 @@ paths:
                     vehicleNumber: string
                     purpose: string
                     company: string
+                    photoFileId: 64f1c0a2b3c4d5e6f7a8b9c0
                     status: EXPECTED
                     approvalMode: RESIDENT
                     requestedAt: 2026-11-02T10:30:00.000Z
@@ -33960,7 +34335,7 @@ paths:
       operationId: get_api_v1_guard_visitors_pending
       security:
         - bearerAuth: []
-      x-required-role: *a81
+      x-required-role: *a80
       x-required-permissions: []
       responses:
         "200":
@@ -34029,6 +34404,9 @@ paths:
                           type: string
                         company:
                           type: string
+                        photoFileId:
+                          type: string
+                          pattern: ^[a-f\d]{24}$
                         status:
                           type: string
                           enum:
@@ -34101,6 +34479,7 @@ paths:
                     vehicleNumber: string
                     purpose: string
                     company: string
+                    photoFileId: 64f1c0a2b3c4d5e6f7a8b9c0
                     status: EXPECTED
                     approvalMode: RESIDENT
                     requestedAt: 2026-11-02T10:30:00.000Z
@@ -34211,7 +34590,7 @@ paths:
       operationId: get_api_v1_guard_visitors_active
       security:
         - bearerAuth: []
-      x-required-role: *a81
+      x-required-role: *a80
       x-required-permissions: []
       responses:
         "200":
@@ -34280,6 +34659,9 @@ paths:
                           type: string
                         company:
                           type: string
+                        photoFileId:
+                          type: string
+                          pattern: ^[a-f\d]{24}$
                         status:
                           type: string
                           enum:
@@ -34352,6 +34734,7 @@ paths:
                     vehicleNumber: string
                     purpose: string
                     company: string
+                    photoFileId: 64f1c0a2b3c4d5e6f7a8b9c0
                     status: EXPECTED
                     approvalMode: RESIDENT
                     requestedAt: 2026-11-02T10:30:00.000Z
@@ -34465,7 +34848,7 @@ paths:
       operationId: get_api_v1_guard_visitors_expected
       security:
         - bearerAuth: []
-      x-required-role: *a81
+      x-required-role: *a80
       x-required-permissions: []
       responses:
         "200":
@@ -34564,7 +34947,7 @@ paths:
       operationId: post_api_v1_guard_visitors_verify
       security:
         - bearerAuth: []
-      x-required-role: *a81
+      x-required-role: *a80
       x-required-permissions: []
       responses:
         "200":
@@ -34631,6 +35014,9 @@ paths:
                         type: string
                       company:
                         type: string
+                      photoFileId:
+                        type: string
+                        pattern: ^[a-f\d]{24}$
                       status:
                         type: string
                         enum:
@@ -34701,6 +35087,7 @@ paths:
                   vehicleNumber: string
                   purpose: string
                   company: string
+                  photoFileId: 64f1c0a2b3c4d5e6f7a8b9c0
                   status: EXPECTED
                   approvalMode: RESIDENT
                   requestedAt: 2026-11-02T10:30:00.000Z
@@ -34780,7 +35167,7 @@ paths:
       operationId: post_api_v1_guard_visitors_emergency_entry
       security:
         - bearerAuth: []
-      x-required-role: *a81
+      x-required-role: *a80
       x-required-permissions: []
       responses:
         "201":
@@ -34847,6 +35234,9 @@ paths:
                         type: string
                       company:
                         type: string
+                      photoFileId:
+                        type: string
+                        pattern: ^[a-f\d]{24}$
                       status:
                         type: string
                         enum:
@@ -34917,6 +35307,7 @@ paths:
                   vehicleNumber: string
                   purpose: string
                   company: string
+                  photoFileId: 64f1c0a2b3c4d5e6f7a8b9c0
                   status: EXPECTED
                   approvalMode: RESIDENT
                   requestedAt: 2026-11-02T10:30:00.000Z
@@ -35020,7 +35411,7 @@ paths:
       operationId: post_api_v1_guard_visitors_id_request_approval
       security:
         - bearerAuth: []
-      x-required-role: *a81
+      x-required-role: *a80
       x-required-permissions: []
       responses:
         "200":
@@ -35087,6 +35478,9 @@ paths:
                         type: string
                       company:
                         type: string
+                      photoFileId:
+                        type: string
+                        pattern: ^[a-f\d]{24}$
                       status:
                         type: string
                         enum:
@@ -35157,6 +35551,7 @@ paths:
                   vehicleNumber: string
                   purpose: string
                   company: string
+                  photoFileId: 64f1c0a2b3c4d5e6f7a8b9c0
                   status: EXPECTED
                   approvalMode: RESIDENT
                   requestedAt: 2026-11-02T10:30:00.000Z
@@ -35215,7 +35610,7 @@ paths:
       operationId: post_api_v1_guard_visitors_id_entry
       security:
         - bearerAuth: []
-      x-required-role: *a81
+      x-required-role: *a80
       x-required-permissions: []
       responses:
         "200":
@@ -35282,6 +35677,9 @@ paths:
                         type: string
                       company:
                         type: string
+                      photoFileId:
+                        type: string
+                        pattern: ^[a-f\d]{24}$
                       status:
                         type: string
                         enum:
@@ -35352,6 +35750,7 @@ paths:
                   vehicleNumber: string
                   purpose: string
                   company: string
+                  photoFileId: 64f1c0a2b3c4d5e6f7a8b9c0
                   status: EXPECTED
                   approvalMode: RESIDENT
                   requestedAt: 2026-11-02T10:30:00.000Z
@@ -35413,7 +35812,7 @@ paths:
       operationId: post_api_v1_guard_visitors_id_exit
       security:
         - bearerAuth: []
-      x-required-role: *a81
+      x-required-role: *a80
       x-required-permissions: []
       responses:
         "200":
@@ -35480,6 +35879,9 @@ paths:
                         type: string
                       company:
                         type: string
+                      photoFileId:
+                        type: string
+                        pattern: ^[a-f\d]{24}$
                       status:
                         type: string
                         enum:
@@ -35550,6 +35952,7 @@ paths:
                   vehicleNumber: string
                   purpose: string
                   company: string
+                  photoFileId: 64f1c0a2b3c4d5e6f7a8b9c0
                   status: EXPECTED
                   approvalMode: RESIDENT
                   requestedAt: 2026-11-02T10:30:00.000Z
@@ -35611,7 +36014,7 @@ paths:
       operationId: post_api_v1_guard_visitors_id_deny
       security:
         - bearerAuth: []
-      x-required-role: *a81
+      x-required-role: *a80
       x-required-permissions: []
       responses:
         "200":
@@ -35678,6 +36081,9 @@ paths:
                         type: string
                       company:
                         type: string
+                      photoFileId:
+                        type: string
+                        pattern: ^[a-f\d]{24}$
                       status:
                         type: string
                         enum:
@@ -35748,6 +36154,7 @@ paths:
                   vehicleNumber: string
                   purpose: string
                   company: string
+                  photoFileId: 64f1c0a2b3c4d5e6f7a8b9c0
                   status: EXPECTED
                   approvalMode: RESIDENT
                   requestedAt: 2026-11-02T10:30:00.000Z
@@ -35830,7 +36237,7 @@ paths:
       operationId: post_api_v1_guard_deliveries
       security:
         - bearerAuth: []
-      x-required-role: *a81
+      x-required-role: *a80
       x-required-permissions: []
       responses:
         "201":
@@ -36047,7 +36454,7 @@ paths:
       operationId: get_api_v1_guard_deliveries
       security:
         - bearerAuth: []
-      x-required-role: *a81
+      x-required-role: *a80
       x-required-permissions: []
       responses:
         "200":
@@ -36317,7 +36724,7 @@ paths:
       operationId: post_api_v1_guard_deliveries_id_request_approval
       security:
         - bearerAuth: []
-      x-required-role: *a81
+      x-required-role: *a80
       x-required-permissions: []
       responses:
         "200":
@@ -36494,7 +36901,7 @@ paths:
       operationId: post_api_v1_guard_deliveries_id_entry
       security:
         - bearerAuth: []
-      x-required-role: *a81
+      x-required-role: *a80
       x-required-permissions: []
       responses:
         "200":
@@ -36677,7 +37084,7 @@ paths:
       operationId: post_api_v1_guard_deliveries_id_exit
       security:
         - bearerAuth: []
-      x-required-role: *a81
+      x-required-role: *a80
       x-required-permissions: []
       responses:
         "200":
@@ -36863,7 +37270,7 @@ paths:
       operationId: post_api_v1_guard_deliveries_id_leave_at_gate
       security:
         - bearerAuth: []
-      x-required-role: *a81
+      x-required-role: *a80
       x-required-permissions: []
       responses:
         "200":
@@ -37046,7 +37453,7 @@ paths:
       operationId: post_api_v1_guard_deliveries_id_handover
       security:
         - bearerAuth: []
-      x-required-role: *a81
+      x-required-role: *a80
       x-required-permissions: []
       responses:
         "200":
@@ -37255,7 +37662,7 @@ paths:
       operationId: post_api_v1_guard_domestic_help_lookup
       security:
         - bearerAuth: []
-      x-required-role: *a81
+      x-required-role: *a80
       x-required-permissions: []
       responses:
         "200":
@@ -37392,7 +37799,7 @@ paths:
       operationId: post_api_v1_guard_domestic_help_check_in
       security:
         - bearerAuth: []
-      x-required-role: *a81
+      x-required-role: *a80
       x-required-permissions: []
       responses:
         "200":
@@ -37526,6 +37933,127 @@ paths:
                 - code
             example:
               code: string
+  /api/v1/guard/domestic-help/attendance:
+    post:
+      tags:
+        - Guard
+      summary: Mark a maid present for the society day using her six-digit code
+      description: |-
+        Repeating a successful submission for the same maid and society day returns her first check-in.
+
+        Required role: GUARD. Requires society feature: domesticHelp.
+      operationId: post_api_v1_guard_domestic_help_attendance
+      security:
+        - bearerAuth: []
+      x-required-role:
+        - GUARD
+      x-required-permissions: []
+      responses:
+        "200":
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - success
+                  - data
+                properties:
+                  success:
+                    type: boolean
+                    const: true
+                  message:
+                    type: string
+                  data:
+                    type: object
+                    properties:
+                      helpId:
+                        type: string
+                        pattern: ^[a-f\d]{24}$
+                      name:
+                        type: string
+                      date:
+                        type: string
+                        format: date
+                        pattern: ^(?:(?:\d\d[2468][048]|\d\d[13579][26]|\d\d0[48]|[02468][048]00|[13579][26]00)-02-29|\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\d|30)|(?:02)-(?:0[1-9]|1\d|2[0-8])))$
+                      firstCheckInAt:
+                        type: string
+                        format: date-time
+                        pattern: ^(?:(?:\d\d[2468][048]|\d\d[13579][26]|\d\d0[48]|[02468][048]00|[13579][26]00)-02-29|\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\d|30)|(?:02)-(?:0[1-9]|1\d|2[0-8])))T(?:(?:[01]\d|2[0-3]):[0-5]\d:[0-5]\d(?:\.\d+)?(?:Z|([+-](?:[01]\d|2[0-3]):[0-5]\d)))$
+                      alreadyMarked:
+                        type: boolean
+                    required:
+                      - helpId
+                      - name
+                      - date
+                      - firstCheckInAt
+                      - alreadyMarked
+                    additionalProperties: false
+              example:
+                success: true
+                message: Success
+                data:
+                  helpId: 64f1c0a2b3c4d5e6f7a8b9c0
+                  name: Sample name
+                  date: 2026-11-02
+                  firstCheckInAt: 2026-11-02T10:30:00.000Z
+                  alreadyMarked: true
+        "401":
+          description: Missing, invalid or expired access token
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "403":
+          description: Authenticated but not permitted (role, permission, feature flag or tenant)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: Resource not found in the caller's society
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "409":
+          description: Conflict with current resource state
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "422":
+          description: Request validation failed
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "429":
+          description: Rate limit exceeded
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "500":
+          description: Unexpected server error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                code:
+                  type: string
+                  pattern: ^\d{6}$
+              required:
+                - code
+            example:
+              code: "001234"
   /api/v1/guard/domestic-help/check-out:
     post:
       tags:
@@ -37535,7 +38063,7 @@ paths:
       operationId: post_api_v1_guard_domestic_help_check_out
       security:
         - bearerAuth: []
-      x-required-role: *a81
+      x-required-role: *a80
       x-required-permissions: []
       responses:
         "200":
@@ -37678,7 +38206,7 @@ paths:
       operationId: get_api_v1_guard_domestic_help_expected
       security:
         - bearerAuth: []
-      x-required-role: *a81
+      x-required-role: *a80
       x-required-permissions: []
       responses:
         "200":
@@ -37759,7 +38287,7 @@ paths:
       operationId: post_api_v1_guard_domestic_help_unauthorized_report
       security:
         - bearerAuth: []
-      x-required-role: *a81
+      x-required-role: *a80
       x-required-permissions: []
       responses:
         "201":
@@ -37919,7 +38447,7 @@ paths:
       operationId: post_api_v1_guard_alerts
       security:
         - bearerAuth: []
-      x-required-role: *a81
+      x-required-role: *a80
       x-required-permissions: []
       responses:
         "201":
@@ -37977,6 +38505,10 @@ paths:
                       raisedBy:
                         type: string
                         pattern: ^[a-f\d]{24}$
+                      raisedByName:
+                        type: string
+                      raisedByMobile:
+                        type: string
                       flatId:
                         type: string
                         pattern: ^[a-f\d]{24}$
@@ -38004,6 +38536,14 @@ paths:
                         type: string
                         format: date-time
                         pattern: ^(?:(?:\d\d[2468][048]|\d\d[13579][26]|\d\d0[48]|[02468][048]00|[13579][26]00)-02-29|\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\d|30)|(?:02)-(?:0[1-9]|1\d|2[0-8])))T(?:(?:[01]\d|2[0-3]):[0-5]\d:[0-5]\d(?:\.\d+)?(?:Z|([+-](?:[01]\d|2[0-3]):[0-5]\d)))$
+                      acknowledgedByName:
+                        type: string
+                      acknowledgedByRole:
+                        type: string
+                      resolvedByName:
+                        type: string
+                      resolvedByRole:
+                        type: string
                       notifiedContacts:
                         type: array
                         items:
@@ -38037,6 +38577,8 @@ paths:
                   type: PANIC
                   source: RESIDENT
                   raisedBy: 64f1c0a2b3c4d5e6f7a8b9c0
+                  raisedByName: Sample name
+                  raisedByMobile: "+919876543210"
                   flatId: 64f1c0a2b3c4d5e6f7a8b9c0
                   flatLabel: string
                   gateId: 64f1c0a2b3c4d5e6f7a8b9c0
@@ -38045,6 +38587,10 @@ paths:
                   status: ACTIVE
                   acknowledgedAt: 2026-11-02T10:30:00.000Z
                   resolvedAt: 2026-11-02T10:30:00.000Z
+                  acknowledgedByName: Sample name
+                  acknowledgedByRole: string
+                  resolvedByName: Sample name
+                  resolvedByRole: string
                   notifiedContacts:
                     - name: Sample name
                       phone: "+919876543210"
@@ -38119,7 +38665,7 @@ paths:
       operationId: get_api_v1_guard_alerts
       security:
         - bearerAuth: []
-      x-required-role: *a81
+      x-required-role: *a80
       x-required-permissions: []
       responses:
         "200":
@@ -38179,6 +38725,10 @@ paths:
                         raisedBy:
                           type: string
                           pattern: ^[a-f\d]{24}$
+                        raisedByName:
+                          type: string
+                        raisedByMobile:
+                          type: string
                         flatId:
                           type: string
                           pattern: ^[a-f\d]{24}$
@@ -38206,6 +38756,14 @@ paths:
                           type: string
                           format: date-time
                           pattern: ^(?:(?:\d\d[2468][048]|\d\d[13579][26]|\d\d0[48]|[02468][048]00|[13579][26]00)-02-29|\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\d|30)|(?:02)-(?:0[1-9]|1\d|2[0-8])))T(?:(?:[01]\d|2[0-3]):[0-5]\d:[0-5]\d(?:\.\d+)?(?:Z|([+-](?:[01]\d|2[0-3]):[0-5]\d)))$
+                        acknowledgedByName:
+                          type: string
+                        acknowledgedByRole:
+                          type: string
+                        resolvedByName:
+                          type: string
+                        resolvedByRole:
+                          type: string
                         notifiedContacts:
                           type: array
                           items:
@@ -38241,6 +38799,8 @@ paths:
                     type: PANIC
                     source: RESIDENT
                     raisedBy: 64f1c0a2b3c4d5e6f7a8b9c0
+                    raisedByName: Sample name
+                    raisedByMobile: "+919876543210"
                     flatId: 64f1c0a2b3c4d5e6f7a8b9c0
                     flatLabel: string
                     gateId: 64f1c0a2b3c4d5e6f7a8b9c0
@@ -38249,6 +38809,10 @@ paths:
                     status: ACTIVE
                     acknowledgedAt: 2026-11-02T10:30:00.000Z
                     resolvedAt: 2026-11-02T10:30:00.000Z
+                    acknowledgedByName: Sample name
+                    acknowledgedByRole: string
+                    resolvedByName: Sample name
+                    resolvedByRole: string
                     notifiedContacts:
                       - name: Sample name
                         phone: "+919876543210"
@@ -38377,7 +38941,7 @@ paths:
       operationId: patch_api_v1_guard_alerts_id
       security:
         - bearerAuth: []
-      x-required-role: *a81
+      x-required-role: *a80
       x-required-permissions: []
       responses:
         "200":
@@ -38435,6 +38999,10 @@ paths:
                       raisedBy:
                         type: string
                         pattern: ^[a-f\d]{24}$
+                      raisedByName:
+                        type: string
+                      raisedByMobile:
+                        type: string
                       flatId:
                         type: string
                         pattern: ^[a-f\d]{24}$
@@ -38462,6 +39030,14 @@ paths:
                         type: string
                         format: date-time
                         pattern: ^(?:(?:\d\d[2468][048]|\d\d[13579][26]|\d\d0[48]|[02468][048]00|[13579][26]00)-02-29|\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\d|30)|(?:02)-(?:0[1-9]|1\d|2[0-8])))T(?:(?:[01]\d|2[0-3]):[0-5]\d:[0-5]\d(?:\.\d+)?(?:Z|([+-](?:[01]\d|2[0-3]):[0-5]\d)))$
+                      acknowledgedByName:
+                        type: string
+                      acknowledgedByRole:
+                        type: string
+                      resolvedByName:
+                        type: string
+                      resolvedByRole:
+                        type: string
                       notifiedContacts:
                         type: array
                         items:
@@ -38495,6 +39071,8 @@ paths:
                   type: PANIC
                   source: RESIDENT
                   raisedBy: 64f1c0a2b3c4d5e6f7a8b9c0
+                  raisedByName: Sample name
+                  raisedByMobile: "+919876543210"
                   flatId: 64f1c0a2b3c4d5e6f7a8b9c0
                   flatLabel: string
                   gateId: 64f1c0a2b3c4d5e6f7a8b9c0
@@ -38503,6 +39081,10 @@ paths:
                   status: ACTIVE
                   acknowledgedAt: 2026-11-02T10:30:00.000Z
                   resolvedAt: 2026-11-02T10:30:00.000Z
+                  acknowledgedByName: Sample name
+                  acknowledgedByRole: string
+                  resolvedByName: Sample name
+                  resolvedByRole: string
                   notifiedContacts:
                     - name: Sample name
                       phone: "+919876543210"
@@ -38586,7 +39168,7 @@ paths:
       operationId: post_api_v1_guard_incidents
       security:
         - bearerAuth: []
-      x-required-role: *a81
+      x-required-role: *a80
       x-required-permissions: []
       responses:
         "201":
@@ -38738,7 +39320,7 @@ paths:
                   type: string
                   pattern: ^[a-f\d]{24}$
                 attachments:
-                  default: &a82 []
+                  default: &a81 []
                   maxItems: 5
                   type: array
                   items:
@@ -38751,8 +39333,414 @@ paths:
               description: string
               location: string
               flatId: 64f1c0a2b3c4d5e6f7a8b9c0
-              attachments: *a82
+              attachments: *a81
+    get:
+      tags:
+        - Guard
+      summary: My reported security incidents
+      description: "Required role: GUARD."
+      operationId: get_api_v1_guard_incidents
+      security:
+        - bearerAuth: []
+      x-required-role: *a80
+      x-required-permissions: []
+      responses:
+        "200":
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - success
+                  - data
+                properties:
+                  success:
+                    type: boolean
+                    const: true
+                  message:
+                    type: string
+                  data:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        id:
+                          type: string
+                          pattern: ^[a-f\d]{24}$
+                        societyId:
+                          type: string
+                          pattern: ^[a-f\d]{24}$
+                        createdBy:
+                          type: string
+                          pattern: ^[a-f\d]{24}$
+                        updatedBy:
+                          type: string
+                          pattern: ^[a-f\d]{24}$
+                        createdAt:
+                          type: string
+                          format: date-time
+                          pattern: ^(?:(?:\d\d[2468][048]|\d\d[13579][26]|\d\d0[48]|[02468][048]00|[13579][26]00)-02-29|\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\d|30)|(?:02)-(?:0[1-9]|1\d|2[0-8])))T(?:(?:[01]\d|2[0-3]):[0-5]\d:[0-5]\d(?:\.\d+)?(?:Z|([+-](?:[01]\d|2[0-3]):[0-5]\d)))$
+                        updatedAt:
+                          type: string
+                          format: date-time
+                          pattern: ^(?:(?:\d\d[2468][048]|\d\d[13579][26]|\d\d0[48]|[02468][048]00|[13579][26]00)-02-29|\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\d|30)|(?:02)-(?:0[1-9]|1\d|2[0-8])))T(?:(?:[01]\d|2[0-3]):[0-5]\d:[0-5]\d(?:\.\d+)?(?:Z|([+-](?:[01]\d|2[0-3]):[0-5]\d)))$
+                        reportedBy:
+                          type: string
+                          pattern: ^[a-f\d]{24}$
+                        reporterRole:
+                          type: string
+                        type:
+                          type: string
+                          enum:
+                            - SUSPICIOUS_ACTIVITY
+                            - THEFT
+                            - ALTERCATION
+                            - TRESPASS
+                            - DAMAGE
+                            - OTHER
+                        description:
+                          type: string
+                        location:
+                          type: string
+                        status:
+                          type: string
+                          enum:
+                            - OPEN
+                            - INVESTIGATING
+                            - CLOSED
+                        resolutionNote:
+                          type: string
+                      required:
+                        - id
+                        - societyId
+                        - createdAt
+                        - updatedAt
+                        - reportedBy
+                        - type
+                        - description
+                        - status
+                      additionalProperties: false
+                  meta:
+                    $ref: "#/components/schemas/PaginationMeta"
+              example:
+                success: true
+                message: Success
+                data:
+                  - id: 64f1c0a2b3c4d5e6f7a8b9c0
+                    societyId: 64f1c0a2b3c4d5e6f7a8b9c0
+                    createdBy: 64f1c0a2b3c4d5e6f7a8b9c0
+                    updatedBy: 64f1c0a2b3c4d5e6f7a8b9c0
+                    createdAt: 2026-11-02T10:30:00.000Z
+                    updatedAt: 2026-11-02T10:30:00.000Z
+                    reportedBy: 64f1c0a2b3c4d5e6f7a8b9c0
+                    reporterRole: string
+                    type: SUSPICIOUS_ACTIVITY
+                    description: string
+                    location: string
+                    status: OPEN
+                    resolutionNote: string
+                meta:
+                  page: 1
+                  limit: 20
+                  total: 1
+                  totalPages: 1
+        "401":
+          description: Missing, invalid or expired access token
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "403":
+          description: Authenticated but not permitted (role, permission, feature flag or tenant)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "422":
+          description: Request validation failed
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "429":
+          description: Rate limit exceeded
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "500":
+          description: Unexpected server error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+      parameters:
+        - name: page
+          in: query
+          required: false
+          schema:
+            default: 1
+            type: integer
+            minimum: 1
+            maximum: 9007199254740991
+          example: 1
+        - name: limit
+          in: query
+          required: false
+          schema:
+            default: 20
+            type: integer
+            minimum: 1
+            maximum: 100
+          example: 20
+        - name: sort
+          in: query
+          required: false
+          schema:
+            type: string
+            pattern: ^-?[A-Za-z_.]+(,-?[A-Za-z_.]+)*$
+          example: string
+        - name: search
+          in: query
+          required: false
+          schema:
+            type: string
+            minLength: 1
+            maxLength: 100
+          example: string
+        - name: from
+          in: query
+          required: false
+          schema:
+            anyOf:
+              - type: string
+                format: date
+                pattern: ^(?:(?:\d\d[2468][048]|\d\d[13579][26]|\d\d0[48]|[02468][048]00|[13579][26]00)-02-29|\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\d|30)|(?:02)-(?:0[1-9]|1\d|2[0-8])))$
+              - type: string
+                format: date-time
+                pattern: ^(?:(?:\d\d[2468][048]|\d\d[13579][26]|\d\d0[48]|[02468][048]00|[13579][26]00)-02-29|\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\d|30)|(?:02)-(?:0[1-9]|1\d|2[0-8])))T(?:(?:[01]\d|2[0-3]):[0-5]\d:[0-5]\d(?:\.\d+)?(?:Z|([+-](?:[01]\d|2[0-3]):[0-5]\d)))$
+          example: 2026-11-02
+        - name: to
+          in: query
+          required: false
+          schema:
+            anyOf:
+              - type: string
+                format: date
+                pattern: ^(?:(?:\d\d[2468][048]|\d\d[13579][26]|\d\d0[48]|[02468][048]00|[13579][26]00)-02-29|\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\d|30)|(?:02)-(?:0[1-9]|1\d|2[0-8])))$
+              - type: string
+                format: date-time
+                pattern: ^(?:(?:\d\d[2468][048]|\d\d[13579][26]|\d\d0[48]|[02468][048]00|[13579][26]00)-02-29|\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\d|30)|(?:02)-(?:0[1-9]|1\d|2[0-8])))T(?:(?:[01]\d|2[0-3]):[0-5]\d:[0-5]\d(?:\.\d+)?(?:Z|([+-](?:[01]\d|2[0-3]):[0-5]\d)))$
+          example: 2026-11-02
+        - name: status
+          in: query
+          required: false
+          schema:
+            type: string
+            enum:
+              - OPEN
+              - INVESTIGATING
+              - CLOSED
+          example: OPEN
+        - name: type
+          in: query
+          required: false
+          schema:
+            type: string
+            enum:
+              - SUSPICIOUS_ACTIVITY
+              - THEFT
+              - ALTERCATION
+              - TRESPASS
+              - DAMAGE
+              - OTHER
+          example: SUSPICIOUS_ACTIVITY
   /api/v1/guard/lost-found:
+    get:
+      tags:
+        - Guard
+      summary: Browse the society lost-and-found register
+      description: "Required role: GUARD."
+      operationId: get_api_v1_guard_lost_found
+      security:
+        - bearerAuth: []
+      x-required-role: *a80
+      x-required-permissions: []
+      responses:
+        "200":
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - success
+                  - data
+                properties:
+                  success:
+                    type: boolean
+                    const: true
+                  message:
+                    type: string
+                  data:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        id:
+                          type: string
+                          pattern: ^[a-f\d]{24}$
+                        type:
+                          type: string
+                          enum:
+                            - LOST
+                            - FOUND
+                        title:
+                          type: string
+                        status:
+                          type: string
+                          enum:
+                            - OPEN
+                            - CLAIMED
+                            - CLOSED
+                        createdAt:
+                          type: string
+                          format: date-time
+                          pattern: ^(?:(?:\d\d[2468][048]|\d\d[13579][26]|\d\d0[48]|[02468][048]00|[13579][26]00)-02-29|\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\d|30)|(?:02)-(?:0[1-9]|1\d|2[0-8])))T(?:(?:[01]\d|2[0-3]):[0-5]\d:[0-5]\d(?:\.\d+)?(?:Z|([+-](?:[01]\d|2[0-3]):[0-5]\d)))$
+                        locationFound:
+                          type: string
+                      required:
+                        - id
+                        - type
+                        - title
+                        - status
+                        - createdAt
+                      additionalProperties: false
+                  meta:
+                    $ref: "#/components/schemas/PaginationMeta"
+              example:
+                success: true
+                message: Success
+                data:
+                  - id: 64f1c0a2b3c4d5e6f7a8b9c0
+                    type: LOST
+                    title: string
+                    status: OPEN
+                    createdAt: 2026-11-02T10:30:00.000Z
+                    locationFound: string
+                meta:
+                  page: 1
+                  limit: 20
+                  total: 1
+                  totalPages: 1
+        "401":
+          description: Missing, invalid or expired access token
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "403":
+          description: Authenticated but not permitted (role, permission, feature flag or tenant)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "422":
+          description: Request validation failed
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "429":
+          description: Rate limit exceeded
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "500":
+          description: Unexpected server error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+      parameters:
+        - name: page
+          in: query
+          required: false
+          schema:
+            default: 1
+            type: integer
+            minimum: 1
+            maximum: 9007199254740991
+          example: 1
+        - name: limit
+          in: query
+          required: false
+          schema:
+            default: 20
+            type: integer
+            minimum: 1
+            maximum: 100
+          example: 20
+        - name: sort
+          in: query
+          required: false
+          schema:
+            type: string
+            pattern: ^-?[A-Za-z_.]+(,-?[A-Za-z_.]+)*$
+          example: string
+        - name: search
+          in: query
+          required: false
+          schema:
+            type: string
+            minLength: 1
+            maxLength: 100
+          example: string
+        - name: from
+          in: query
+          required: false
+          schema:
+            anyOf:
+              - type: string
+                format: date
+                pattern: ^(?:(?:\d\d[2468][048]|\d\d[13579][26]|\d\d0[48]|[02468][048]00|[13579][26]00)-02-29|\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\d|30)|(?:02)-(?:0[1-9]|1\d|2[0-8])))$
+              - type: string
+                format: date-time
+                pattern: ^(?:(?:\d\d[2468][048]|\d\d[13579][26]|\d\d0[48]|[02468][048]00|[13579][26]00)-02-29|\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\d|30)|(?:02)-(?:0[1-9]|1\d|2[0-8])))T(?:(?:[01]\d|2[0-3]):[0-5]\d:[0-5]\d(?:\.\d+)?(?:Z|([+-](?:[01]\d|2[0-3]):[0-5]\d)))$
+          example: 2026-11-02
+        - name: to
+          in: query
+          required: false
+          schema:
+            anyOf:
+              - type: string
+                format: date
+                pattern: ^(?:(?:\d\d[2468][048]|\d\d[13579][26]|\d\d0[48]|[02468][048]00|[13579][26]00)-02-29|\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\d|30)|(?:02)-(?:0[1-9]|1\d|2[0-8])))$
+              - type: string
+                format: date-time
+                pattern: ^(?:(?:\d\d[2468][048]|\d\d[13579][26]|\d\d0[48]|[02468][048]00|[13579][26]00)-02-29|\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\d|30)|(?:02)-(?:0[1-9]|1\d|2[0-8])))T(?:(?:[01]\d|2[0-3]):[0-5]\d:[0-5]\d(?:\.\d+)?(?:Z|([+-](?:[01]\d|2[0-3]):[0-5]\d)))$
+          example: 2026-11-02
+        - name: type
+          in: query
+          required: false
+          schema:
+            type: string
+            enum:
+              - LOST
+              - FOUND
+          example: LOST
+        - name: status
+          in: query
+          required: false
+          schema:
+            type: string
+            enum:
+              - OPEN
+              - CLAIMED
+              - CLOSED
+          example: OPEN
     post:
       tags:
         - Guard
@@ -38761,7 +39749,7 @@ paths:
       operationId: post_api_v1_guard_lost_found
       security:
         - bearerAuth: []
-      x-required-role: *a81
+      x-required-role: *a80
       x-required-permissions: []
       responses:
         "201":
@@ -38898,7 +39886,7 @@ paths:
                   type: string
                   maxLength: 200
                 images:
-                  default: &a83 []
+                  default: &a82 []
                   maxItems: 5
                   type: array
                   items:
@@ -38912,7 +39900,7 @@ paths:
               title: string
               description: string
               locationFound: string
-              images: *a83
+              images: *a82
   /api/v1/guard/emergency-contacts:
     get:
       tags:
@@ -38922,7 +39910,7 @@ paths:
       operationId: get_api_v1_guard_emergency_contacts
       security:
         - bearerAuth: []
-      x-required-role: *a81
+      x-required-role: *a80
       x-required-permissions: []
       responses:
         "200":
@@ -38982,6 +39970,10 @@ paths:
                           type: integer
                           minimum: -9007199254740991
                           maximum: 9007199254740991
+                        visibleToResidents:
+                          type: boolean
+                        visibleToGuards:
+                          type: boolean
                       required:
                         - id
                         - societyId
@@ -39011,6 +40003,8 @@ paths:
                     phone: "+919876543210"
                     notes: string
                     order: 1
+                    visibleToResidents: true
+                    visibleToGuards: true
                 meta:
                   page: 1
                   limit: 20
@@ -63769,7 +64763,7 @@ paths:
         Public endpoint (no authentication).
       operationId: post_api_v1_auth_societies_register
       security: []
-      x-required-role:
+      x-required-role: &a130
         - RESIDENT
       x-required-permissions: []
       responses:
@@ -64092,6 +65086,152 @@ paths:
                 email: user@example.com
                 mobile: "+919876543210"
                 notes: string
+  /api/v1/auth/societies/{id}/flats:
+    get:
+      tags:
+        - Authentication
+      summary: List an active society's flats (for the join flow)
+      description: |-
+        Returns the flats of an ACTIVE society so a resident can select their unit when applying. Any authenticated role can read this before joining.
+
+        Required role: RESIDENT.
+      operationId: get_api_v1_auth_societies_id_flats
+      security:
+        - bearerAuth: []
+      x-required-role: *a130
+      x-required-permissions: []
+      responses:
+        "200":
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - success
+                  - data
+                properties:
+                  success:
+                    type: boolean
+                    const: true
+                  message:
+                    type: string
+                  data:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        id:
+                          type: string
+                          pattern: ^[a-f\d]{24}$
+                        societyId:
+                          type: string
+                          pattern: ^[a-f\d]{24}$
+                        createdBy:
+                          type: string
+                          pattern: ^[a-f\d]{24}$
+                        updatedBy:
+                          type: string
+                          pattern: ^[a-f\d]{24}$
+                        createdAt:
+                          type: string
+                          format: date-time
+                          pattern: ^(?:(?:\d\d[2468][048]|\d\d[13579][26]|\d\d0[48]|[02468][048]00|[13579][26]00)-02-29|\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\d|30)|(?:02)-(?:0[1-9]|1\d|2[0-8])))T(?:(?:[01]\d|2[0-3]):[0-5]\d:[0-5]\d(?:\.\d+)?(?:Z|([+-](?:[01]\d|2[0-3]):[0-5]\d)))$
+                        updatedAt:
+                          type: string
+                          format: date-time
+                          pattern: ^(?:(?:\d\d[2468][048]|\d\d[13579][26]|\d\d0[48]|[02468][048]00|[13579][26]00)-02-29|\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\d|30)|(?:02)-(?:0[1-9]|1\d|2[0-8])))T(?:(?:[01]\d|2[0-3]):[0-5]\d:[0-5]\d(?:\.\d+)?(?:Z|([+-](?:[01]\d|2[0-3]):[0-5]\d)))$
+                        label:
+                          type: string
+                        towerId:
+                          type: string
+                          pattern: ^[a-f\d]{24}$
+                        blockId:
+                          type: string
+                          pattern: ^[a-f\d]{24}$
+                        floorNumber:
+                          type: number
+                        unitNumber:
+                          type: string
+                        unitType:
+                          type: string
+                        areaSqft:
+                          type: number
+                        status:
+                          type: string
+                          enum:
+                            - VACANT
+                            - OCCUPIED
+                            - BLOCKED
+                        parkingSlots:
+                          type: number
+                      required:
+                        - id
+                        - societyId
+                        - createdAt
+                        - updatedAt
+                        - label
+                        - unitNumber
+                        - status
+                        - parkingSlots
+                      additionalProperties: false
+              example:
+                success: true
+                message: Success
+                data:
+                  - id: 64f1c0a2b3c4d5e6f7a8b9c0
+                    societyId: 64f1c0a2b3c4d5e6f7a8b9c0
+                    createdBy: 64f1c0a2b3c4d5e6f7a8b9c0
+                    updatedBy: 64f1c0a2b3c4d5e6f7a8b9c0
+                    createdAt: 2026-11-02T10:30:00.000Z
+                    updatedAt: 2026-11-02T10:30:00.000Z
+                    label: string
+                    towerId: 64f1c0a2b3c4d5e6f7a8b9c0
+                    blockId: 64f1c0a2b3c4d5e6f7a8b9c0
+                    floorNumber: 100
+                    unitNumber: string
+                    unitType: string
+                    areaSqft: 100
+                    status: VACANT
+                    parkingSlots: 100
+        "401":
+          description: Missing, invalid or expired access token
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "403":
+          description: Authenticated but not permitted (role, permission, feature flag or tenant)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: Resource not found in the caller's society
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "429":
+          description: Rate limit exceeded
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "500":
+          description: Unexpected server error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            pattern: ^[a-f\d]{24}$
+          example: 64f1c0a2b3c4d5e6f7a8b9c0
   /api/v1/admin/society:
     get:
       tags:
@@ -64101,7 +65241,7 @@ paths:
       operationId: get_api_v1_admin_society
       security:
         - bearerAuth: []
-      x-required-role: &a130
+      x-required-role: &a131
         - SOCIETY_ADMIN
       x-required-permissions:
         - society:read
@@ -64313,7 +65453,7 @@ paths:
       operationId: patch_api_v1_admin_society
       security:
         - bearerAuth: []
-      x-required-role: *a130
+      x-required-role: *a131
       x-required-permissions:
         - society:update
       responses:
@@ -64879,7 +66019,7 @@ paths:
       operationId: post_api_v1_admin_flats_bulk
       security:
         - bearerAuth: []
-      x-required-role: *a130
+      x-required-role: *a131
       x-required-permissions:
         - structure:manage
       responses:
@@ -65001,8 +66141,8 @@ paths:
       operationId: get_api_v1_admin_blocks
       security:
         - bearerAuth: []
-      x-required-role: *a130
-      x-required-permissions: &a131
+      x-required-role: *a131
+      x-required-permissions: &a132
         - society:read
       responses:
         "200":
@@ -65175,8 +66315,8 @@ paths:
       operationId: post_api_v1_admin_blocks
       security:
         - bearerAuth: []
-      x-required-role: *a130
-      x-required-permissions: &a132
+      x-required-role: *a131
+      x-required-permissions: &a133
         - structure:manage
       responses:
         "201":
@@ -65314,8 +66454,8 @@ paths:
       operationId: get_api_v1_admin_blocks_id
       security:
         - bearerAuth: []
-      x-required-role: *a130
-      x-required-permissions: *a131
+      x-required-role: *a131
+      x-required-permissions: *a132
       responses:
         "200":
           description: Successful response
@@ -65431,8 +66571,8 @@ paths:
       operationId: patch_api_v1_admin_blocks_id
       security:
         - bearerAuth: []
-      x-required-role: *a130
-      x-required-permissions: *a132
+      x-required-role: *a131
+      x-required-permissions: *a133
       responses:
         "200":
           description: Successful response
@@ -65583,8 +66723,8 @@ paths:
       operationId: delete_api_v1_admin_blocks_id
       security:
         - bearerAuth: []
-      x-required-role: *a130
-      x-required-permissions: *a132
+      x-required-role: *a131
+      x-required-permissions: *a133
       responses:
         "200":
           description: Successful response
@@ -65663,8 +66803,8 @@ paths:
       operationId: get_api_v1_admin_towers
       security:
         - bearerAuth: []
-      x-required-role: *a130
-      x-required-permissions: &a133
+      x-required-role: *a131
+      x-required-permissions: &a134
         - society:read
       responses:
         "200":
@@ -65852,8 +66992,8 @@ paths:
       operationId: post_api_v1_admin_towers
       security:
         - bearerAuth: []
-      x-required-role: *a130
-      x-required-permissions: &a134
+      x-required-role: *a131
+      x-required-permissions: &a135
         - structure:manage
       responses:
         "201":
@@ -66007,8 +67147,8 @@ paths:
       operationId: get_api_v1_admin_towers_id
       security:
         - bearerAuth: []
-      x-required-role: *a130
-      x-required-permissions: *a133
+      x-required-role: *a131
+      x-required-permissions: *a134
       responses:
         "200":
           description: Successful response
@@ -66132,8 +67272,8 @@ paths:
       operationId: patch_api_v1_admin_towers_id
       security:
         - bearerAuth: []
-      x-required-role: *a130
-      x-required-permissions: *a134
+      x-required-role: *a131
+      x-required-permissions: *a135
       responses:
         "200":
           description: Successful response
@@ -66300,8 +67440,8 @@ paths:
       operationId: delete_api_v1_admin_towers_id
       security:
         - bearerAuth: []
-      x-required-role: *a130
-      x-required-permissions: *a134
+      x-required-role: *a131
+      x-required-permissions: *a135
       responses:
         "200":
           description: Successful response
@@ -66380,8 +67520,8 @@ paths:
       operationId: get_api_v1_admin_floors
       security:
         - bearerAuth: []
-      x-required-role: *a130
-      x-required-permissions: &a135
+      x-required-role: *a131
+      x-required-permissions: &a136
         - society:read
       responses:
         "200":
@@ -66562,8 +67702,8 @@ paths:
       operationId: post_api_v1_admin_floors
       security:
         - bearerAuth: []
-      x-required-role: *a130
-      x-required-permissions: &a136
+      x-required-role: *a131
+      x-required-permissions: &a137
         - structure:manage
       responses:
         "201":
@@ -66701,8 +67841,8 @@ paths:
       operationId: get_api_v1_admin_floors_id
       security:
         - bearerAuth: []
-      x-required-role: *a130
-      x-required-permissions: *a135
+      x-required-role: *a131
+      x-required-permissions: *a136
       responses:
         "200":
           description: Successful response
@@ -66819,8 +67959,8 @@ paths:
       operationId: patch_api_v1_admin_floors_id
       security:
         - bearerAuth: []
-      x-required-role: *a130
-      x-required-permissions: *a136
+      x-required-role: *a131
+      x-required-permissions: *a137
       responses:
         "200":
           description: Successful response
@@ -66970,8 +68110,8 @@ paths:
       operationId: delete_api_v1_admin_floors_id
       security:
         - bearerAuth: []
-      x-required-role: *a130
-      x-required-permissions: *a136
+      x-required-role: *a131
+      x-required-permissions: *a137
       responses:
         "200":
           description: Successful response
@@ -67050,8 +68190,8 @@ paths:
       operationId: get_api_v1_admin_flats
       security:
         - bearerAuth: []
-      x-required-role: *a130
-      x-required-permissions: &a137
+      x-required-role: *a131
+      x-required-permissions: &a138
         - society:read
       responses:
         "200":
@@ -67282,8 +68422,8 @@ paths:
       operationId: post_api_v1_admin_flats
       security:
         - bearerAuth: []
-      x-required-role: *a130
-      x-required-permissions: &a138
+      x-required-role: *a131
+      x-required-permissions: &a139
         - structure:manage
       responses:
         "201":
@@ -67481,8 +68621,8 @@ paths:
       operationId: get_api_v1_admin_flats_id
       security:
         - bearerAuth: []
-      x-required-role: *a130
-      x-required-permissions: *a137
+      x-required-role: *a131
+      x-required-permissions: *a138
       responses:
         "200":
           description: Successful response
@@ -67624,8 +68764,8 @@ paths:
       operationId: patch_api_v1_admin_flats_id
       security:
         - bearerAuth: []
-      x-required-role: *a130
-      x-required-permissions: *a138
+      x-required-role: *a131
+      x-required-permissions: *a139
       responses:
         "200":
           description: Successful response
@@ -67835,8 +68975,8 @@ paths:
       operationId: delete_api_v1_admin_flats_id
       security:
         - bearerAuth: []
-      x-required-role: *a130
-      x-required-permissions: *a138
+      x-required-role: *a131
+      x-required-permissions: *a139
       responses:
         "200":
           description: Successful response
@@ -67915,8 +69055,8 @@ paths:
       operationId: get_api_v1_admin_gates
       security:
         - bearerAuth: []
-      x-required-role: *a130
-      x-required-permissions: &a139
+      x-required-role: *a131
+      x-required-permissions: &a140
         - society:read
       responses:
         "200":
@@ -68099,8 +69239,8 @@ paths:
       operationId: post_api_v1_admin_gates
       security:
         - bearerAuth: []
-      x-required-role: *a130
-      x-required-permissions: &a140
+      x-required-role: *a131
+      x-required-permissions: &a141
         - structure:manage
       responses:
         "201":
@@ -68265,8 +69405,8 @@ paths:
       operationId: get_api_v1_admin_gates_id
       security:
         - bearerAuth: []
-      x-required-role: *a130
-      x-required-permissions: *a139
+      x-required-role: *a131
+      x-required-permissions: *a140
       responses:
         "200":
           description: Successful response
@@ -68392,8 +69532,8 @@ paths:
       operationId: patch_api_v1_admin_gates_id
       security:
         - bearerAuth: []
-      x-required-role: *a130
-      x-required-permissions: *a140
+      x-required-role: *a131
+      x-required-permissions: *a141
       responses:
         "200":
           description: Successful response
@@ -68571,8 +69711,8 @@ paths:
       operationId: delete_api_v1_admin_gates_id
       security:
         - bearerAuth: []
-      x-required-role: *a130
-      x-required-permissions: *a140
+      x-required-role: *a131
+      x-required-permissions: *a141
       responses:
         "200":
           description: Successful response
@@ -68651,9 +69791,9 @@ paths:
       operationId: get_api_v1_admin_staff
       security:
         - bearerAuth: []
-      x-required-role: &a141
+      x-required-role: &a142
         - SOCIETY_ADMIN
-      x-required-permissions: &a143
+      x-required-permissions: &a144
         - staff:manage
       responses:
         "200":
@@ -68911,8 +70051,8 @@ paths:
       operationId: post_api_v1_admin_staff
       security:
         - bearerAuth: []
-      x-required-role: *a141
-      x-required-permissions: &a144
+      x-required-role: *a142
+      x-required-permissions: &a145
         - staff:manage
       responses:
         "201":
@@ -69104,7 +70244,7 @@ paths:
                   type: string
                   pattern: ^[a-f\d]{24}$
                 documents:
-                  default: &a142 []
+                  default: &a143 []
                   maxItems: 10
                   type: array
                   items:
@@ -69142,7 +70282,7 @@ paths:
               salaryMonthly: 100
               joinedAt: 2026-11-02
               photoFileId: 64f1c0a2b3c4d5e6f7a8b9c0
-              documents: *a142
+              documents: *a143
               status: ACTIVE
   /api/v1/admin/staff/{id}:
     get:
@@ -69153,8 +70293,8 @@ paths:
       operationId: get_api_v1_admin_staff_id
       security:
         - bearerAuth: []
-      x-required-role: *a141
-      x-required-permissions: *a143
+      x-required-role: *a142
+      x-required-permissions: *a144
       responses:
         "200":
           description: Successful response
@@ -69316,8 +70456,8 @@ paths:
       operationId: patch_api_v1_admin_staff_id
       security:
         - bearerAuth: []
-      x-required-role: *a141
-      x-required-permissions: *a144
+      x-required-role: *a142
+      x-required-permissions: *a145
       responses:
         "200":
           description: Successful response
@@ -69522,7 +70662,7 @@ paths:
                   type: string
                   pattern: ^[a-f\d]{24}$
                 documents:
-                  default: &a145 []
+                  default: &a146 []
                   maxItems: 10
                   type: array
                   items:
@@ -69556,7 +70696,7 @@ paths:
               salaryMonthly: 100
               joinedAt: 2026-11-02
               photoFileId: 64f1c0a2b3c4d5e6f7a8b9c0
-              documents: *a145
+              documents: *a146
               status: ACTIVE
     delete:
       tags:
@@ -69569,8 +70709,8 @@ paths:
       operationId: delete_api_v1_admin_staff_id
       security:
         - bearerAuth: []
-      x-required-role: *a141
-      x-required-permissions: *a144
+      x-required-role: *a142
+      x-required-permissions: *a145
       responses:
         "200":
           description: Successful response
@@ -69646,8 +70786,8 @@ paths:
       operationId: post_api_v1_admin_staff_id_verify_documents
       security:
         - bearerAuth: []
-      x-required-role: *a141
-      x-required-permissions: &a146
+      x-required-role: *a142
+      x-required-permissions: &a147
         - staff:manage
       responses:
         "200":
@@ -69833,8 +70973,8 @@ paths:
       operationId: put_api_v1_admin_staff_id_attendance
       security:
         - bearerAuth: []
-      x-required-role: *a141
-      x-required-permissions: *a146
+      x-required-role: *a142
+      x-required-permissions: *a147
       responses:
         "200":
           description: Successful response
@@ -70011,8 +71151,8 @@ paths:
       operationId: get_api_v1_admin_staff_id_attendance
       security:
         - bearerAuth: []
-      x-required-role: *a141
-      x-required-permissions: *a146
+      x-required-role: *a142
+      x-required-permissions: *a147
       responses:
         "200":
           description: Successful response
@@ -70195,8 +71335,8 @@ paths:
       operationId: get_api_v1_admin_staff_id_performance
       security:
         - bearerAuth: []
-      x-required-role: *a141
-      x-required-permissions: *a146
+      x-required-role: *a142
+      x-required-permissions: *a147
       responses:
         "200":
           description: Successful response
@@ -70378,8 +71518,8 @@ paths:
       operationId: get_api_v1_admin_vendors
       security:
         - bearerAuth: []
-      x-required-role: *a141
-      x-required-permissions: &a147
+      x-required-role: *a142
+      x-required-permissions: &a148
         - vendor:manage
       responses:
         "200":
@@ -70645,8 +71785,8 @@ paths:
       operationId: post_api_v1_admin_vendors
       security:
         - bearerAuth: []
-      x-required-role: *a141
-      x-required-permissions: &a148
+      x-required-role: *a142
+      x-required-permissions: &a149
         - vendor:manage
       responses:
         "201":
@@ -70878,8 +72018,8 @@ paths:
       operationId: get_api_v1_admin_vendors_id
       security:
         - bearerAuth: []
-      x-required-role: *a141
-      x-required-permissions: *a147
+      x-required-role: *a142
+      x-required-permissions: *a148
       responses:
         "200":
           description: Successful response
@@ -71063,8 +72203,8 @@ paths:
       operationId: patch_api_v1_admin_vendors_id
       security:
         - bearerAuth: []
-      x-required-role: *a141
-      x-required-permissions: *a148
+      x-required-role: *a142
+      x-required-permissions: *a149
       responses:
         "200":
           description: Successful response
@@ -71307,8 +72447,8 @@ paths:
       operationId: delete_api_v1_admin_vendors_id
       security:
         - bearerAuth: []
-      x-required-role: *a141
-      x-required-permissions: *a148
+      x-required-role: *a142
+      x-required-permissions: *a149
       responses:
         "200":
           description: Successful response
@@ -71384,7 +72524,7 @@ paths:
       operationId: post_api_v1_admin_vendors_id_contracts
       security:
         - bearerAuth: []
-      x-required-role: *a141
+      x-required-role: *a142
       x-required-permissions:
         - vendor:manage
       responses:
@@ -71618,7 +72758,7 @@ paths:
       operationId: delete_api_v1_admin_vendors_id_contracts_contractId
       security:
         - bearerAuth: []
-      x-required-role: *a141
+      x-required-role: *a142
       x-required-permissions:
         - vendor:manage
       responses:
@@ -71812,8 +72952,8 @@ paths:
       operationId: get_api_v1_admin_tasks
       security:
         - bearerAuth: []
-      x-required-role: *a141
-      x-required-permissions: &a149
+      x-required-role: *a142
+      x-required-permissions: &a150
         - task:manage
       responses:
         "200":
@@ -72058,8 +73198,8 @@ paths:
       operationId: post_api_v1_admin_tasks
       security:
         - bearerAuth: []
-      x-required-role: *a141
-      x-required-permissions: &a150
+      x-required-role: *a142
+      x-required-permissions: &a151
         - task:manage
       responses:
         "201":
@@ -72255,8 +73395,8 @@ paths:
       operationId: get_api_v1_admin_tasks_id
       security:
         - bearerAuth: []
-      x-required-role: *a141
-      x-required-permissions: *a149
+      x-required-role: *a142
+      x-required-permissions: *a150
       responses:
         "200":
           description: Successful response
@@ -72405,8 +73545,8 @@ paths:
       operationId: patch_api_v1_admin_tasks_id
       security:
         - bearerAuth: []
-      x-required-role: *a141
-      x-required-permissions: *a150
+      x-required-role: *a142
+      x-required-permissions: *a151
       responses:
         "200":
           description: Successful response
@@ -72621,8 +73761,8 @@ paths:
       operationId: delete_api_v1_admin_tasks_id
       security:
         - bearerAuth: []
-      x-required-role: *a141
-      x-required-permissions: *a150
+      x-required-role: *a142
+      x-required-permissions: *a151
       responses:
         "200":
           description: Successful response
@@ -72701,8 +73841,8 @@ paths:
       operationId: get_api_v1_admin_assets
       security:
         - bearerAuth: []
-      x-required-role: *a141
-      x-required-permissions: &a151
+      x-required-role: *a142
+      x-required-permissions: &a152
         - asset:manage
       responses:
         "200":
@@ -72935,8 +74075,8 @@ paths:
       operationId: post_api_v1_admin_assets
       security:
         - bearerAuth: []
-      x-required-role: *a141
-      x-required-permissions: &a152
+      x-required-role: *a142
+      x-required-permissions: &a153
         - asset:manage
       responses:
         "201":
@@ -73161,8 +74301,8 @@ paths:
       operationId: get_api_v1_admin_assets_id
       security:
         - bearerAuth: []
-      x-required-role: *a141
-      x-required-permissions: *a151
+      x-required-role: *a142
+      x-required-permissions: *a152
       responses:
         "200":
           description: Successful response
@@ -73311,8 +74451,8 @@ paths:
       operationId: patch_api_v1_admin_assets_id
       security:
         - bearerAuth: []
-      x-required-role: *a141
-      x-required-permissions: *a152
+      x-required-role: *a142
+      x-required-permissions: *a153
       responses:
         "200":
           description: Successful response
@@ -73550,8 +74690,8 @@ paths:
       operationId: delete_api_v1_admin_assets_id
       security:
         - bearerAuth: []
-      x-required-role: *a141
-      x-required-permissions: *a152
+      x-required-role: *a142
+      x-required-permissions: *a153
       responses:
         "200":
           description: Successful response
@@ -73627,7 +74767,7 @@ paths:
       operationId: get_api_v1_admin_inventory_low_stock
       security:
         - bearerAuth: []
-      x-required-role: *a141
+      x-required-role: *a142
       x-required-permissions:
         - asset:manage
       responses:
@@ -73714,7 +74854,7 @@ paths:
       operationId: get_api_v1_super_admin_dashboard
       security:
         - bearerAuth: []
-      x-required-role: &a153
+      x-required-role: &a154
         - SUPER_ADMIN
       x-required-permissions: []
       responses:
@@ -73886,7 +75026,7 @@ paths:
       operationId: get_api_v1_super_admin_monitoring_health
       security:
         - bearerAuth: []
-      x-required-role: *a153
+      x-required-role: *a154
       x-required-permissions: []
       responses:
         "200":
@@ -74008,7 +75148,7 @@ paths:
       operationId: get_api_v1_super_admin_monitoring_errors
       security:
         - bearerAuth: []
-      x-required-role: *a153
+      x-required-role: *a154
       x-required-permissions: []
       responses:
         "200":
@@ -74209,7 +75349,7 @@ paths:
       operationId: get_api_v1_super_admin_monitoring_feature_usage
       security:
         - bearerAuth: []
-      x-required-role: *a153
+      x-required-role: *a154
       x-required-permissions: []
       responses:
         "200":
@@ -74310,7 +75450,7 @@ paths:
       operationId: get_api_v1_super_admin_monitoring_impersonations
       security:
         - bearerAuth: []
-      x-required-role: *a153
+      x-required-role: *a154
       x-required-permissions: []
       responses:
         "200":
@@ -74507,7 +75647,7 @@ paths:
       operationId: get_api_v1_super_admin_security_login_history
       security:
         - bearerAuth: []
-      x-required-role: *a153
+      x-required-role: *a154
       x-required-permissions: []
       responses:
         "200":
@@ -74708,7 +75848,7 @@ paths:
       operationId: get_api_v1_super_admin_security_suspicious_activity
       security:
         - bearerAuth: []
-      x-required-role: *a153
+      x-required-role: *a154
       x-required-permissions: []
       responses:
         "200":
@@ -74793,7 +75933,7 @@ paths:
       operationId: get_api_v1_super_admin_security_users
       security:
         - bearerAuth: []
-      x-required-role: *a153
+      x-required-role: *a154
       x-required-permissions: []
       responses:
         "200":
@@ -74965,7 +76105,7 @@ paths:
       operationId: post_api_v1_super_admin_security_users_id_block
       security:
         - bearerAuth: []
-      x-required-role: *a153
+      x-required-role: *a154
       x-required-permissions: []
       responses:
         "200":
@@ -75081,7 +76221,7 @@ paths:
       operationId: post_api_v1_super_admin_security_users_id_unblock
       security:
         - bearerAuth: []
-      x-required-role: *a153
+      x-required-role: *a154
       x-required-permissions: []
       responses:
         "200":
@@ -75179,7 +76319,7 @@ paths:
       operationId: get_api_v1_super_admin_organizations
       security:
         - bearerAuth: []
-      x-required-role: *a153
+      x-required-role: *a154
       x-required-permissions: []
       responses:
         "200":
@@ -75354,7 +76494,7 @@ paths:
       operationId: post_api_v1_super_admin_organizations
       security:
         - bearerAuth: []
-      x-required-role: *a153
+      x-required-role: *a154
       x-required-permissions: []
       responses:
         "201":
@@ -75496,7 +76636,7 @@ paths:
       operationId: get_api_v1_super_admin_organizations_id
       security:
         - bearerAuth: []
-      x-required-role: *a153
+      x-required-role: *a154
       x-required-permissions: []
       responses:
         "200":
@@ -75606,7 +76746,7 @@ paths:
       operationId: patch_api_v1_super_admin_organizations_id
       security:
         - bearerAuth: []
-      x-required-role: *a153
+      x-required-role: *a154
       x-required-permissions: []
       responses:
         "200":
@@ -75762,7 +76902,7 @@ paths:
       operationId: delete_api_v1_super_admin_organizations_id
       security:
         - bearerAuth: []
-      x-required-role: *a153
+      x-required-role: *a154
       x-required-permissions: []
       responses:
         "200":
@@ -75842,7 +76982,7 @@ paths:
       operationId: get_api_v1_super_admin_plans
       security:
         - bearerAuth: []
-      x-required-role: *a153
+      x-required-role: *a154
       x-required-permissions: []
       responses:
         "200":
@@ -76039,7 +77179,7 @@ paths:
       operationId: post_api_v1_super_admin_plans
       security:
         - bearerAuth: []
-      x-required-role: *a153
+      x-required-role: *a154
       x-required-permissions: []
       responses:
         "201":
@@ -76184,7 +77324,7 @@ paths:
                     - QUARTERLY
                     - YEARLY
                 features:
-                  default: &a154
+                  default: &a155
                     marketplace: true
                     property: true
                     visitors: true
@@ -76252,7 +77392,7 @@ paths:
                       default: true
                       type: boolean
                 limits:
-                  default: &a155 {}
+                  default: &a156 {}
                   type: object
                   properties:
                     maxFlats:
@@ -76278,8 +77418,8 @@ paths:
               code: string
               price: 0
               billingCycle: MONTHLY
-              features: *a154
-              limits: *a155
+              features: *a155
+              limits: *a156
               isActive: true
   /api/v1/super-admin/plans/{id}:
     get:
@@ -76290,7 +77430,7 @@ paths:
       operationId: get_api_v1_super_admin_plans_id
       security:
         - bearerAuth: []
-      x-required-role: *a153
+      x-required-role: *a154
       x-required-permissions: []
       responses:
         "200":
@@ -76422,7 +77562,7 @@ paths:
       operationId: patch_api_v1_super_admin_plans_id
       security:
         - bearerAuth: []
-      x-required-role: *a153
+      x-required-role: *a154
       x-required-permissions: []
       responses:
         "200":
@@ -76581,7 +77721,7 @@ paths:
                     - QUARTERLY
                     - YEARLY
                 features:
-                  default: &a156
+                  default: &a157
                     marketplace: true
                     property: true
                     visitors: true
@@ -76649,7 +77789,7 @@ paths:
                       default: true
                       type: boolean
                 limits:
-                  default: &a157 {}
+                  default: &a158 {}
                   type: object
                   properties:
                     maxFlats:
@@ -76672,8 +77812,8 @@ paths:
               code: string
               price: 0
               billingCycle: MONTHLY
-              features: *a156
-              limits: *a157
+              features: *a157
+              limits: *a158
               isActive: true
     delete:
       tags:
@@ -76686,7 +77826,7 @@ paths:
       operationId: delete_api_v1_super_admin_plans_id
       security:
         - bearerAuth: []
-      x-required-role: *a153
+      x-required-role: *a154
       x-required-permissions: []
       responses:
         "200":
@@ -76766,7 +77906,7 @@ paths:
       operationId: get_api_v1_super_admin_announcements
       security:
         - bearerAuth: []
-      x-required-role: *a153
+      x-required-role: *a154
       x-required-permissions: []
       responses:
         "200":
@@ -76982,7 +78122,7 @@ paths:
       operationId: post_api_v1_super_admin_announcements
       security:
         - bearerAuth: []
-      x-required-role: *a153
+      x-required-role: *a154
       x-required-permissions: []
       responses:
         "201":
@@ -77140,7 +78280,7 @@ paths:
                     - RESIDENTS
                     - GUARDS
                 societyIds:
-                  default: &a158 []
+                  default: &a159 []
                   maxItems: 500
                   type: array
                   items:
@@ -77165,7 +78305,7 @@ paths:
               body: string
               severity: INFO
               audience: ALL
-              societyIds: *a158
+              societyIds: *a159
               startsAt: 2026-11-02T10:30:00.000Z
               endsAt: 2026-11-02T10:30:00.000Z
               isActive: true
@@ -77178,7 +78318,7 @@ paths:
       operationId: get_api_v1_super_admin_announcements_id
       security:
         - bearerAuth: []
-      x-required-role: *a153
+      x-required-role: *a154
       x-required-permissions: []
       responses:
         "200":
@@ -77318,7 +78458,7 @@ paths:
       operationId: patch_api_v1_super_admin_announcements_id
       security:
         - bearerAuth: []
-      x-required-role: *a153
+      x-required-role: *a154
       x-required-permissions: []
       responses:
         "200":
@@ -77490,7 +78630,7 @@ paths:
                     - RESIDENTS
                     - GUARDS
                 societyIds:
-                  default: &a159 []
+                  default: &a160 []
                   maxItems: 500
                   type: array
                   items:
@@ -77512,7 +78652,7 @@ paths:
               body: string
               severity: INFO
               audience: ALL
-              societyIds: *a159
+              societyIds: *a160
               startsAt: 2026-11-02T10:30:00.000Z
               endsAt: 2026-11-02T10:30:00.000Z
               isActive: true
@@ -77527,7 +78667,7 @@ paths:
       operationId: delete_api_v1_super_admin_announcements_id
       security:
         - bearerAuth: []
-      x-required-role: *a153
+      x-required-role: *a154
       x-required-permissions: []
       responses:
         "200":
@@ -77607,7 +78747,7 @@ paths:
       operationId: get_api_v1_super_admin_notification_templates
       security:
         - bearerAuth: []
-      x-required-role: *a153
+      x-required-role: *a154
       x-required-permissions: []
       responses:
         "200":
@@ -77800,7 +78940,7 @@ paths:
       operationId: post_api_v1_super_admin_notification_templates
       security:
         - bearerAuth: []
-      x-required-role: *a153
+      x-required-role: *a154
       x-required-permissions: []
       responses:
         "201":
@@ -77957,7 +79097,7 @@ paths:
       operationId: get_api_v1_super_admin_notification_templates_id
       security:
         - bearerAuth: []
-      x-required-role: *a153
+      x-required-role: *a154
       x-required-permissions: []
       responses:
         "200":
@@ -78074,7 +79214,7 @@ paths:
       operationId: patch_api_v1_super_admin_notification_templates_id
       security:
         - bearerAuth: []
-      x-required-role: *a153
+      x-required-role: *a154
       x-required-permissions: []
       responses:
         "200":
@@ -78243,7 +79383,7 @@ paths:
       operationId: delete_api_v1_super_admin_notification_templates_id
       security:
         - bearerAuth: []
-      x-required-role: *a153
+      x-required-role: *a154
       x-required-permissions: []
       responses:
         "200":
@@ -78320,7 +79460,7 @@ paths:
       operationId: get_api_v1_super_admin_configs
       security:
         - bearerAuth: []
-      x-required-role: *a153
+      x-required-role: *a154
       x-required-permissions: []
       responses:
         "200":
@@ -78415,7 +79555,7 @@ paths:
       operationId: put_api_v1_super_admin_configs_key
       security:
         - bearerAuth: []
-      x-required-role: *a153
+      x-required-role: *a154
       x-required-permissions: []
       responses:
         "200":
@@ -78538,7 +79678,7 @@ paths:
       operationId: get_api_v1_super_admin_support_tickets
       security:
         - bearerAuth: []
-      x-required-role: *a153
+      x-required-role: *a154
       x-required-permissions: []
       responses:
         "200":
@@ -78810,7 +79950,7 @@ paths:
       operationId: post_api_v1_super_admin_support_tickets
       security:
         - bearerAuth: []
-      x-required-role: *a153
+      x-required-role: *a154
       x-required-permissions: []
       responses:
         "201":
@@ -78999,7 +80139,7 @@ paths:
                     - HIGH
                     - CRITICAL
                 attachments:
-                  default: &a160 []
+                  default: &a161 []
                   maxItems: 5
                   type: array
                   items:
@@ -79016,7 +80156,7 @@ paths:
               description: stringxxxx
               category: BUG
               priority: LOW
-              attachments: *a160
+              attachments: *a161
               societyId: 64f1c0a2b3c4d5e6f7a8b9c0
   /api/v1/super-admin/support-tickets/{id}:
     get:
@@ -79027,7 +80167,7 @@ paths:
       operationId: get_api_v1_super_admin_support_tickets_id
       security:
         - bearerAuth: []
-      x-required-role: *a153
+      x-required-role: *a154
       x-required-permissions: []
       responses:
         "200":
@@ -79198,7 +80338,7 @@ paths:
       operationId: patch_api_v1_super_admin_support_tickets_id
       security:
         - bearerAuth: []
-      x-required-role: *a153
+      x-required-role: *a154
       x-required-permissions: []
       responses:
         "200":
@@ -79404,7 +80544,7 @@ paths:
       operationId: post_api_v1_super_admin_support_tickets_id_comments
       security:
         - bearerAuth: []
-      x-required-role: *a153
+      x-required-role: *a154
       x-required-permissions: []
       responses:
         "201":
@@ -79597,7 +80737,7 @@ paths:
       operationId: post_api_v1_admin_support_tickets
       security:
         - bearerAuth: []
-      x-required-role: &a162
+      x-required-role: &a163
         - SOCIETY_ADMIN
       x-required-permissions:
         - support:manage
@@ -79788,7 +80928,7 @@ paths:
                     - HIGH
                     - CRITICAL
                 attachments:
-                  default: &a161 []
+                  default: &a162 []
                   maxItems: 5
                   type: array
                   items:
@@ -79802,7 +80942,7 @@ paths:
               description: stringxxxx
               category: BUG
               priority: LOW
-              attachments: *a161
+              attachments: *a162
     get:
       tags:
         - Society Admin - Support
@@ -79811,7 +80951,7 @@ paths:
       operationId: get_api_v1_admin_support_tickets
       security:
         - bearerAuth: []
-      x-required-role: *a162
+      x-required-role: *a163
       x-required-permissions:
         - support:manage
       responses:
@@ -80085,7 +81225,7 @@ paths:
       operationId: get_api_v1_admin_support_tickets_id
       security:
         - bearerAuth: []
-      x-required-role: *a162
+      x-required-role: *a163
       x-required-permissions:
         - support:manage
       responses:
@@ -80258,7 +81398,7 @@ paths:
       operationId: post_api_v1_admin_support_tickets_id_comments
       security:
         - bearerAuth: []
-      x-required-role: *a162
+      x-required-role: *a163
       x-required-permissions:
         - support:manage
       responses:
@@ -80584,7 +81724,7 @@ paths:
       operationId: get_api_v1_user_vehicles
       security:
         - bearerAuth: []
-      x-required-role: &a163
+      x-required-role: &a164
         - RESIDENT
       x-required-permissions: []
       responses:
@@ -80810,7 +81950,7 @@ paths:
       operationId: post_api_v1_user_vehicles
       security:
         - bearerAuth: []
-      x-required-role: *a163
+      x-required-role: *a164
       x-required-permissions: []
       responses:
         "201":
@@ -81001,7 +82141,7 @@ paths:
       operationId: get_api_v1_user_vehicles_id
       security:
         - bearerAuth: []
-      x-required-role: *a163
+      x-required-role: *a164
       x-required-permissions: []
       responses:
         "200":
@@ -81151,7 +82291,7 @@ paths:
       operationId: patch_api_v1_user_vehicles_id
       security:
         - bearerAuth: []
-      x-required-role: *a163
+      x-required-role: *a164
       x-required-permissions: []
       responses:
         "200":
@@ -81351,7 +82491,7 @@ paths:
       operationId: delete_api_v1_user_vehicles_id
       security:
         - bearerAuth: []
-      x-required-role: *a163
+      x-required-role: *a164
       x-required-permissions: []
       responses:
         "200":
@@ -81428,7 +82568,7 @@ paths:
       operationId: post_api_v1_user_parking_requests
       security:
         - bearerAuth: []
-      x-required-role: *a163
+      x-required-role: *a164
       x-required-permissions: []
       responses:
         "201":
@@ -81591,7 +82731,7 @@ paths:
       operationId: get_api_v1_user_parking_requests
       security:
         - bearerAuth: []
-      x-required-role: *a163
+      x-required-role: *a164
       x-required-permissions: []
       responses:
         "200":
@@ -81800,7 +82940,7 @@ paths:
       operationId: post_api_v1_user_parking_requests_id_cancel
       security:
         - bearerAuth: []
-      x-required-role: *a163
+      x-required-role: *a164
       x-required-permissions: []
       responses:
         "200":
@@ -81939,7 +83079,7 @@ paths:
       operationId: get_api_v1_user_parking_slots
       security:
         - bearerAuth: []
-      x-required-role: *a163
+      x-required-role: *a164
       x-required-permissions: []
       responses:
         "200":
@@ -82156,7 +83296,7 @@ paths:
       operationId: get_api_v1_admin_vehicles
       security:
         - bearerAuth: []
-      x-required-role: &a164
+      x-required-role: &a165
         - SOCIETY_ADMIN
       x-required-permissions:
         - vehicle:manage
@@ -82387,8 +83527,8 @@ paths:
       operationId: get_api_v1_admin_parking_slots
       security:
         - bearerAuth: []
-      x-required-role: *a164
-      x-required-permissions: &a165
+      x-required-role: *a165
+      x-required-permissions: &a166
         - parking:manage
       responses:
         "200":
@@ -82604,8 +83744,8 @@ paths:
       operationId: post_api_v1_admin_parking_slots
       security:
         - bearerAuth: []
-      x-required-role: *a164
-      x-required-permissions: &a166
+      x-required-role: *a165
+      x-required-permissions: &a167
         - parking:manage
       responses:
         "201":
@@ -82769,8 +83909,8 @@ paths:
       operationId: get_api_v1_admin_parking_slots_id
       security:
         - bearerAuth: []
-      x-required-role: *a164
-      x-required-permissions: *a165
+      x-required-role: *a165
+      x-required-permissions: *a166
       responses:
         "200":
           description: Successful response
@@ -82902,8 +84042,8 @@ paths:
       operationId: patch_api_v1_admin_parking_slots_id
       security:
         - bearerAuth: []
-      x-required-role: *a164
-      x-required-permissions: *a166
+      x-required-role: *a165
+      x-required-permissions: *a167
       responses:
         "200":
           description: Successful response
@@ -83080,8 +84220,8 @@ paths:
       operationId: delete_api_v1_admin_parking_slots_id
       security:
         - bearerAuth: []
-      x-required-role: *a164
-      x-required-permissions: *a166
+      x-required-role: *a165
+      x-required-permissions: *a167
       responses:
         "200":
           description: Successful response
@@ -83157,7 +84297,7 @@ paths:
       operationId: post_api_v1_admin_parking_slots_id_allocate
       security:
         - bearerAuth: []
-      x-required-role: *a164
+      x-required-role: *a165
       x-required-permissions:
         - parking:manage
       responses:
@@ -83319,7 +84459,7 @@ paths:
       operationId: post_api_v1_admin_parking_slots_id_release
       security:
         - bearerAuth: []
-      x-required-role: *a164
+      x-required-role: *a165
       x-required-permissions:
         - parking:manage
       responses:
@@ -83457,7 +84597,7 @@ paths:
       operationId: get_api_v1_admin_parking_requests
       security:
         - bearerAuth: []
-      x-required-role: *a164
+      x-required-role: *a165
       x-required-permissions:
         - parking:manage
       responses:
@@ -83667,7 +84807,7 @@ paths:
       operationId: post_api_v1_admin_parking_requests_id_decide
       security:
         - bearerAuth: []
-      x-required-role: *a164
+      x-required-role: *a165
       x-required-permissions:
         - parking:manage
       responses:
@@ -83852,7 +84992,7 @@ paths:
       operationId: post_api_v1_user_visitors_invitations
       security:
         - bearerAuth: []
-      x-required-role: &a167
+      x-required-role: &a168
         - RESIDENT
       x-required-permissions: []
       responses:
@@ -84122,7 +85262,7 @@ paths:
       operationId: get_api_v1_user_visitors_invitations
       security:
         - bearerAuth: []
-      x-required-role: *a167
+      x-required-role: *a168
       x-required-permissions: []
       responses:
         "200":
@@ -84385,7 +85525,7 @@ paths:
       operationId: delete_api_v1_user_visitors_invitations_id
       security:
         - bearerAuth: []
-      x-required-role: *a167
+      x-required-role: *a168
       x-required-permissions: []
       responses:
         "200":
@@ -84571,7 +85711,7 @@ paths:
       operationId: get_api_v1_user_visitors
       security:
         - bearerAuth: []
-      x-required-role: *a167
+      x-required-role: *a168
       x-required-permissions: []
       responses:
         "200":
@@ -84640,6 +85780,9 @@ paths:
                           type: string
                         company:
                           type: string
+                        photoFileId:
+                          type: string
+                          pattern: ^[a-f\d]{24}$
                         status:
                           type: string
                           enum:
@@ -84712,6 +85855,7 @@ paths:
                     vehicleNumber: string
                     purpose: string
                     company: string
+                    photoFileId: 64f1c0a2b3c4d5e6f7a8b9c0
                     status: EXPECTED
                     approvalMode: RESIDENT
                     requestedAt: 2026-11-02T10:30:00.000Z
@@ -84871,7 +86015,7 @@ paths:
       operationId: get_api_v1_user_visitors_pending
       security:
         - bearerAuth: []
-      x-required-role: *a167
+      x-required-role: *a168
       x-required-permissions: []
       responses:
         "200":
@@ -84940,6 +86084,9 @@ paths:
                           type: string
                         company:
                           type: string
+                        photoFileId:
+                          type: string
+                          pattern: ^[a-f\d]{24}$
                         status:
                           type: string
                           enum:
@@ -85012,6 +86159,7 @@ paths:
                     vehicleNumber: string
                     purpose: string
                     company: string
+                    photoFileId: 64f1c0a2b3c4d5e6f7a8b9c0
                     status: EXPECTED
                     approvalMode: RESIDENT
                     requestedAt: 2026-11-02T10:30:00.000Z
@@ -85125,7 +86273,7 @@ paths:
       operationId: post_api_v1_user_visitors_id_respond
       security:
         - bearerAuth: []
-      x-required-role: *a167
+      x-required-role: *a168
       x-required-permissions: []
       responses:
         "200":
@@ -85192,6 +86340,9 @@ paths:
                         type: string
                       company:
                         type: string
+                      photoFileId:
+                        type: string
+                        pattern: ^[a-f\d]{24}$
                       status:
                         type: string
                         enum:
@@ -85262,6 +86413,7 @@ paths:
                   vehicleNumber: string
                   purpose: string
                   company: string
+                  photoFileId: 64f1c0a2b3c4d5e6f7a8b9c0
                   status: EXPECTED
                   approvalMode: RESIDENT
                   requestedAt: 2026-11-02T10:30:00.000Z
@@ -85353,7 +86505,7 @@ paths:
       operationId: get_api_v1_user_deliveries
       security:
         - bearerAuth: []
-      x-required-role: *a167
+      x-required-role: *a168
       x-required-permissions: []
       responses:
         "200":
@@ -85623,7 +86775,7 @@ paths:
       operationId: post_api_v1_user_deliveries_id_respond
       security:
         - bearerAuth: []
-      x-required-role: *a167
+      x-required-role: *a168
       x-required-permissions: []
       responses:
         "200":
@@ -85833,7 +86985,7 @@ paths:
       operationId: put_api_v1_user_deliveries_preferences
       security:
         - bearerAuth: []
-      x-required-role: *a167
+      x-required-role: *a168
       x-required-permissions: []
       responses:
         "200":
@@ -85930,7 +87082,7 @@ paths:
       operationId: get_api_v1_admin_visitors
       security:
         - bearerAuth: []
-      x-required-role: &a168
+      x-required-role: &a169
         - SOCIETY_ADMIN
       x-required-permissions:
         - visitor:read
@@ -86001,6 +87153,9 @@ paths:
                           type: string
                         company:
                           type: string
+                        photoFileId:
+                          type: string
+                          pattern: ^[a-f\d]{24}$
                         status:
                           type: string
                           enum:
@@ -86073,6 +87228,7 @@ paths:
                     vehicleNumber: string
                     purpose: string
                     company: string
+                    photoFileId: 64f1c0a2b3c4d5e6f7a8b9c0
                     status: EXPECTED
                     approvalMode: RESIDENT
                     requestedAt: 2026-11-02T10:30:00.000Z
@@ -86232,7 +87388,7 @@ paths:
       operationId: get_api_v1_admin_visitors_active
       security:
         - bearerAuth: []
-      x-required-role: *a168
+      x-required-role: *a169
       x-required-permissions:
         - visitor:read
       responses:
@@ -86302,6 +87458,9 @@ paths:
                           type: string
                         company:
                           type: string
+                        photoFileId:
+                          type: string
+                          pattern: ^[a-f\d]{24}$
                         status:
                           type: string
                           enum:
@@ -86374,6 +87533,7 @@ paths:
                     vehicleNumber: string
                     purpose: string
                     company: string
+                    photoFileId: 64f1c0a2b3c4d5e6f7a8b9c0
                     status: EXPECTED
                     approvalMode: RESIDENT
                     requestedAt: 2026-11-02T10:30:00.000Z
@@ -86484,7 +87644,7 @@ paths:
       operationId: get_api_v1_admin_visitors_emergency_entries
       security:
         - bearerAuth: []
-      x-required-role: *a168
+      x-required-role: *a169
       x-required-permissions:
         - visitor:read
       responses:
@@ -86554,6 +87714,9 @@ paths:
                           type: string
                         company:
                           type: string
+                        photoFileId:
+                          type: string
+                          pattern: ^[a-f\d]{24}$
                         status:
                           type: string
                           enum:
@@ -86626,6 +87789,7 @@ paths:
                     vehicleNumber: string
                     purpose: string
                     company: string
+                    photoFileId: 64f1c0a2b3c4d5e6f7a8b9c0
                     status: EXPECTED
                     approvalMode: RESIDENT
                     requestedAt: 2026-11-02T10:30:00.000Z
@@ -86736,7 +87900,7 @@ paths:
       operationId: get_api_v1_admin_visitors_passes
       security:
         - bearerAuth: []
-      x-required-role: *a168
+      x-required-role: *a169
       x-required-permissions:
         - visitor:read
       responses:
@@ -86993,7 +88157,7 @@ paths:
       operationId: get_api_v1_admin_deliveries
       security:
         - bearerAuth: []
-      x-required-role: *a168
+      x-required-role: *a169
       x-required-permissions:
         - visitor:read
       responses:
@@ -87264,7 +88428,7 @@ paths:
       operationId: get_api_v1_admin_flats_id_visitor_summary
       security:
         - bearerAuth: []
-      x-required-role: *a168
+      x-required-role: *a169
       x-required-permissions:
         - visitor:read
       responses:
@@ -87342,6 +88506,702 @@ paths:
             type: string
             pattern: ^[a-f\d]{24}$
           example: 64f1c0a2b3c4d5e6f7a8b9c0
+  /api/v1/guard/profile:
+    get:
+      tags:
+        - Guard
+      summary: Get my guard account profile
+      description: "Required role: GUARD."
+      operationId: get_api_v1_guard_profile
+      security:
+        - bearerAuth: []
+      x-required-role: &a80
+        - GUARD
+      x-required-permissions: []
+      responses:
+        "200":
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - success
+                  - data
+                properties:
+                  success:
+                    type: boolean
+                    const: true
+                  message:
+                    type: string
+                  data:
+                    type: object
+                    properties:
+                      id:
+                        type: string
+                        pattern: ^[a-f\d]{24}$
+                      createdAt:
+                        type: string
+                        format: date-time
+                        pattern: ^(?:(?:\d\d[2468][048]|\d\d[13579][26]|\d\d0[48]|[02468][048]00|[13579][26]00)-02-29|\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\d|30)|(?:02)-(?:0[1-9]|1\d|2[0-8])))T(?:(?:[01]\d|2[0-3]):[0-5]\d:[0-5]\d(?:\.\d+)?(?:Z|([+-](?:[01]\d|2[0-3]):[0-5]\d)))$
+                      updatedAt:
+                        type: string
+                        format: date-time
+                        pattern: ^(?:(?:\d\d[2468][048]|\d\d[13579][26]|\d\d0[48]|[02468][048]00|[13579][26]00)-02-29|\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\d|30)|(?:02)-(?:0[1-9]|1\d|2[0-8])))T(?:(?:[01]\d|2[0-3]):[0-5]\d:[0-5]\d(?:\.\d+)?(?:Z|([+-](?:[01]\d|2[0-3]):[0-5]\d)))$
+                      name:
+                        type: string
+                      mobile:
+                        type: string
+                      email:
+                        type: string
+                      notificationPrefs:
+                        type: object
+                        propertyNames:
+                          type: string
+                        additionalProperties:
+                          type: boolean
+                    required:
+                      - id
+                      - createdAt
+                      - updatedAt
+                      - name
+                      - mobile
+                    additionalProperties: false
+              example:
+                success: true
+                message: Success
+                data:
+                  id: 64f1c0a2b3c4d5e6f7a8b9c0
+                  createdAt: 2026-11-02T10:30:00.000Z
+                  updatedAt: 2026-11-02T10:30:00.000Z
+                  name: Sample name
+                  mobile: "+919876543210"
+                  email: user@example.com
+                  notificationPrefs: {}
+        "401":
+          description: Missing, invalid or expired access token
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "403":
+          description: Authenticated but not permitted (role, permission, feature flag or tenant)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "429":
+          description: Rate limit exceeded
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "500":
+          description: Unexpected server error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+    patch:
+      tags:
+        - Guard
+      summary: Update my guard account profile
+      description: "Required role: GUARD."
+      operationId: patch_api_v1_guard_profile
+      security:
+        - bearerAuth: []
+      x-required-role: *a80
+      x-required-permissions: []
+      responses:
+        "200":
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - success
+                  - data
+                properties:
+                  success:
+                    type: boolean
+                    const: true
+                  message:
+                    type: string
+                  data:
+                    type: object
+                    properties:
+                      id:
+                        type: string
+                        pattern: ^[a-f\d]{24}$
+                      createdAt:
+                        type: string
+                        format: date-time
+                        pattern: ^(?:(?:\d\d[2468][048]|\d\d[13579][26]|\d\d0[48]|[02468][048]00|[13579][26]00)-02-29|\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\d|30)|(?:02)-(?:0[1-9]|1\d|2[0-8])))T(?:(?:[01]\d|2[0-3]):[0-5]\d:[0-5]\d(?:\.\d+)?(?:Z|([+-](?:[01]\d|2[0-3]):[0-5]\d)))$
+                      updatedAt:
+                        type: string
+                        format: date-time
+                        pattern: ^(?:(?:\d\d[2468][048]|\d\d[13579][26]|\d\d0[48]|[02468][048]00|[13579][26]00)-02-29|\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\d|30)|(?:02)-(?:0[1-9]|1\d|2[0-8])))T(?:(?:[01]\d|2[0-3]):[0-5]\d:[0-5]\d(?:\.\d+)?(?:Z|([+-](?:[01]\d|2[0-3]):[0-5]\d)))$
+                      name:
+                        type: string
+                      mobile:
+                        type: string
+                      email:
+                        type: string
+                      notificationPrefs:
+                        type: object
+                        propertyNames:
+                          type: string
+                        additionalProperties:
+                          type: boolean
+                    required:
+                      - id
+                      - createdAt
+                      - updatedAt
+                      - name
+                      - mobile
+                    additionalProperties: false
+              example:
+                success: true
+                message: Success
+                data:
+                  id: 64f1c0a2b3c4d5e6f7a8b9c0
+                  createdAt: 2026-11-02T10:30:00.000Z
+                  updatedAt: 2026-11-02T10:30:00.000Z
+                  name: Sample name
+                  mobile: "+919876543210"
+                  email: user@example.com
+                  notificationPrefs: {}
+        "401":
+          description: Missing, invalid or expired access token
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "403":
+          description: Authenticated but not permitted (role, permission, feature flag or tenant)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "409":
+          description: Conflict with current resource state
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "422":
+          description: Request validation failed
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "429":
+          description: Rate limit exceeded
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "500":
+          description: Unexpected server error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+                  minLength: 2
+                  maxLength: 120
+                email:
+                  type: string
+                  maxLength: 254
+                  format: email
+                  pattern: ^(?:[A-Za-z0-9_'+\-]+\.)*[A-Za-z0-9_'+\-]*[A-Za-z0-9_+-]@(?:[A-Za-z0-9][A-Za-z0-9\-]*\.)+[A-Za-z]{2,}$
+                avatarFileId:
+                  type: string
+                  pattern: ^[a-f\d]{24}$
+            example:
+              name: Sample name
+              email: user@example.com
+              avatarFileId: 64f1c0a2b3c4d5e6f7a8b9c0
+  /api/v1/guard/notification-preferences:
+    put:
+      tags:
+        - Guard
+      summary: Manage my guard notification preferences
+      description: "Required role: GUARD."
+      operationId: put_api_v1_guard_notification_preferences
+      security:
+        - bearerAuth: []
+      x-required-role: *a80
+      x-required-permissions: []
+      responses:
+        "200":
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - success
+                  - data
+                properties:
+                  success:
+                    type: boolean
+                    const: true
+                  message:
+                    type: string
+                  data:
+                    type: object
+                    properties:
+                      id:
+                        type: string
+                        pattern: ^[a-f\d]{24}$
+                      createdAt:
+                        type: string
+                        format: date-time
+                        pattern: ^(?:(?:\d\d[2468][048]|\d\d[13579][26]|\d\d0[48]|[02468][048]00|[13579][26]00)-02-29|\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\d|30)|(?:02)-(?:0[1-9]|1\d|2[0-8])))T(?:(?:[01]\d|2[0-3]):[0-5]\d:[0-5]\d(?:\.\d+)?(?:Z|([+-](?:[01]\d|2[0-3]):[0-5]\d)))$
+                      updatedAt:
+                        type: string
+                        format: date-time
+                        pattern: ^(?:(?:\d\d[2468][048]|\d\d[13579][26]|\d\d0[48]|[02468][048]00|[13579][26]00)-02-29|\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\d|30)|(?:02)-(?:0[1-9]|1\d|2[0-8])))T(?:(?:[01]\d|2[0-3]):[0-5]\d:[0-5]\d(?:\.\d+)?(?:Z|([+-](?:[01]\d|2[0-3]):[0-5]\d)))$
+                      name:
+                        type: string
+                      mobile:
+                        type: string
+                      email:
+                        type: string
+                      notificationPrefs:
+                        type: object
+                        propertyNames:
+                          type: string
+                        additionalProperties:
+                          type: boolean
+                    required:
+                      - id
+                      - createdAt
+                      - updatedAt
+                      - name
+                      - mobile
+                    additionalProperties: false
+              example:
+                success: true
+                message: Success
+                data:
+                  id: 64f1c0a2b3c4d5e6f7a8b9c0
+                  createdAt: 2026-11-02T10:30:00.000Z
+                  updatedAt: 2026-11-02T10:30:00.000Z
+                  name: Sample name
+                  mobile: "+919876543210"
+                  email: user@example.com
+                  notificationPrefs: {}
+        "401":
+          description: Missing, invalid or expired access token
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "403":
+          description: Authenticated but not permitted (role, permission, feature flag or tenant)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "422":
+          description: Request validation failed
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "429":
+          description: Rate limit exceeded
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "500":
+          description: Unexpected server error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                visitor:
+                  type: boolean
+                delivery:
+                  type: boolean
+                payment:
+                  type: boolean
+                complaint:
+                  type: boolean
+                marketplace:
+                  type: boolean
+                announcement:
+                  type: boolean
+                booking:
+                  type: boolean
+                chat:
+                  type: boolean
+                push:
+                  type: boolean
+                sms:
+                  type: boolean
+                email:
+                  type: boolean
+            example:
+              visitor: true
+              delivery: true
+              payment: true
+              complaint: true
+              marketplace: true
+              announcement: true
+              booking: true
+              chat: true
+              push: true
+              sms: true
+              email: true
+  /api/v1/guard/society-info:
+    get:
+      tags:
+        - Guard
+      summary: Society information and destination units for the gate
+      description: "Required role: GUARD."
+      operationId: get_api_v1_guard_society_info
+      security:
+        - bearerAuth: []
+      x-required-role:
+        - GUARD
+      x-required-permissions: []
+      responses:
+        "200":
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - success
+                  - data
+                properties:
+                  success:
+                    type: boolean
+                    const: true
+                  message:
+                    type: string
+                  data:
+                    type: object
+                    properties:
+                      societyId:
+                        type: string
+                        pattern: ^[a-f\d]{24}$
+                      societyName:
+                        type: string
+                      address:
+                        type: object
+                        properties:
+                          line1:
+                            type: string
+                            maxLength: 200
+                          line2:
+                            type: string
+                            maxLength: 200
+                          city:
+                            type: string
+                            maxLength: 100
+                          state:
+                            type: string
+                            maxLength: 100
+                          country:
+                            type: string
+                            maxLength: 100
+                          pincode:
+                            type: string
+                            maxLength: 12
+                          latitude:
+                            type: number
+                            minimum: -90
+                            maximum: 90
+                          longitude:
+                            type: number
+                            minimum: -180
+                            maximum: 180
+                        additionalProperties: false
+                      contact:
+                        type: object
+                        properties:
+                          phone:
+                            type: string
+                          emergencyPhone:
+                            type: string
+                        additionalProperties: false
+                      propertyDetails: {}
+                      hospitals:
+                        type: array
+                        items: {}
+                      gateDirectory:
+                        type: array
+                        items:
+                          type: object
+                          properties:
+                            name:
+                              type: string
+                            flats:
+                              type: array
+                              items:
+                                type: object
+                                properties:
+                                  id:
+                                    type: string
+                                    pattern: ^[a-f\d]{24}$
+                                  label:
+                                    type: string
+                                required:
+                                  - id
+                                  - label
+                                additionalProperties: false
+                          required:
+                            - name
+                            - flats
+                          additionalProperties: false
+                    required:
+                      - societyId
+                      - societyName
+                      - hospitals
+                      - gateDirectory
+                    additionalProperties: false
+              example:
+                success: true
+                message: Success
+                data:
+                  societyId: 64f1c0a2b3c4d5e6f7a8b9c0
+                  societyName: Sample name
+                  address:
+                    line1: string
+                    line2: string
+                    city: string
+                    state: string
+                    country: string
+                    pincode: string
+                    latitude: 100
+                    longitude: 100
+                  contact:
+                    phone: "+919876543210"
+                    emergencyPhone: "+919876543210"
+                  propertyDetails: null
+                  hospitals:
+                    - null
+                  gateDirectory:
+                    - name: Sample name
+                      flats:
+                        - id: 64f1c0a2b3c4d5e6f7a8b9c0
+                          label: string
+        "401":
+          description: Missing, invalid or expired access token
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "403":
+          description: Authenticated but not permitted (role, permission, feature flag or tenant)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "429":
+          description: Rate limit exceeded
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "500":
+          description: Unexpected server error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+  /api/v1/guard/helpdesk:
+    get:
+      tags:
+        - Guard
+      summary: Helpdesk contacts of my society
+      description: "Required role: GUARD."
+      operationId: get_api_v1_guard_helpdesk
+      security:
+        - bearerAuth: []
+      x-required-role:
+        - GUARD
+      x-required-permissions: []
+      responses:
+        "200":
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - success
+                  - data
+                properties:
+                  success:
+                    type: boolean
+                    const: true
+                  message:
+                    type: string
+                  data:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        id:
+                          type: string
+                        name:
+                          type: string
+                        mobile:
+                          type: string
+                        alternateMobile:
+                          type: string
+                        category:
+                          type: string
+                        designation:
+                          type: string
+                        description:
+                          type: string
+                        availability:
+                          type: string
+                      required:
+                        - id
+                        - name
+                        - mobile
+                        - category
+                      additionalProperties: false
+                  meta:
+                    $ref: "#/components/schemas/PaginationMeta"
+              example:
+                success: true
+                message: Success
+                data:
+                  - id: string
+                    name: Sample name
+                    mobile: "+919876543210"
+                    alternateMobile: "+919876543210"
+                    category: string
+                    designation: string
+                    description: string
+                    availability: string
+                meta:
+                  page: 1
+                  limit: 20
+                  total: 1
+                  totalPages: 1
+        "401":
+          description: Missing, invalid or expired access token
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "403":
+          description: Authenticated but not permitted (role, permission, feature flag or tenant)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "422":
+          description: Request validation failed
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "429":
+          description: Rate limit exceeded
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "500":
+          description: Unexpected server error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+      parameters:
+        - name: page
+          in: query
+          required: false
+          schema:
+            default: 1
+            type: integer
+            minimum: 1
+            maximum: 9007199254740991
+          example: 1
+        - name: limit
+          in: query
+          required: false
+          schema:
+            default: 20
+            type: integer
+            minimum: 1
+            maximum: 100
+          example: 20
+        - name: sort
+          in: query
+          required: false
+          schema:
+            type: string
+            pattern: ^-?[A-Za-z_.]+(,-?[A-Za-z_.]+)*$
+          example: string
+        - name: search
+          in: query
+          required: false
+          schema:
+            type: string
+            minLength: 1
+            maxLength: 100
+          example: string
+        - name: from
+          in: query
+          required: false
+          schema:
+            anyOf:
+              - type: string
+                format: date
+                pattern: ^(?:(?:\d\d[2468][048]|\d\d[13579][26]|\d\d0[48]|[02468][048]00|[13579][26]00)-02-29|\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\d|30)|(?:02)-(?:0[1-9]|1\d|2[0-8])))$
+              - type: string
+                format: date-time
+                pattern: ^(?:(?:\d\d[2468][048]|\d\d[13579][26]|\d\d0[48]|[02468][048]00|[13579][26]00)-02-29|\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\d|30)|(?:02)-(?:0[1-9]|1\d|2[0-8])))T(?:(?:[01]\d|2[0-3]):[0-5]\d:[0-5]\d(?:\.\d+)?(?:Z|([+-](?:[01]\d|2[0-3]):[0-5]\d)))$
+          example: 2026-11-02
+        - name: to
+          in: query
+          required: false
+          schema:
+            anyOf:
+              - type: string
+                format: date
+                pattern: ^(?:(?:\d\d[2468][048]|\d\d[13579][26]|\d\d0[48]|[02468][048]00|[13579][26]00)-02-29|\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\d|30)|(?:02)-(?:0[1-9]|1\d|2[0-8])))$
+              - type: string
+                format: date-time
+                pattern: ^(?:(?:\d\d[2468][048]|\d\d[13579][26]|\d\d0[48]|[02468][048]00|[13579][26]00)-02-29|\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\d|30)|(?:02)-(?:0[1-9]|1\d|2[0-8])))T(?:(?:[01]\d|2[0-3]):[0-5]\d:[0-5]\d(?:\.\d+)?(?:Z|([+-](?:[01]\d|2[0-3]):[0-5]\d)))$
+          example: 2026-11-02
+        - name: category
+          in: query
+          required: false
+          schema:
+            type: string
+            minLength: 2
+            maxLength: 40
+          example: string
 components:
   securitySchemes:
     bearerAuth:

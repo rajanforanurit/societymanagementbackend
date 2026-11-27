@@ -43,7 +43,7 @@ registerOperation({ method: 'post', path: '/api/v1/files', tag: 'Files', summary
 
 filesRouter.router.get('/:id', authenticate, requireRoles(ROLES), requireSociety, validate({ params: idParam }), async (req: Request, res: Response, next) => {
   try {
-    const { file, fullPath } = await resolveFile(req.auth.societyId!, req.auth.userId, req.valid.params.id, req.auth.role === UserType.SOCIETY_ADMIN);
+    const { file, fullPath } = await resolveFile(req.auth.societyId!, req.auth.userId, req.valid.params.id, req.auth.role === UserType.SOCIETY_ADMIN, req.auth.role === UserType.RESIDENT ? req.auth.flatIds : []);
     if (!fs.existsSync(fullPath)) throw new Error('missing file on disk');
     res.setHeader('Content-Type', file.mimeType);
     res.setHeader('X-Content-Type-Options', 'nosniff');
@@ -54,4 +54,4 @@ filesRouter.router.get('/:id', authenticate, requireRoles(ROLES), requireSociety
   }
 });
 
-registerOperation({ method: 'get', path: '/api/v1/files/:id', tag: 'Files', summary: 'Download a file', description: 'Streams the binary file. PRIVATE files are visible to the uploader and society admins only; SOCIETY files to all members.', auth: true, roles: ROLES, permissions: [], params: idParam, response: z.any(), status: 200, errors: [403, 404] });
+registerOperation({ method: 'get', path: '/api/v1/files/:id', tag: 'Files', summary: 'Download a file', description: 'Streams the binary file. PRIVATE files are visible to the uploader and society admins. Residents can also view maid photos assigned to their flat. SOCIETY files are visible to all members.', auth: true, roles: ROLES, permissions: [], params: idParam, response: z.any(), status: 200, errors: [403, 404] });

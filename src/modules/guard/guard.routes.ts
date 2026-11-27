@@ -12,7 +12,9 @@ import { domesticService as dh } from '../domestic-help/domestic.service';
 import * as dhs from '../domestic-help/domestic.schema';
 import { EmergencyAlert } from '../emergency/emergency.model';
 import * as es from '../emergency/emergency.schema';
-import { contactService, emergencyService, lostFoundService, reportIncident } from '../emergency/emergency.service';
+import { contactService, emergencyService, incidentService, listGuardLostFound, lostFoundService, reportIncident } from '../emergency/emergency.service';
+import { residentSelfController } from '../resident/resident.controller';
+import * as rs from '../resident/resident.schema';
 import { Visitor, VisitorInvitation } from '../visitors/visitor.model';
 import * as vs from '../visitors/visitor.schema';
 import { visitorService as v } from '../visitors/visitor.service';
@@ -28,21 +30,34 @@ export const guardRouter = new ModuleRouter('/api/v1/guard', {
 const ctx = (r: Request) => ({ societyId: r.auth.societyId!, userId: r.auth.userId, gateId: r.auth.gateId });
 const sid = (r: Request) => r.auth.societyId!;
 
+const activityItem = z.object({
+  id: z.string(),
+  kind: z.enum(['VISITOR', 'DELIVERY', 'MAID_ATTENDANCE']),
+  name: z.string(),
+  flatLabel: z.string().optional(),
+  company: z.string().optional(),
+  status: z.string(),
+  at: z.string(),
+});
+
 const dashboardItem = z.object({
   today: z.object({ visitors: z.number().int(), deliveries: z.number().int(), domesticHelpPresent: z.number().int() }),
   expectedVisitors: z.number().int(),
   pendingApprovals: z.object({ visitors: z.number().int(), deliveries: z.number().int() }),
   activeVisitors: z.number().int(),
   activeEmergencyAlerts: z.number().int(),
-  recentActivity: z.array(vs.visitorItem.pick({ id: true, name: true, flatLabel: true, status: true, entryAt: true, exitAt: true })),
+  recentActivity: z.array(activityItem),
 });
 
 guardRouter
+  .add({ method: 'get', path: '/profile', summary: 'Get my guard account profile', response: rs.profileItem, handler: residentSelfController.profile })
+  .add({ method: 'patch', path: '/profile', summary: 'Update my guard account profile', body: rs.profileUpdateBody, response: rs.profileItem, errors: [409], handler: residentSelfController.updateProfile })
+  .add({ method: 'put', path: '/notification-preferences', summary: 'Manage my guard notification preferences', body: rs.notificationPrefsBody, response: rs.profileItem, handler: residentSelfController.prefs })
   .add({ method: 'get', path: '/dashboard', summary: 'Guard dashboard', description: 'Today\'s visitor count, expected visitors, pending approvals, deliveries, domestic help attendance, active visitors, emergency alerts and recent entry/exit history for the guard\'s society.', response: dashboardItem, handler: async (req: Request, res: Response) => {
     const societyId = sid(req);
     const start = new Date(`${ymd()}T00:00:00.000Z`);
     const now = new Date();
-    const [visitors, deliveries, present, expected, pv, pd, active, alerts, recent] = await Promise.all([
+    const [visitors, deliveries, present, expected, pv, pd, active, alerts, recentVisitors, recentDeliveries, recentMaidActivity] = await Promise.all([
       Visitor.countDocuments({ societyId, createdAt: { $gte: start } }),
       Delivery.countDocuments({ societyId, createdAt: { $gte: start } }),
       dh.todayPresent(societyId),
@@ -51,9 +66,22 @@ guardRouter
       Delivery.countDocuments({ societyId, status: 'PENDING_APPROVAL' }),
       Visitor.countDocuments({ societyId, status: 'CHECKED_IN' }),
       EmergencyAlert.countDocuments({ societyId, status: { $in: ['ACTIVE', 'ACKNOWLEDGED'] } }),
-      Visitor.find({ societyId }).select('name flatLabel status entryAt exitAt').sort({ createdAt: -1 }).limit(10),
+      Visitor.find({ societyId }).select('name flatLabel status entryAt exitAt updatedAt').sort({ updatedAt: -1 }).limit(25),
+      Delivery.find({ societyId }).select('company flatLabel status entryAt exitAt collectedAt updatedAt').sort({ updatedAt: -1 }).limit(25),
+      dh.recentMaidActivity(societyId),
     ]);
-    ok(res, { today: { visitors, deliveries, domesticHelpPresent: present }, expectedVisitors: expected, pendingApprovals: { visitors: pv, deliveries: pd }, activeVisitors: active, activeEmergencyAlerts: alerts, recentActivity: recent });
+
+    const activity = [
+      ...recentVisitors.map((v) => ({ id: String(v._id), kind: 'VISITOR' as const, name: v.name, flatLabel: v.flatLabel, company: undefined, status: v.status, at: v.exitAt ?? v.entryAt ?? v.updatedAt })),
+      ...recentDeliveries.map((d) => ({ id: String(d._id), kind: 'DELIVERY' as const, name: d.agentName, flatLabel: d.flatLabel, company: d.company, status: d.status, at: d.exitAt ?? d.collectedAt ?? d.entryAt ?? d.updatedAt })),
+      ...recentMaidActivity,
+    ]
+      .filter((a) => a.at instanceof Date)
+      .sort((a, b) => (b.at as Date).getTime() - (a.at as Date).getTime())
+      .slice(0, 25)
+      .map(({ at, ...entry }) => ({ ...entry, at: (at as Date).toISOString() }));
+
+    ok(res, { today: { visitors, deliveries, domesticHelpPresent: present }, expectedVisitors: expected, pendingApprovals: { visitors: pv, deliveries: pd }, activeVisitors: active, activeEmergencyAlerts: alerts, recentActivity: activity });
   } })
   .add({ method: 'get', path: '/gate', summary: 'My assigned gate', response: z.object({ id: z.string(), name: z.string(), type: z.string(), location: z.string().optional() }), handler: async (req: Request, res: Response) => {
     const g: any = req.auth.gateId ? await Gate.findOne({ _id: req.auth.gateId, societyId: sid(req) }) : null;
@@ -90,6 +118,7 @@ guardRouter
     ok(res, view);
   } })
   .add({ method: 'post', path: '/domestic-help/check-in', summary: 'Check in a domestic worker and notify assigned flats', body: dhs.guardHelpGateBody, response: dhs.guardHelpView, status: 200, errors: [403, 404, 409], feature: 'domesticHelp', handler: async (req: Request, res: Response) => ok(res, await dh.checkIn(ctx(req), req.valid.body.code), 'Checked in') })
+  .add({ method: 'post', path: '/domestic-help/attendance', summary: 'Mark a maid present for the society day using her six-digit code', description: 'Repeating a successful submission for the same maid and society day returns her first check-in.', body: dhs.guardHelpGateBody, bodyExample: { code: '001234' }, response: dhs.guardMaidAttendanceItem, errors: [403, 404, 409], feature: 'domesticHelp', handler: async (req: Request, res: Response) => ok(res, await dh.markMaidAttendance(ctx(req), req.valid.body.code), 'Attendance recorded') })
   .add({ method: 'post', path: '/domestic-help/check-out', summary: 'Check out a domestic worker', body: dhs.guardHelpGateBody, response: dhs.guardHelpView, status: 200, errors: [403, 404, 409], feature: 'domesticHelp', handler: async (req: Request, res: Response) => ok(res, await dh.checkOut(ctx(req), req.valid.body.code), 'Checked out') })
   .add({ method: 'get', path: '/domestic-help/expected', summary: 'Verified domestic workers for today\'s roster', response: z.array(z.object({ id: z.string(), name: z.string(), helpType: z.string(), flats: z.array(z.string().optional()) })), feature: 'domesticHelp', handler: async (req: Request, res: Response) => ok(res, await dh.expectedToday(sid(req))) })
   .add({ method: 'post', path: '/domestic-help/unauthorized-report', summary: 'Report an unauthorized domestic-help visit', body: dhs.unauthorizedReportBody, response: es.incidentItem, status: 201, feature: 'domesticHelp', handler: async (req: Request, res: Response) => created(res, await reportIncident(sid(req), req.auth.userId, 'GUARD', { type: 'TRESPASS', description: `Unauthorized domestic help visit: ${req.valid.body.name ?? req.valid.body.helpId ?? 'unknown'}. ${req.valid.body.description}`, flatId: req.valid.body.flatId, attachments: [] }), 'Report recorded') })
@@ -98,6 +127,9 @@ guardRouter
   .add({ method: 'get', path: '/alerts', summary: 'Active emergency and panic alerts', query: es.alertQuery, response: es.alertItem, paginated: true, handler: async (req: Request, res: Response) => paged(res, await emergencyService.list(sid(req), req.valid.query)) })
   .add({ method: 'patch', path: '/alerts/:id', summary: 'Acknowledge or resolve an alert', params: idParam, body: es.alertUpdateBody, response: es.alertItem, errors: [409], handler: async (req: Request, res: Response) => ok(res, await emergencyService.update(sid(req), req.valid.params.id, req.auth.userId, req.valid.body, { role: 'GUARD' }), 'Alert updated') })
   .add({ method: 'post', path: '/incidents', summary: 'Report a suspicious activity or security incident', body: es.incidentBody, response: es.incidentItem, status: 201, handler: async (req: Request, res: Response) => created(res, await reportIncident(sid(req), req.auth.userId, 'GUARD', req.valid.body), 'Incident recorded') })
-  .add({ method: 'get', path: '/lost-found', summary: 'Browse lost & found items of the society', query: es.lostFoundQuery, response: es.lostFoundItem, paginated: true, handler: async (req: Request, res: Response) => paged(res, await lostFoundService.list(sid(req), req.valid.query)) })
+  .add({ method: 'get', path: '/incidents', summary: 'My reported security incidents', query: es.incidentQuery, response: es.incidentItem, paginated: true, handler: async (req: Request, res: Response) => paged(res, await incidentService.list(sid(req), req.valid.query, { reportedBy: req.auth.userId })) })
+  .add({ method: 'get', path: '/lost-found', summary: 'Browse the society lost-and-found register', query: es.lostFoundQuery, response: es.lostFoundItem.pick({ id: true, type: true, title: true, status: true, createdAt: true }).extend({ locationFound: z.string().optional() }), paginated: true, handler: async (req: Request, res: Response) => {
+    paged(res, await listGuardLostFound(sid(req), req.valid.query));
+  } })
   .add({ method: 'post', path: '/lost-found', summary: 'Report a lost or found item', body: es.lostFoundBody, response: es.lostFoundItem, status: 201, handler: async (req: Request, res: Response) => created(res, await lostFoundService.create(sid(req), req.auth.userId, { ...req.valid.body, reportedBy: req.auth.userId }), 'Item recorded') })
   .add({ method: 'get', path: '/emergency-contacts', summary: 'Society emergency contacts and instructions', query: es.contactQuery, response: es.contactItem, paginated: true, handler: async (req: Request, res: Response) => paged(res, await contactService.list(sid(req), req.valid.query, { scope: 'SOCIETY', visibleToGuards: { $ne: false } })) });

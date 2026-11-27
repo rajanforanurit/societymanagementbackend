@@ -5,6 +5,7 @@ import { dateOnly, dateTime, listQuery, mobile, money, objectId } from '../../co
 
 const hType = z.enum(vals(DomesticHelpType));
 export const registerHelpBody = z.object({ name: z.string().trim().min(2).max(120), mobile, helpType: hType, photoFileId: objectId.optional(), idProofFileId: objectId.optional(), flatId: objectId.optional(), salaryMonthly: money.optional() });
+export const registerMaidBody = registerHelpBody.pick({ name: true, mobile: true, flatId: true }).extend({ photoFileId: objectId });
 export const hireBody = z.object({ flatId: objectId.optional(), salaryMonthly: money.optional() });
 export const helpItem = entity({
   name: z.string(),
@@ -12,6 +13,7 @@ export const helpItem = entity({
   helpType: hType,
   status: z.enum(vals(DomesticHelpStatus)),
   code: z.string().optional(),
+  photoFileId: objectId.optional(),
   flats: z.array(z.object({ flatId: objectId, flatLabel: z.string().optional(), salaryMonthly: z.number().optional() })),
   ratingAvg: z.number(),
   ratingCount: z.number().int(),
@@ -23,6 +25,18 @@ export const verifyHelpBody = z.object({ decision: z.enum(['VERIFY', 'REJECT', '
 export const attendanceBody = z.object({ date: dateOnly, flatId: objectId.optional(), status: z.enum(vals(AttendanceStatus)), note: z.string().max(200).optional() });
 export const attendanceQuery = z.object({ from: dateOnly.optional(), to: dateOnly.optional(), page: z.coerce.number().int().min(1).default(1), limit: z.coerce.number().int().min(1).max(100).default(31) });
 export const attendanceItem = entity({ helpId: objectId, date: z.string(), entries: z.array(z.object({ checkInAt: dateTime.optional(), checkOutAt: dateTime.optional() })), marks: z.array(z.object({ flatId: objectId, status: z.enum(vals(AttendanceStatus)), note: z.string().optional() })) });
+export const attendanceCalendarQuery = z.object({ flatId: objectId, from: dateOnly.optional(), to: dateOnly.optional() }).refine(({ from, to }) => {
+  if (!from || !to) return !from && !to;
+  const span = Date.parse(to) - Date.parse(from);
+  return span >= 0 && span < 366 * 86_400_000;
+}, 'Provide both dates in order, with a range of up to 366 days');
+export const attendanceCalendarItem = z.object({
+  helpId: objectId,
+  flatId: objectId,
+  timezone: z.string(),
+  today: dateOnly,
+  days: z.array(z.object({ date: dateOnly, status: z.enum(['PRESENT', 'ABSENT', 'PENDING', 'NOT_APPLICABLE']), firstCheckInAt: dateTime.optional() })),
+});
 export const paymentBody = z.object({ flatId: objectId.optional(), type: z.enum(vals(HelpPaymentType)), amount: money, month: z.string().regex(/^\d{4}-\d{2}$/).optional(), paidOn: dateOnly, note: z.string().max(200).optional() });
 export const paymentItem = entity({ helpId: objectId, flatId: objectId, type: z.enum(vals(HelpPaymentType)), amount: z.number(), month: z.string().optional(), paidOn: z.string(), note: z.string().optional() });
 export const paymentQuery = listQuery.extend({ month: z.string().regex(/^\d{4}-\d{2}$/).optional() });
@@ -38,3 +52,4 @@ export const guardHelpVerifyBody = z.object({ code: z.string().regex(/^\d{6}$/) 
 export const guardHelpGateBody = z.object({ code: z.string().regex(/^\d{6}$/) });
 export const unauthorizedReportBody = z.object({ helpId: objectId.optional(), name: z.string().max(120).optional(), flatId: objectId.optional(), description: z.string().trim().min(5).max(500) });
 export const guardHelpView = z.object({ id: objectId, name: z.string(), helpType: hType, status: z.enum(vals(DomesticHelpStatus)), assignedFlats: z.array(z.object({ flatId: objectId, flatLabel: z.string().optional() })), checkedIn: z.boolean() });
+export const guardMaidAttendanceItem = z.object({ helpId: objectId, name: z.string(), date: dateOnly, firstCheckInAt: dateTime, alreadyMarked: z.boolean() });

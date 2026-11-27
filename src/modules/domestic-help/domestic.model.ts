@@ -26,6 +26,7 @@ export const DomesticHelp = defineModel(
       verifiedAt: Date,
       rejectionReason: String,
       code: { type: String, required: true },
+      allowPendingGateAttendance: { type: Boolean, default: false },
       flats: [{ flatId: refReq('Flat'), flatLabel: String, since: { type: Date, default: Date.now }, salaryMonthly: Number }],
       ratingAvg: { type: Number, default: 0 },
       ratingCount: { type: Number, default: 0 },

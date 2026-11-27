@@ -71,7 +71,7 @@ export const ParkingStatus = e('AVAILABLE', 'ALLOCATED', 'BLOCKED');
 export const ParkingRequestStatus = e('PENDING', 'APPROVED', 'REJECTED', 'CANCELLED');
 export const DocumentCategory = e('BYLAWS', 'MINUTES', 'POLICY', 'CIRCULAR', 'FINANCIAL', 'LEGAL', 'FLAT_DOCUMENT', 'PERSONAL', 'OTHER');
 export const DocumentScope = e('SOCIETY', 'FLAT', 'PERSONAL');
-export const FilePurpose = e('PROFILE', 'VERIFICATION', 'LISTING', 'COMPLAINT', 'DOCUMENT', 'VISITOR', 'STAFF', 'INVOICE', 'OTHER');
+export const FilePurpose = e('PROFILE', 'VERIFICATION', 'LISTING', 'COMPLAINT', 'DOCUMENT', 'VISITOR', 'STAFF', 'INVOICE', 'DOMESTIC_HELP', 'OTHER');
 
 export const EmergencyType = e('PANIC', 'FIRE', 'MEDICAL', 'SECURITY', 'OTHER');
 export const AlertStatus = e('ACTIVE', 'ACKNOWLEDGED', 'RESOLVED', 'FALSE_ALARM');

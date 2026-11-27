@@ -14,7 +14,7 @@
     "typecheck": "tsc --noEmit",
     "docs:generate": "tsx scripts/generate-openapi.ts",
     "seed": "tsx scripts/seed.ts",
-    "test": "tsx --test tests/*.test.ts"
+    "test": "node --import tsx --import ./tests/test-env.ts --test tests/*.test.ts"
   },
   "dependencies": {
     "bcryptjs": "^3.0.3",

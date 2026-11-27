@@ -57,7 +57,7 @@ export const statusReasonBody = z.object({ reason: z.string().max(500).optional(
 
 export const profileUpdateBody = z.object({ name: z.string().trim().min(2).max(120), email: email, avatarFileId: objectId }).partial();
 export const notificationPrefsBody = z.object({ visitor: z.boolean(), delivery: z.boolean(), payment: z.boolean(), complaint: z.boolean(), marketplace: z.boolean(), announcement: z.boolean(), booking: z.boolean(), chat: z.boolean(), push: z.boolean(), sms: z.boolean(), email: z.boolean() }).partial();
-export const profileItem = globalEntity({ name: z.string(), mobile: z.string(), email: z.string().optional(), notificationPrefs: z.record(z.string(), z.boolean()).optional() });
+export const profileItem = globalEntity({ name: z.string(), mobile: z.string(), email: z.string().optional(), avatarFileId: objectId.optional(), notificationPrefs: z.record(z.string(), z.boolean()).optional() });
 
 export const familyBody = z.object({ flatId: objectId, name: z.string().trim().min(2).max(120), relation: z.string().trim().min(2).max(50), dateOfBirth: dateOnly.optional(), mobile: mobile.optional(), isMinor: z.boolean().default(false), canApproveVisitors: z.boolean().default(false) });
 export const familyQuery = listQuery.extend({ flatId: objectId.optional() });

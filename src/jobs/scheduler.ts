@@ -19,6 +19,7 @@ const hourlyJobs: [string, () => Promise<unknown>][] = [
   ['overdue_and_penalties', () => runOverdueAndPenalties()],
   ['payment_reminders', () => sendPaymentReminders()],
   ['booking_reminders', () => amenityExtra.sendReminders()],
+  ['purge_visitor_history', () => visitorService.purgeExpired()],
 ];
 
 const guarded = (jobs: [string, () => Promise<unknown>][]) => {

@@ -2,7 +2,7 @@
   "title": "Society Management Platform API",
   "version": "1.0.0",
   "generatedFrom": "src/docs/openapi.yaml",
-  "totalRoutes": 455,
+  "totalRoutes": 465,
   "sections": {
     "Approvals": {
       "description": "Reusable approval workflow: DRAFT → SUBMITTED → UNDER_REVIEW → APPROVED/REJECTED → PUBLISHED → EXPIRED/REMOVED. Used by marketplace listings, property listings, community posts and move-in/out requests.",
@@ -48,13 +48,13 @@
     },
     "Guard": {
       "description": "Simplified security interface. Guards only see minimal data (flat label, visitor details) for their own society and gate; residents' personal and financial data is never exposed.",
-      "count": 32,
+      "count": 40,
       "routes": [
         "GET /api/v1/guard/dashboard - Guard dashboard",
         "GET /api/v1/guard/gate - My assigned gate",
         "GET /api/v1/guard/flats/lookup - Find a destination flat (label only)",
-        "GET /api/v1/guard/visitors - Search visitor records",
         "POST /api/v1/guard/visitors - Register a walk-in visitor and request resident approval",
+        "GET /api/v1/guard/visitors - Search visitor records",
         "GET /api/v1/guard/visitors/pending - Visitors pending approval",
         "GET /api/v1/guard/visitors/active - Visitors currently inside",
         "GET /api/v1/guard/visitors/expected - Expected (pre-approved) visitors",
@@ -64,8 +64,8 @@
         "POST /api/v1/guard/visitors/{id}/entry - Record visitor entry",
         "POST /api/v1/guard/visitors/{id}/exit - Record visitor exit",
         "POST /api/v1/guard/visitors/{id}/deny - Reject unauthorized entry",
-        "GET /api/v1/guard/deliveries - Delivery log",
         "POST /api/v1/guard/deliveries - Register delivery personnel and notify the resident",
+        "GET /api/v1/guard/deliveries - Delivery log",
         "POST /api/v1/guard/deliveries/{id}/request-approval - Re-contact the resident for delivery approval",
         "POST /api/v1/guard/deliveries/{id}/entry - Record delivery entry",
         "POST /api/v1/guard/deliveries/{id}/exit - Record delivery exit",
@@ -73,15 +73,23 @@
         "POST /api/v1/guard/deliveries/{id}/handover - Hand over a parcel after verifying the resident's OTP",
         "POST /api/v1/guard/domestic-help/lookup - Verify a domestic worker by entry code",
         "POST /api/v1/guard/domestic-help/check-in - Check in a domestic worker and notify assigned flats",
+        "POST /api/v1/guard/domestic-help/attendance - Mark a maid present for the society day using her six-digit code",
         "POST /api/v1/guard/domestic-help/check-out - Check out a domestic worker",
         "GET /api/v1/guard/domestic-help/expected - Verified domestic workers for today's roster",
         "POST /api/v1/guard/domestic-help/unauthorized-report - Report an unauthorized domestic-help visit",
-        "GET /api/v1/guard/alerts - Active emergency and panic alerts",
         "POST /api/v1/guard/alerts - Trigger an emergency alert",
+        "GET /api/v1/guard/alerts - Active emergency and panic alerts",
         "PATCH /api/v1/guard/alerts/{id} - Acknowledge or resolve an alert",
         "POST /api/v1/guard/incidents - Report a suspicious activity or security incident",
+        "GET /api/v1/guard/incidents - My reported security incidents",
+        "GET /api/v1/guard/lost-found - Browse the society lost-and-found register",
         "POST /api/v1/guard/lost-found - Report a lost or found item",
-        "GET /api/v1/guard/emergency-contacts - Society emergency contacts and instructions"
+        "GET /api/v1/guard/emergency-contacts - Society emergency contacts and instructions",
+        "GET /api/v1/guard/profile - Get my guard account profile",
+        "PATCH /api/v1/guard/profile - Update my guard account profile",
+        "PUT /api/v1/guard/notification-preferences - Manage my guard notification preferences",
+        "GET /api/v1/guard/society-info - Society information and destination units for the gate",
+        "GET /api/v1/guard/helpdesk - Helpdesk contacts of my society"
       ]
     },
     "Notifications": {
@@ -150,14 +158,16 @@
     },
     "Resident - Domestic Help & Services": {
       "description": "Register and manage domestic help, attendance, payments, and find verified local service providers",
-      "count": 13,
+      "count": 15,
       "routes": [
         "GET /api/v1/user/domestic-help - My domestic help",
         "POST /api/v1/user/domestic-help - Register a domestic worker",
+        "POST /api/v1/user/domestic-help/maids - Register a maid with a photo and generate her attendance code",
         "GET /api/v1/user/domestic-help/directory - Search verified maids, drivers, cooks and cleaners",
         "POST /api/v1/user/domestic-help/{id}/hire - Add a verified helper to my flat",
         "POST /api/v1/user/domestic-help/{id}/release - Remove a helper from my flat",
         "GET /api/v1/user/domestic-help/{id}/attendance - Attendance history (gate entries and my flat marks)",
+        "GET /api/v1/user/domestic-help/{id}/attendance/calendar - Daily maid gate attendance for a date range or the current month",
         "PUT /api/v1/user/domestic-help/{id}/attendance - Mark daily attendance for my flat",
         "GET /api/v1/user/domestic-help/{id}/payments - Payment and advance history",
         "POST /api/v1/user/domestic-help/{id}/payments - Record a salary, advance or bonus payment",

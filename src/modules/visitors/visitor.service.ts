@@ -7,9 +7,13 @@ import { writeAudit } from '../audit/audit.service';
 import { notifyAdmins, notifyFlat, notifyUsers, residentUserIdsOfFlat } from '../notifications/notify.service';
 import { Guard } from '../guard/guard.model';
 import { Flat, Society } from '../society/society.model';
+import { purgeFile } from '../files/files.service';
 import { realtime } from '../../realtime/socket';
 import { Visitor, VisitorInvitation } from './visitor.model';
 import { GATE_PASS_DAYS } from './visitor.schema';
+
+const RETENTION_DAYS = 90;
+const LIVE_STATUSES = [VisitorStatus.PENDING_APPROVAL, VisitorStatus.APPROVED, VisitorStatus.CHECKED_IN];
 
 const qrFor = (invId: string) => `${invId}.${hmac(`inv:${invId}`).slice(0, 24)}`;
 const policyOf = async (societyId: string) => ((await Society.findById(societyId).select('settings.visitorPolicy')) as any)?.settings?.visitorPolicy ?? {};
@@ -28,6 +32,7 @@ const approvalData = (v: any, requiresApproval: boolean) => ({
   company: v.company ?? '',
   purpose: v.purpose ?? '',
   flatLabel: v.flatLabel,
+  photoFileId: v.photoFileId ? String(v.photoFileId) : undefined,
   requestedAt: (v.requestedAt ?? new Date()).toISOString?.() ?? String(v.requestedAt),
 });
 
@@ -44,7 +49,7 @@ const tellGuards = async (societyId: string, v: any, title: string, body: string
 const gateBoard = (societyId: string, event: string, v: any) =>
   realtime.toAdmins(societyId, event, { visitorId: String(v._id), name: v.name, flatLabel: v.flatLabel, visitorType: v.visitorType });
 
-const GUEST_FIELDS = 'gateId flatId flatLabel visitorType name mobile vehicleNumber purpose company status approvalMode requestedAt decidedAt rejectReason entryAt exitAt isEmergencyEntry createdAt updatedAt societyId';
+const GUEST_FIELDS = 'gateId flatId flatLabel visitorType name mobile vehicleNumber purpose company photoFileId status approvalMode requestedAt decidedAt rejectReason entryAt exitAt isEmergencyEntry createdAt updatedAt societyId';
 
 const flatCtx = async (societyId: string, flatId: string) => {
   const flat: any = await Flat.findOne({ _id: flatId, societyId });
@@ -328,7 +333,7 @@ export const visitorService = {
     const societies: any[] = await Society.find({ status: 'ACTIVE' }).select('settings.visitorPolicy');
     for (const s of societies) {
       const p = s.settings?.visitorPolicy ?? {};
-      const cutoff = new Date(Date.now() - (p.approvalTimeoutSeconds ?? 120) * 1000);
+      const cutoff = new Date(Date.now() - (p.approvalTimeoutSeconds ?? 30 * 60) * 1000);
       if (p.onTimeout === 'ALLOW') continue;
       const stale: any[] = await Visitor.find({ societyId: s._id, status: VisitorStatus.PENDING_APPROVAL, requestedAt: { $lt: cutoff } }).limit(100);
       for (const v of stale) {
@@ -351,5 +356,38 @@ export const visitorService = {
       }
     }
     await VisitorInvitation.updateMany({ status: 'ACTIVE', validTo: { $lt: new Date() } }, { $set: { status: 'EXPIRED' } }).setOptions({ skipTenantCheck: true });
+  },
+
+  async purgeExpired() {
+    const cutoff = new Date(Date.now() - RETENTION_DAYS * 24 * 60 * 60 * 1000);
+    const stale: any[] = await Visitor.find({
+      status: { $nin: LIVE_STATUSES },
+      $or: [
+        { exitAt: { $ne: null, $lt: cutoff } },
+        { exitAt: null, decidedAt: { $ne: null, $lt: cutoff } },
+        { exitAt: null, decidedAt: null, createdAt: { $lt: cutoff } },
+      ],
+    })
+      .select('photoFileId')
+      .limit(2000)
+      .lean();
+    if (stale.length === 0) return 0;
+
+    const ids = stale.map((v) => v._id);
+    const photoIds = [...new Set(stale.map((v) => v.photoFileId).filter(Boolean).map(String))];
+
+    await Visitor.deleteMany({ _id: { $in: ids } });
+
+    if (photoIds.length > 0) {
+      const stillReferenced = new Set(
+        (await Visitor.distinct('photoFileId', { photoFileId: { $in: photoIds } })).map(String),
+      );
+      const orphans = photoIds.filter((id) => !stillReferenced.has(id));
+      for (const id of orphans) {
+        await purgeFile(id).catch(() => undefined);
+      }
+    }
+
+    return stale.length;
   },
 };

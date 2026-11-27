@@ -62,6 +62,7 @@ export const visitorItem = entity({
   vehicleNumber: z.string().optional(),
   purpose: z.string().optional(),
   company: z.string().optional(),
+  photoFileId: objectId.optional(),
   status: z.enum(vals(VisitorStatus)),
   approvalMode: z.enum(vals(ApprovalMode)).optional(),
   requestedAt: dateTime.optional(),
